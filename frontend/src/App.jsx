@@ -1,0 +1,78 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import PublicLayout from "./layouts/PublicLayout";
+import DashboardLayout from "./layouts/DashboardLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthProvider } from "./context/AuthContext";
+import { FavoritesProvider } from "./context/FavoritesContext";
+
+// Public & Auth Pages
+import Homepage from "./pages/public/Homepage";
+import PropertyList from "./pages/public/PropertyList";
+import PropertyDetail from "./pages/public/PropertyDetail";
+import Auth from "./pages/public/Auth";
+
+// Customer Pages
+import CustomerDashboard from "./pages/customer/CustomerDashboard";
+
+// Broker Pages
+import BrokerDashboard from "./pages/broker/BrokerDashboard";
+import LeadManagement from "./pages/broker/LeadManagement";
+import CreateTransaction from "./pages/broker/CreateTransaction";
+import BrokerProperties from "./pages/broker/BrokerProperties";
+import BrokerFinance from "./pages/broker/BrokerFinance";
+
+// Admin Pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import PropertyManagement from "./pages/admin/PropertyManagement";
+import PropertyApproval from "./pages/admin/PropertyApproval";
+import FinancialManagement from "./pages/admin/FinancialManagement";
+
+function App() {
+  return (
+    <AuthProvider>
+      <FavoritesProvider>
+        <Router>
+          <Routes>
+        {/* Public Routes */}
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<Homepage />} />
+          <Route path="/properties" element={<PropertyList />} />
+          <Route path="/properties/:id" element={<PropertyDetail />} />
+          <Route path="/auth" element={<Auth />} />
+          
+          {/* Customer */}
+          <Route element={<ProtectedRoute allowedRoles={['customer']} />}>
+            <Route path="/customer" element={<CustomerDashboard />} />
+          </Route>
+          
+          {/* Broker */}
+          <Route element={<ProtectedRoute allowedRoles={['broker']} />}>
+            <Route path="/broker" element={<BrokerDashboard />} />
+            <Route path="/broker/properties" element={<BrokerProperties />} />
+            <Route path="/broker/finance" element={<BrokerFinance />} />
+            <Route path="/broker/leads" element={<LeadManagement />} />
+            <Route path="/broker/transaction" element={<CreateTransaction />} />
+          </Route>
+        </Route>
+
+        {/* Admin Dashboard Routes - Sidebar Layout */}
+        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+          <Route element={<DashboardLayout />}>
+            {/* Admin */}
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/properties" element={<PropertyManagement />} />
+            <Route path="/admin/approval" element={<PropertyApproval />} />
+            <Route path="/admin/finance" element={<FinancialManagement />} />
+          </Route>
+        </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+      </FavoritesProvider>
+    </AuthProvider>
+  );
+}
+
+export default App;

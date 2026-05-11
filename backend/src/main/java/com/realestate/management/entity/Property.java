@@ -1,0 +1,124 @@
+package com.realestate.management.entity;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * Entity Property - Bất động sản
+ * Status: 'pending', 'published', 'sold'
+ */
+@Entity
+@Table(name = "properties")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Property {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "property_id")
+    private Long propertyId;
+
+    @Column(name = "property_code", nullable = false, unique = true, length = 50)
+    private String propertyCode; // Mã BDS tự động sinh (VD: BDS-2024-0001)
+
+    @Column(name = "title", nullable = false, length = 500)
+    private String title;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "property_type", nullable = false, length = 50)
+    private String propertyType; // 'apartment', 'house', 'land', 'villa'
+
+    @Column(name = "status", length = 30)
+    private String status = "pending"; // 'pending', 'published', 'sold'
+
+    @Column(name = "province", nullable = false, length = 100)
+    private String province;
+
+    @Column(name = "district", nullable = false, length = 100)
+    private String district;
+
+    @Column(name = "area", nullable = false, precision = 10, scale = 2)
+    private BigDecimal area; // Diện tích (m²)
+
+    @Column(name = "price", nullable = false, precision = 18, scale = 2)
+    private BigDecimal price; // Giá (VNĐ)
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    // ===================================================================
+    // Relationships
+    // ===================================================================
+
+    /**
+     * Người tạo BDS (broker/admin)
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    @JsonIgnore
+    private User createdBy;
+
+    /**
+     * Người được gán phụ trách BDS (broker)
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_to")
+    @JsonIgnore
+    private User assignedTo;
+
+    /**
+     * Danh sách hình ảnh của BDS
+     */
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private List<PropertyImage> images;
+
+    /**
+     * Danh sách lịch hẹn xem BDS
+     */
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<Appointment> appointments;
+
+    /**
+     * Danh sách leads liên quan đến BDS này
+     */
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<Lead> leads;
+
+    /**
+     * Danh sách giao dịch liên quan đến BDS này
+     */
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<Transaction> transactions;
+
+    // Constructor tiện ích
+    public Property(String propertyCode, String title, String description, String propertyType,
+                    String province, String district, BigDecimal area, BigDecimal price,
+                    User createdBy, User assignedTo) {
+        this.propertyCode = propertyCode;
+        this.title = title;
+        this.description = description;
+        this.propertyType = propertyType;
+        this.province = province;
+        this.district = district;
+        this.area = area;
+        this.price = price;
+        this.createdBy = createdBy;
+        this.assignedTo = assignedTo;
+        this.status = "pending";
+    }
+}
