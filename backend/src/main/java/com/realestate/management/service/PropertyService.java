@@ -197,9 +197,11 @@ public class PropertyService {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy BDS với ID: " + id));
 
-        // Nếu là Broker, chỉ được sửa BDS do mình phụ trách
+        // Nếu là Broker, chỉ được sửa BDS do mình phụ trách hoặc do mình tạo
         if ("broker".equalsIgnoreCase(currentUser.getRole())) {
-            if (property.getAssignedTo() == null || !property.getAssignedTo().getUserId().equals(currentUser.getUserId())) {
+            boolean isCreator = property.getCreatedBy() != null && property.getCreatedBy().getUserId().equals(currentUser.getUserId());
+            boolean isAssigned = property.getAssignedTo() != null && property.getAssignedTo().getUserId().equals(currentUser.getUserId());
+            if (!isCreator && !isAssigned) {
                 throw new RuntimeException("Bạn không có quyền cập nhật BDS này");
             }
         }
@@ -261,8 +263,13 @@ public class PropertyService {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy BDS với ID: " + id));
 
-        // Chỉ Admin mới được xóa
-        if (!"admin".equalsIgnoreCase(currentUser.getRole())) {
+        // Admin hoặc Broker (nếu là người tạo và đang ở trạng thái pending) mới được xóa
+        if ("broker".equalsIgnoreCase(currentUser.getRole())) {
+            boolean isCreator = property.getCreatedBy() != null && property.getCreatedBy().getUserId().equals(currentUser.getUserId());
+            if (!isCreator || !"pending".equals(property.getStatus())) {
+                throw new RuntimeException("Bạn không có quyền xóa BDS này, hoặc BDS đã được duyệt");
+            }
+        } else if (!"admin".equalsIgnoreCase(currentUser.getRole())) {
             throw new RuntimeException("Bạn không có quyền xóa BDS này");
         }
 
