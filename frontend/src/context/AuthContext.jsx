@@ -1,61 +1,80 @@
-import { createContext, useState, useContext, useEffect } from 'react';
-import api from '../services/api';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState } from "react";
+import api from "../services/api";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Thêm loading state
-
-  useEffect(() => {
-    // Load from localStorage on mount
-    const storedUser = localStorage.getItem('user');
+  const [user, setUser] = useState(() => {
+    const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
-        const parsedUser = JSON.parse(storedUser);
-        console.log('Restored user from localStorage:', parsedUser);
-        setUser(parsedUser);
+        return JSON.parse(storedUser);
       } catch (error) {
-        console.error('Failed to parse stored user:', error);
-        localStorage.removeItem('user');
+        console.error("Failed to parse stored user:", error);
+        localStorage.removeItem("user");
       }
     }
-    setLoading(false); // Đánh dấu đã load xong
-  }, []);
+    return null;
+  });
+  const loading = false;
 
   const login = async (email, password) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const response = await api.post("/auth/login", { email, password });
       if (response.data.success) {
         const data = response.data.data;
         const newUser = {
           token: data.token,
-          userId: data.userId, // Đổi từ id thành userId
+          userId: data.userId,
           email: data.email,
           fullName: data.fullName,
-          role: data.role
+          role: data.role,
         };
         setUser(newUser);
-        localStorage.setItem('user', JSON.stringify(newUser));
-        return { success: true };
-      } else {
-        return { success: false, message: response.data.message || 'Đăng nhập thất bại' };
+        localStorage.setItem("user", JSON.stringify(newUser));
+        return { success: true, user: newUser };
       }
+
+      return { success: false, message: response.data.message || "Đăng nhập thất bại" };
     } catch (error) {
-      if (error.response && error.response.data && error.response.data.message) {
+      if (error.response?.data?.message) {
         return { success: false, message: error.response.data.message };
       }
-      return { success: false, message: 'Lỗi kết nối đến máy chủ' };
+      return { success: false, message: "Không thể kết nối đến máy chủ" };
+    }
+  };
+
+  const register = async ({ fullName, phone, email, password, role = "customer" }) => {
+    try {
+      const response = await api.post("/auth/register", {
+        fullName,
+        phone,
+        email: email.trim().toLowerCase(),
+        password,
+        role,
+      });
+
+      if (response.data.success) {
+        return { success: true, user: response.data.data };
+      }
+
+      return { success: false, message: response.data.message || "Đăng ký thất bại" };
+    } catch (error) {
+      if (error.response?.data?.message) {
+        return { success: false, message: error.response.data.message };
+      }
+      return { success: false, message: "Không thể kết nối đến máy chủ" };
     }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('user');
+    localStorage.removeItem("user");
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

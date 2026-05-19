@@ -85,8 +85,33 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
            "(:minPrice IS NULL OR p.price >= :minPrice) AND " +
            "(:maxPrice IS NULL OR p.price <= :maxPrice) AND " +
            "(:minArea IS NULL OR p.area >= :minArea) AND " +
-           "(:maxArea IS NULL OR p.area <= :maxArea)")
+           "(:maxArea IS NULL OR p.area <= :maxArea) AND " +
+           "(:keyword IS NULL OR " +
+           "LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Property> searchProperties(
+        @Param("status") String status,
+        @Param("propertyType") String propertyType,
+        @Param("province") String province,
+        @Param("district") String district,
+        @Param("minPrice") BigDecimal minPrice,
+        @Param("maxPrice") BigDecimal maxPrice,
+        @Param("minArea") BigDecimal minArea,
+        @Param("maxArea") BigDecimal maxArea,
+        @Param("keyword") String keyword,
+        Pageable pageable
+    );
+
+    @Query("SELECT p FROM Property p WHERE " +
+           "(:status IS NULL OR p.status = :status) AND " +
+           "(:propertyType IS NULL OR p.propertyType = :propertyType) AND " +
+           "(:province IS NULL OR p.province = :province) AND " +
+           "(:district IS NULL OR p.district = :district) AND " +
+           "(:minPrice IS NULL OR p.price >= :minPrice) AND " +
+           "(:maxPrice IS NULL OR p.price <= :maxPrice) AND " +
+           "(:minArea IS NULL OR p.area >= :minArea) AND " +
+           "(:maxArea IS NULL OR p.area <= :maxArea)")
+    Page<Property> filterProperties(
         @Param("status") String status,
         @Param("propertyType") String propertyType,
         @Param("province") String province,

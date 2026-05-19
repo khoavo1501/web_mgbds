@@ -26,6 +26,15 @@ public class AppointmentController {
         return ResponseEntity.ok(ApiResponse.success("Success", appointmentService.getMyAppointments()));
     }
 
+    @GetMapping("/property/{propertyId}")
+    public ResponseEntity<ApiResponse<List<AppointmentDTO>>> getPropertyAppointments(@PathVariable Long propertyId) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Success", appointmentService.getPropertyAppointments(propertyId)));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<AppointmentDTO>> createAppointment(@Valid @RequestBody AppointmentRequest request) {

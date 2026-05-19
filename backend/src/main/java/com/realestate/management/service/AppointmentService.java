@@ -46,6 +46,16 @@ public class AppointmentService {
         return appointments.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
+    public List<AppointmentDTO> getPropertyAppointments(Long propertyId) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Property not found"));
+
+        return appointmentRepository.findByProperty(property).stream()
+                .filter(appointment -> !"cancelled".equalsIgnoreCase(appointment.getStatus()))
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public AppointmentDTO createAppointment(AppointmentRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -58,6 +68,16 @@ public class AppointmentService {
         User broker = property.getAssignedTo();
         if (broker == null) {
             throw new RuntimeException("Bất động sản này hiện chưa có broker phụ trách.");
+        }
+
+        boolean alreadyBooked = appointmentRepository.findByProperty(property).stream()
+                .anyMatch(appointment ->
+                        request.getScheduledAt().equals(appointment.getScheduledAt()) &&
+                        !"cancelled".equalsIgnoreCase(appointment.getStatus())
+                );
+
+        if (alreadyBooked) {
+            throw new RuntimeException("Khung giờ này đã có người đặt. Vui lòng chọn thời gian khác.");
         }
 
         Appointment appointment = new Appointment();
