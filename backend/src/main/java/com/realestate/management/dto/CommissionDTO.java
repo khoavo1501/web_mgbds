@@ -1,0 +1,28 @@
+package com.realestate.management.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CommissionDTO {
+    private Long commissionId;
+    private BigDecimal amount;
+    private String status;
+
+    // Transaction info
+    private Long transactionId;
+    private String transactionCode;
+    private BigDecimal transactionTotalPrice;
+
+    // Property info
+    private String propertyTitle;
+
+    // Broker info
+    private Long userId;
+    private String userName;
+}

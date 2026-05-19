@@ -160,7 +160,7 @@ public class PropertyController {
      * Yêu cầu quyền: ADMIN
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'BROKER')")
     public ResponseEntity<ApiResponse<String>> deleteProperty(@PathVariable Long id) {
         try {
             propertyService.deleteProperty(id);
