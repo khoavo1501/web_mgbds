@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Users, Calendar, TrendingUp, Building2, Wallet } from "lucide-react";
+import { Users, Calendar, TrendingUp } from "lucide-react";
 import StatCard from "../../components/StatCard";
 import Badge from "../../components/Badge";
 import api from "../../services/api";
@@ -66,24 +65,17 @@ export default function BrokerDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6">Broker Dashboard</h1>
+      <h1 className="text-2xl font-bold text-slate-800 mb-6">Tổng quan Môi giới</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Active Leads" value="24" trend={12} icon={Users} />
-        <StatCard title="Appointments" value={appointments.length.toString()} trend={-5} icon={Calendar} />
-        <StatCard title="Closed Deals" value="3" trend={20} icon={TrendingUp} />
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col justify-center">
-          <h3 className="font-semibold text-slate-700 mb-2">Chức năng Broker</h3>
-          <div className="flex flex-col gap-2 text-sm">
-            <Link to="/broker/properties" className="text-red-600 hover:underline flex items-center"><Building2 className="w-4 h-4 mr-1"/> Quản lý BĐS cá nhân</Link>
-            <Link to="/broker/finance" className="text-red-600 hover:underline flex items-center"><Wallet className="w-4 h-4 mr-1"/> Quản lý Thu nhập</Link>
-          </div>
-        </div>
+        <StatCard title="Khách hàng tiềm năng" value="24" trend={12} icon={Users} />
+        <StatCard title="Lịch hẹn" value={appointments.length.toString()} trend={-5} icon={Calendar} />
+        <StatCard title="Giao dịch thành công" value="3" trend={20} icon={TrendingUp} />
       </div>
 
-      {/* Upcoming Appointments Timeline */}
+      {/* Lịch hẹn sắp tới */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-bold text-slate-800 mb-4">Upcoming Appointments</h2>
+        <h2 className="text-lg font-bold text-slate-800 mb-4">Lịch hẹn sắp tới</h2>
         <div className="space-y-6">
           {appointments.length > 0 ? appointments.map((apt, index) => (
             <div key={apt.appointmentId} className="flex relative">
@@ -97,13 +89,13 @@ export default function BrokerDashboard() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="font-semibold text-slate-800">{apt.propertyTitle}</h4>
-                    <p className="text-sm text-slate-500 mt-1">Client: {apt.customerName}</p>
-                    <p className="text-sm text-slate-500">Date: {new Date(apt.scheduledAt).toLocaleDateString('vi-VN')}</p>
-                    <p className="text-sm text-slate-500 mt-1 text-red-600">Note: {apt.note}</p>
+                    <p className="text-sm text-slate-500 mt-1">Khách hàng: {apt.customerName}</p>
+                    <p className="text-sm text-slate-500">Ngày: {new Date(apt.scheduledAt).toLocaleDateString('vi-VN')}</p>
+                    <p className="text-sm text-slate-500 mt-1 text-red-600">Ghi chú: {apt.note}</p>
                   </div>
                   <div className="text-right">
                     <Badge status={apt.status === 'confirmed' ? 'success' : apt.status === 'cancelled' ? 'danger' : 'warning'}>
-                      {apt.status}
+                      {apt.status === 'confirmed' ? 'Đã xác nhận' : apt.status === 'cancelled' ? 'Đã hủy' : apt.status === 'pending' ? 'Chờ xác nhận' : apt.status}
                     </Badge>
                     {apt.status === 'pending' && (
                       <div className="mt-2 flex flex-col gap-2">

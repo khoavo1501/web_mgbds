@@ -18,8 +18,9 @@ import CustomerDashboard from "./pages/customer/CustomerDashboard";
 import BrokerDashboard from "./pages/broker/BrokerDashboard";
 import LeadManagement from "./pages/broker/LeadManagement";
 import CreateTransaction from "./pages/broker/CreateTransaction";
-import BrokerProperties from "./pages/broker/BrokerProperties";
 import BrokerFinance from "./pages/broker/BrokerFinance";
+import PropertyUpload from "./pages/broker/PropertyUpload";
+import BrokerLayout from "./layouts/BrokerLayout";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -33,43 +34,45 @@ function App() {
       <FavoritesProvider>
         <Router>
           <Routes>
-        {/* Public Routes */}
-        <Route element={<PublicLayout />}>
-          <Route path="/" element={<Homepage />} />
-          <Route path="/properties" element={<PropertyList />} />
-          <Route path="/properties/:id" element={<PropertyDetail />} />
-          <Route path="/auth" element={<Auth />} />
-          
-          {/* Customer */}
-          <Route element={<ProtectedRoute allowedRoles={['customer']} />}>
-            <Route path="/customer" element={<CustomerDashboard />} />
-          </Route>
-          
-          {/* Broker */}
-          <Route element={<ProtectedRoute allowedRoles={['broker']} />}>
-            <Route path="/broker" element={<BrokerDashboard />} />
-            <Route path="/broker/properties" element={<BrokerProperties />} />
-            <Route path="/broker/finance" element={<BrokerFinance />} />
-            <Route path="/broker/leads" element={<LeadManagement />} />
-            <Route path="/broker/transaction" element={<CreateTransaction />} />
-          </Route>
-        </Route>
+            {/* Public Routes */}
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<Homepage />} />
+              <Route path="/properties" element={<PropertyList />} />
+              <Route path="/properties/:id" element={<PropertyDetail />} />
+              <Route path="/auth" element={<Auth />} />
 
-        {/* Admin Dashboard Routes - Sidebar Layout */}
-        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-          <Route element={<DashboardLayout />}>
-            {/* Admin */}
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/properties" element={<PropertyManagement />} />
-            <Route path="/admin/approval" element={<PropertyApproval />} />
-            <Route path="/admin/finance" element={<FinancialManagement />} />
-          </Route>
-        </Route>
+              {/* Customer */}
+              <Route element={<ProtectedRoute allowedRoles={['customer']} />}>
+                <Route path="/customer" element={<CustomerDashboard />} />
+              </Route>
+            </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+            {/* Broker Routes — Sidebar Layout */}
+            <Route element={<ProtectedRoute allowedRoles={['broker']} />}>
+              <Route element={<BrokerLayout />}>
+                <Route path="/broker" element={<BrokerDashboard />} />
+                <Route path="/broker/finance" element={<BrokerFinance />} />
+                <Route path="/broker/leads" element={<LeadManagement />} />
+                <Route path="/broker/transaction" element={<CreateTransaction />} />
+                <Route path="/broker/upload" element={<PropertyUpload />} />
+              </Route>
+            </Route>
+
+            {/* Admin Dashboard Routes - Sidebar Layout */}
+            <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+              <Route element={<DashboardLayout />}>
+                {/* Admin */}
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/properties" element={<PropertyManagement />} />
+                <Route path="/admin/approval" element={<PropertyApproval />} />
+                <Route path="/admin/finance" element={<FinancialManagement />} />
+              </Route>
+            </Route>
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
       </FavoritesProvider>
     </AuthProvider>
   );
