@@ -1,260 +1,411 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  Bath,
+  BedDouble,
+  Calendar,
+  CalendarClock,
+  Heart,
+  MapPin,
+  Square,
+  X,
+} from "lucide-react";
 import api from "../../services/api";
-import PropertyCard from "../../components/PropertyCard";
-import Badge from "../../components/Badge";
-import { useFavorites } from "../../context/FavoritesContext";
-import { Calendar } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useFavorites } from "../../context/FavoritesContext";
+
+const PLACEHOLDER_IMAGE =
+  "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=900&q=80";
+
+const statusLabels = {
+  pending: "Chờ xác nhận",
+  scheduled: "Đã lên lịch",
+  confirmed: "Đã xác nhận",
+  completed: "Đã hoàn tất",
+  cancelled: "Đã hủy",
+};
+
+const formatDate = (value) => {
+  if (!value) return "";
+  return new Date(value).toLocaleDateString("vi-VN");
+};
+
+const formatTime = (value) => {
+  if (!value) return "";
+  return new Date(value).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+};
+
+const formatPrice = (price) => {
+  if (!price) return "Liên hệ";
+  if (Number(price) >= 1000000000) {
+    return `${Number(price / 1000000000).toLocaleString("vi-VN", {
+      maximumFractionDigits: 1,
+    })} tỷ`;
+  }
+  return `${Number(price / 1000000).toLocaleString("vi-VN")} triệu`;
+};
+
+const formatArea = (area) => {
+  if (!area) return "Đang cập nhật";
+  return `${Number(area).toLocaleString("vi-VN", { maximumFractionDigits: 1 })}m²`;
+};
+
+const getPropertyImage = (property) => {
+  const primaryImage = property?.images?.find((image) => image.isPrimary);
+  return primaryImage?.url || property?.images?.[0]?.url || PLACEHOLDER_IMAGE;
+};
+
+const getStatusClass = (status) => {
+  if (status === "confirmed" || status === "scheduled") return "bg-green-50 text-green-700";
+  if (status === "cancelled") return "bg-red-50 text-red-700";
+  if (status === "completed") return "bg-slate-100 text-slate-700";
+  return "bg-amber-50 text-amber-700";
+};
 
 export default function CustomerDashboard() {
   const [activeTab, setActiveTab] = useState("appointments");
-  const { favorites } = useFavorites();
-  const { user } = useAuth();
   const [appointments, setAppointments] = useState([]);
+  const [loadingAppointments, setLoadingAppointments] = useState(true);
   const [bookingProperty, setBookingProperty] = useState(null);
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
   const [rescheduleId, setRescheduleId] = useState(null);
+  const { favorites } = useFavorites();
+  const { user } = useAuth();
 
-  useEffect(() => {
-    fetchAppointments();
-  }, [activeTab]);
-
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
+    setLoadingAppointments(true);
     try {
-      const res = await api.get('/appointments');
+      const res = await api.get("/appointments");
       if (res.data.success) {
-        setAppointments(res.data.data);
+        setAppointments(res.data.data || []);
       }
     } catch (err) {
       console.error("Lỗi khi tải danh sách lịch hẹn", err);
+    } finally {
+      setLoadingAppointments(false);
     }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchAppointments();
+  }, [fetchAppointments]);
+
+  const resetBookingForm = () => {
+    setBookingProperty(null);
+    setRescheduleId(null);
+    setBookingDate("");
+    setBookingTime("");
   };
 
-  const handleBookAppointment = async (e) => {
-    e.preventDefault();
-    if (bookingDate && bookingTime && bookingProperty) {
-      const scheduledAt = `${bookingDate}T${bookingTime}:00`;
-      try {
-        const res = await api.post('/appointments', {
-          propertyId: bookingProperty.propertyId,
-          scheduledAt: scheduledAt,
-          note: "Khách hàng hẹn xem qua portal"
-        });
-        if (res.data.success) {
-          alert(`Đã đặt lịch hẹn xem thành công!`);
-          setBookingProperty(null);
-          setBookingDate("");
-          setBookingTime("");
-          setActiveTab("appointments");
-          fetchAppointments();
-        }
-      } catch (err) {
-        alert("Lỗi khi đặt lịch: " + (err.response?.data?.message || err.message));
+  const handleBookAppointment = async (event) => {
+    event.preventDefault();
+    if (!bookingDate || !bookingTime || !bookingProperty) return;
+
+    try {
+      const res = await api.post("/appointments", {
+        propertyId: bookingProperty.propertyId,
+        scheduledAt: `${bookingDate}T${bookingTime}:00`,
+        note: "Khách hàng hẹn xem qua portal",
+      });
+
+      if (res.data.success) {
+        resetBookingForm();
+        setActiveTab("appointments");
+        fetchAppointments();
       }
+    } catch (err) {
+      alert(`Lỗi khi đặt lịch: ${err.response?.data?.message || err.message}`);
     }
   };
 
-  const handleReschedule = async (e) => {
-    e.preventDefault();
-    if (bookingDate && bookingTime && rescheduleId) {
-      const scheduledAt = `${bookingDate}T${bookingTime}:00`;
-      try {
-        const res = await api.put(`/appointments/${rescheduleId}`, {
-          scheduledAt: scheduledAt,
-          note: "Khách hàng dời lịch"
-        });
-        if (res.data.success) {
-          alert(`Đã dời lịch hẹn xem thành công!`);
-          setRescheduleId(null);
-          setBookingDate("");
-          setBookingTime("");
-          fetchAppointments();
-        }
-      } catch (err) {
-        alert("Lỗi khi dời lịch: " + (err.response?.data?.message || err.message));
+  const handleReschedule = async (event) => {
+    event.preventDefault();
+    if (!bookingDate || !bookingTime || !rescheduleId) return;
+
+    try {
+      const res = await api.put(`/appointments/${rescheduleId}`, {
+        scheduledAt: `${bookingDate}T${bookingTime}:00`,
+        note: "Khách hàng dời lịch",
+      });
+
+      if (res.data.success) {
+        resetBookingForm();
+        fetchAppointments();
       }
+    } catch (err) {
+      alert(`Lỗi khi dời lịch: ${err.response?.data?.message || err.message}`);
     }
   };
 
-  const openRescheduleModal = (apt) => {
-    setBookingDate(apt.scheduledAt.split('T')[0]);
-    setBookingTime(apt.scheduledAt.split('T')[1].substring(0, 5));
-    setRescheduleId(apt.appointmentId);
+  const openRescheduleModal = (appointment) => {
+    const date = new Date(appointment.scheduledAt);
+    setBookingDate(date.toISOString().slice(0, 10));
+    setBookingTime(date.toTimeString().slice(0, 5));
+    setRescheduleId(appointment.appointmentId);
   };
 
   const handleCancel = async (id) => {
-    if (window.confirm('Bạn có chắc muốn hủy lịch hẹn này?')) {
-      try {
-        const res = await api.delete(`/appointments/${id}`);
-        if (res.data.success) {
-          alert('Đã hủy lịch hẹn');
-          fetchAppointments();
-        }
-      } catch (err) {
-        alert("Lỗi khi hủy lịch hẹn: " + (err.response?.data?.message || err.message));
+    if (!window.confirm("Bạn có chắc muốn hủy lịch hẹn này?")) return;
+
+    try {
+      const res = await api.delete(`/appointments/${id}`);
+      if (res.data.success) {
+        fetchAppointments();
       }
+    } catch (err) {
+      alert(`Lỗi khi hủy lịch hẹn: ${err.response?.data?.message || err.message}`);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6">My Dashboard</h1>
+    <div>
+      <section className="mb-8 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-sm font-bold text-slate-500">Xin chào,</p>
+        <div className="mt-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">
+              {user?.fullName || user?.email || "Khách hàng"}
+            </h1>
+            <p className="mt-2 text-sm font-medium text-slate-500">
+              Quản lý lịch xem nhà và danh sách bất động sản bạn quan tâm.
+            </p>
+          </div>
+          <Link
+            to="/properties"
+            className="inline-flex w-fit items-center gap-2 rounded-md bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+          >
+            <CalendarClock className="h-4 w-4" />
+            Tìm bất động sản
+          </Link>
+        </div>
+      </section>
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab("appointments")}
-            className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "appointments"
-                ? "border-red-500 text-red-600"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-gray-300"
-            }`}
-          >
-            My Appointments
-          </button>
-          <button
-            onClick={() => setActiveTab("favorites")}
-            className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "favorites"
-                ? "border-red-500 text-red-600"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-gray-300"
-            }`}
-          >
-            Favorite Properties
-          </button>
+      <div className="mb-6 grid gap-4 md:grid-cols-3">
+        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-bold text-slate-500">Lịch hẹn</p>
+          <p className="mt-2 text-3xl font-extrabold text-slate-950">{appointments.length}</p>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-bold text-slate-500">Đang quan tâm</p>
+          <p className="mt-2 text-3xl font-extrabold text-slate-950">{favorites.length}</p>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-bold text-slate-500">Tài khoản</p>
+          <p className="mt-2 text-lg font-extrabold text-slate-950">Khách hàng</p>
+        </div>
+      </div>
+
+      <div className="mb-6 border-b border-slate-200">
+        <nav className="flex gap-8">
+          {[
+            { id: "appointments", label: "Lịch hẹn của tôi" },
+            { id: "favorites", label: "Bất động sản yêu thích" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`border-b-2 px-1 pb-4 text-sm font-extrabold transition ${
+                activeTab === tab.id
+                  ? "border-slate-950 text-slate-950"
+                  : "border-transparent text-slate-500 hover:text-slate-950"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </nav>
       </div>
 
-      {/* Tab Content */}
       {activeTab === "appointments" && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Property</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Time</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {appointments.length > 0 ? appointments.map((apt) => (
-                <tr key={apt.appointmentId}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{apt.propertyTitle}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{new Date(apt.scheduledAt).toLocaleDateString('vi-VN')}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{new Date(apt.scheduledAt).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    <Badge status={apt.status === 'confirmed' ? 'success' : apt.status === 'cancelled' ? 'danger' : 'warning'}>
-                      {apt.status}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {apt.status === 'pending' && (
-                      <div className="flex gap-3">
-                        <button onClick={() => openRescheduleModal(apt)} className="text-indigo-600 hover:text-indigo-800 font-medium">Dời lịch</button>
-                        <button onClick={() => handleCancel(apt.appointmentId)} className="text-red-600 hover:text-red-800 font-medium">Hủy</button>
-                      </div>
-                    )}
-                  </td>
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    Bất động sản
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    Ngày xem
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    Giờ xem
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    Trạng thái
+                  </th>
+                  <th className="px-6 py-4 text-right text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    Thao tác
+                  </th>
                 </tr>
-              )) : (
-                <tr><td colSpan="5" className="text-center py-4 text-gray-500">Chưa có lịch hẹn nào</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-200 bg-white">
+                {loadingAppointments ? (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-8 text-center text-sm font-medium text-slate-500">
+                      Đang tải lịch hẹn...
+                    </td>
+                  </tr>
+                ) : appointments.length > 0 ? (
+                  appointments.map((appointment) => (
+                    <tr key={appointment.appointmentId} className="hover:bg-slate-50/70">
+                      <td className="px-6 py-4 text-sm font-extrabold text-slate-950">
+                        {appointment.propertyTitle || "Bất động sản"}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-600">
+                        {formatDate(appointment.scheduledAt)}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-600">
+                        {formatTime(appointment.scheduledAt)}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${getStatusClass(appointment.status)}`}>
+                          {statusLabels[appointment.status] || appointment.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right text-sm">
+                        {(appointment.status === "pending" || appointment.status === "scheduled") && (
+                          <div className="flex justify-end gap-3">
+                            <button
+                              type="button"
+                              onClick={() => openRescheduleModal(appointment)}
+                              className="font-bold text-slate-700 hover:text-slate-950"
+                            >
+                              Dời lịch
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCancel(appointment.appointmentId)}
+                              className="font-bold text-red-600 hover:text-red-700"
+                            >
+                              Hủy
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-10 text-center text-sm font-medium text-slate-500">
+                      Bạn chưa có lịch hẹn nào.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {activeTab === "favorites" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {favorites.length > 0 ? (
             favorites.map((property) => (
-              <div key={property.propertyId} className="flex flex-col">
-                <PropertyCard property={property} />
-                <button 
-                  onClick={() => setBookingProperty(property)}
-                  className="mt-2 flex items-center justify-center w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-md transition-colors"
-                >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Hẹn xem BĐS này
-                </button>
+              <div key={property.propertyId} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                <Link to={`/properties/${property.propertyId}`} className="block">
+                  <div className="relative h-52 overflow-hidden">
+                    <img src={getPropertyImage(property)} alt={property.title} className="h-full w-full object-cover" />
+                    <span className="absolute left-3 top-3 rounded-sm bg-white/95 px-3 py-1 text-xs font-extrabold text-slate-900">
+                      {formatPrice(property.price)}
+                    </span>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="line-clamp-2 min-h-11 text-base font-extrabold text-slate-950">
+                      {property.title}
+                    </h3>
+                    <p className="mt-3 flex items-center gap-1.5 text-sm font-medium text-slate-500">
+                      <MapPin className="h-4 w-4" />
+                      {property.address || `${property.district || ""}, ${property.province || ""}`}
+                    </p>
+                    <div className="mt-4 flex items-center gap-4 text-xs font-bold text-slate-700">
+                      <span className="flex items-center gap-1"><Square className="h-3.5 w-3.5" />{formatArea(property.area)}</span>
+                      <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" />{property.bedrooms || "-"}</span>
+                      <span className="flex items-center gap-1"><Bath className="h-3.5 w-3.5" />{property.bathrooms || "-"}</span>
+                    </div>
+                  </div>
+                </Link>
+                <div className="border-t border-slate-100 p-4">
+                  <button
+                    type="button"
+                    onClick={() => setBookingProperty(property)}
+                    className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-slate-950 text-sm font-extrabold text-white transition hover:bg-slate-800"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Đặt lịch xem nhà
+                  </button>
+                </div>
               </div>
             ))
           ) : (
-            <div className="col-span-full text-center py-10 text-slate-500">
-              Bạn chưa có bất động sản quan tâm nào.
+            <div className="col-span-full rounded-lg border border-dashed border-slate-300 bg-white p-12 text-center">
+              <Heart className="mx-auto h-10 w-10 text-slate-400" />
+              <p className="mt-4 text-sm font-medium text-slate-500">
+                Bạn chưa lưu bất động sản nào.
+              </p>
+              <Link to="/properties" className="mt-5 inline-flex rounded-md bg-slate-950 px-5 py-3 text-sm font-bold text-white">
+                Khám phá ngay
+              </Link>
             </div>
           )}
         </div>
       )}
 
-      {/* Booking Modal */}
-      {bookingProperty && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Hẹn xem BĐS</h2>
-            <p className="mb-4 text-slate-600">
-              Đặt lịch hẹn xem cho: <span className="font-semibold text-slate-800">{bookingProperty.title}</span>
-            </p>
-            <form onSubmit={handleBookAppointment}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Ngày xem</label>
-                <input 
-                  type="date" 
+      {(bookingProperty || rescheduleId) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-extrabold text-slate-950">
+                  {rescheduleId ? "Dời lịch hẹn" : "Đặt lịch xem nhà"}
+                </h2>
+                {bookingProperty && (
+                  <p className="mt-2 text-sm font-medium text-slate-500">{bookingProperty.title}</p>
+                )}
+              </div>
+              <button type="button" onClick={resetBookingForm} className="text-slate-400 hover:text-slate-700">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={rescheduleId ? handleReschedule : handleBookAppointment} className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">Ngày xem</label>
+                <input
+                  type="date"
                   required
                   value={bookingDate}
-                  onChange={(e) => setBookingDate(e.target.value)}
-                  className="w-full border border-gray-300 rounded p-2 focus:ring-red-500 focus:border-red-500" 
+                  onChange={(event) => setBookingDate(event.target.value)}
+                  className="h-11 w-full rounded-md border border-slate-200 px-3 text-sm font-medium outline-none focus:border-slate-400"
                 />
               </div>
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Giờ xem</label>
-                <input 
-                  type="time" 
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">Giờ xem</label>
+                <input
+                  type="time"
                   required
                   value={bookingTime}
-                  onChange={(e) => setBookingTime(e.target.value)}
-                  className="w-full border border-gray-300 rounded p-2 focus:ring-red-500 focus:border-red-500" 
+                  onChange={(event) => setBookingTime(event.target.value)}
+                  className="h-11 w-full rounded-md border border-slate-200 px-3 text-sm font-medium outline-none focus:border-slate-400"
                 />
               </div>
-              <div className="flex justify-end gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => setBookingProperty(null)}
-                  className="px-4 py-2 border border-gray-300 rounded text-slate-600 hover:bg-gray-50"
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={resetBookingForm}
+                  className="rounded-md border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
                 >
                   Hủy
                 </button>
-                <button 
+                <button
                   type="submit"
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  className="rounded-md bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
                 >
-                  Xác nhận đặt lịch
+                  {rescheduleId ? "Xác nhận dời lịch" : "Xác nhận đặt lịch"}
                 </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* Reschedule Modal */}
-      {rescheduleId && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Dời lịch hẹn</h2>
-            <form onSubmit={handleReschedule}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Ngày xem mới</label>
-                <input type="date" required value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} className="w-full border rounded p-2" />
-              </div>
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Giờ xem mới</label>
-                <input type="time" required value={bookingTime} onChange={(e) => setBookingTime(e.target.value)} className="w-full border rounded p-2" />
-              </div>
-              <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setRescheduleId(null)} className="px-4 py-2 border rounded">Hủy</button>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded">Xác nhận dời lịch</button>
               </div>
             </form>
           </div>

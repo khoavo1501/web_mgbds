@@ -57,22 +57,35 @@ public class PropertyService {
         Page<Property> propertyPage;
 
         // Nếu có keyword, tìm kiếm theo keyword
-        if (searchRequest.getKeyword() != null && !searchRequest.getKeyword().trim().isEmpty()) {
-            propertyPage = propertyRepository.searchByKeyword(searchRequest.getKeyword(), pageable);
-        } 
         // Nếu có các filter khác, tìm kiếm theo nhiều tiêu chí
-        else if (hasSearchCriteria(searchRequest)) {
-            propertyPage = propertyRepository.searchProperties(
-                searchRequest.getStatus(),
-                searchRequest.getPropertyType(),
-                searchRequest.getProvince(),
-                searchRequest.getDistrict(),
-                searchRequest.getMinPrice(),
-                searchRequest.getMaxPrice(),
-                searchRequest.getMinArea(),
-                searchRequest.getMaxArea(),
-                pageable
-            );
+        if (hasSearchCriteria(searchRequest)) {
+            String keyword = normalizeKeyword(searchRequest.getKeyword());
+            if (keyword != null) {
+                propertyPage = propertyRepository.searchProperties(
+                    searchRequest.getStatus(),
+                    searchRequest.getPropertyType(),
+                    searchRequest.getProvince(),
+                    searchRequest.getDistrict(),
+                    searchRequest.getMinPrice(),
+                    searchRequest.getMaxPrice(),
+                    searchRequest.getMinArea(),
+                    searchRequest.getMaxArea(),
+                    keyword,
+                    pageable
+                );
+            } else {
+                propertyPage = propertyRepository.filterProperties(
+                    searchRequest.getStatus(),
+                    searchRequest.getPropertyType(),
+                    searchRequest.getProvince(),
+                    searchRequest.getDistrict(),
+                    searchRequest.getMinPrice(),
+                    searchRequest.getMaxPrice(),
+                    searchRequest.getMinArea(),
+                    searchRequest.getMaxArea(),
+                    pageable
+                );
+            }
         } 
         // Mặc định: Nếu không có filter gì, lấy tất cả (cho Admin) hoặc chỉ published (cho public)
         else {
@@ -108,7 +121,15 @@ public class PropertyService {
             || request.getMinPrice() != null
             || request.getMaxPrice() != null
             || request.getMinArea() != null
-            || request.getMaxArea() != null;
+            || request.getMaxArea() != null
+            || (request.getKeyword() != null && !request.getKeyword().trim().isEmpty());
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return null;
+        }
+        return keyword.trim();
     }
 
     /**

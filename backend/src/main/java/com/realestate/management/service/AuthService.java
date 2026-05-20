@@ -7,16 +7,10 @@ import com.realestate.management.entity.User;
 import com.realestate.management.repository.UserRepository;
 import com.realestate.management.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Service xử lý Authentication
- */
 @Service
 public class AuthService {
 
@@ -29,22 +23,15 @@ public class AuthService {
     @Autowired
     private JwtUtil jwtUtil;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
-
-    /**
-     * Đăng ký user mới
-     */
     @Transactional
     public User register(RegisterRequest request) {
-        // Kiểm tra email đã tồn tại chưa
-        if (userRepository.existsByEmail(request.getEmail())) {
+        String email = request.getEmail().trim().toLowerCase();
+        if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("Email đã được sử dụng");
         }
 
-        // Tạo user mới
         User user = new User();
-        user.setEmail(request.getEmail());
+        user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setFullName(request.getFullName());
         user.setPhone(request.getPhone());
@@ -54,37 +41,38 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-    /**
-     * Đăng nhập
-     */
+    @Transactional
     public LoginResponse login(LoginRequest request) {
-        try {
-            // Authenticate user
-            Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                    request.getEmail(),
-                    request.getPassword()
-                )
-            );
+        String email = request.getEmail().trim().toLowerCase();
+        String rawPassword = request.getPassword();
 
-            // Lấy thông tin user
-            User user = userRepository.findByEmail(request.getEmail())
-                    .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Email hoặc mật khẩu không đúng"));
 
-            // Generate JWT token
-            String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new RuntimeException("Tài khoản đã bị khóa");
+        }
 
-            // Trả về response
-            return new LoginResponse(
+        String storedPassword = user.getPasswordHash();
+        boolean matchesPassword = passwordEncoder.matches(rawPassword, storedPassword);
+        boolean matchesLegacyPlainText = rawPassword.equals(storedPassword);
+
+        if (!matchesPassword && !matchesLegacyPlainText) {
+            throw new RuntimeException("Email hoặc mật khẩu không đúng");
+        }
+
+        if (matchesLegacyPlainText) {
+            user.setPasswordHash(passwordEncoder.encode(rawPassword));
+            userRepository.save(user);
+        }
+
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+        return new LoginResponse(
                 token,
                 user.getUserId(),
                 user.getEmail(),
                 user.getFullName(),
                 user.getRole()
-            );
-
-        } catch (Exception e) {
-            throw new RuntimeException("Email hoặc mật khẩu không đúng");
-        }
+        );
     }
 }
