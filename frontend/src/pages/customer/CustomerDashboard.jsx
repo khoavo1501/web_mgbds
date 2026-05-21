@@ -88,7 +88,6 @@ export default function CustomerDashboard() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAppointments();
   }, [fetchAppointments]);
 

@@ -10,10 +10,6 @@ export default function BrokerDashboard() {
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
 
-  useEffect(() => {
-    fetchAppointments();
-  }, []);
-
   const fetchAppointments = async () => {
     try {
       const res = await api.get('/appointments');
@@ -32,10 +28,14 @@ export default function BrokerDashboard() {
         alert("Cập nhật lịch hẹn thành công!");
         fetchAppointments();
       }
-    } catch (err) {
+    } catch {
       alert("Lỗi khi cập nhật lịch hẹn");
     }
   };
+
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
 
   const openRescheduleModal = (apt) => {
     setBookingDate(apt.scheduledAt.split('T')[0]);

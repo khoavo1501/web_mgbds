@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/broker/Sidebar';
-import { Menu, Bell, Search, UserCircle } from 'lucide-react';
+import { Menu, Bell, Search } from 'lucide-react';
 
 export default function BrokerLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);

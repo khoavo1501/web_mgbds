@@ -1,4 +1,3 @@
-import React from 'react';
 import { MapPin, Square, Sparkles, ImageIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 

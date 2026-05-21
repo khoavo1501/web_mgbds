@@ -8,14 +8,14 @@
 -- ===================================================================
 -- 1. Insert Users (Password: 123456 - đã mã hóa bằng BCrypt)
 -- ===================================================================
--- BCrypt hash của "123456": $2a$10$3OMk3UmqnZTSCpS5wCaC2e6/Fgr.Yelj6YpPMukXX7kUf1h9u/uou
+-- BCrypt hash cố định của "123456": $2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa
 
 INSERT INTO users (email, password_hash, role, full_name, phone, is_active, created_at) VALUES
-('admin@example.com', '$2a$10$3OMk3UmqnZTSCpS5wCaC2e6/Fgr.Yelj6YpPMukXX7kUf1h9u/uou', 'admin', 'Admin User', '0123456789', true, CURRENT_TIMESTAMP),
-('broker1@example.com', '$2a$10$3OMk3UmqnZTSCpS5wCaC2e6/Fgr.Yelj6YpPMukXX7kUf1h9u/uou', 'broker', 'Nguyễn Văn A', '0987654321', true, CURRENT_TIMESTAMP),
-('broker2@example.com', '$2a$10$3OMk3UmqnZTSCpS5wCaC2e6/Fgr.Yelj6YpPMukXX7kUf1h9u/uou', 'broker', 'Trần Thị B', '0912345678', true, CURRENT_TIMESTAMP),
-('customer1@example.com', '$2a$10$3OMk3UmqnZTSCpS5wCaC2e6/Fgr.Yelj6YpPMukXX7kUf1h9u/uou', 'customer', 'Lê Văn C', '0909123456', true, CURRENT_TIMESTAMP),
-('customer2@example.com', '$2a$10$3OMk3UmqnZTSCpS5wCaC2e6/Fgr.Yelj6YpPMukXX7kUf1h9u/uou', 'customer', 'Phạm Thị D', '0908765432', true, CURRENT_TIMESTAMP);
+('admin@example.com', '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'admin', 'Admin User', '0123456789', true, CURRENT_TIMESTAMP),
+('broker1@example.com', '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'broker', 'Nguyễn Văn A', '0987654321', true, CURRENT_TIMESTAMP),
+('broker2@example.com', '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'broker', 'Trần Thị B', '0912345678', true, CURRENT_TIMESTAMP),
+('customer1@example.com', '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'customer', 'Lê Văn C', '0909123456', true, CURRENT_TIMESTAMP),
+('customer2@example.com', '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'customer', 'Phạm Thị D', '0908765432', true, CURRENT_TIMESTAMP);
 
 -- ===================================================================
 -- 2. Insert Categories

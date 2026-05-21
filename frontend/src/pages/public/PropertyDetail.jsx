@@ -132,7 +132,6 @@ export default function PropertyDetail() {
   }, [id]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchBookedAppointments();
   }, [fetchBookedAppointments]);
 

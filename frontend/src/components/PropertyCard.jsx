@@ -5,6 +5,10 @@ import { useFavorites } from "../context/FavoritesContext";
 
 export default function PropertyCard({ property }) {
   const { toggleFavorite, isFavorite } = useFavorites();
+  const stableSeed = Number(property.propertyId) || 1;
+  const bedCount = (stableSeed % 3) + 1;
+  const bathCount = (stableSeed % 2) + 1;
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
       <div className="relative h-48">
@@ -37,11 +41,11 @@ export default function PropertyCard({ property }) {
         <div className="flex items-center justify-between text-sm text-slate-600 mb-4 border-t border-b border-gray-100 py-2">
           <div className="flex items-center">
             <BedDouble className="h-4 w-4 mr-1 text-slate-400" />
-            <span>{Math.floor(Math.random() * 3) + 1} Beds</span>
+            <span>{bedCount} Beds</span>
           </div>
           <div className="flex items-center">
             <Bath className="h-4 w-4 mr-1 text-slate-400" />
-            <span>{Math.floor(Math.random() * 2) + 1} Baths</span>
+            <span>{bathCount} Baths</span>
           </div>
           <div className="flex items-center">
             <Square className="h-4 w-4 mr-1 text-slate-400" />

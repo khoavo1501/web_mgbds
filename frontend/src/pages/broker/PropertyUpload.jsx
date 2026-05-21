@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { UploadCloud, CheckCircle2, Map, Loader2, X, FileText, Plus, Trash2, File, Shield, Sparkles, List, PenSquare, Eye } from 'lucide-react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { UploadCloud, CheckCircle2, Map, Loader2, X, FileText, Plus, Trash2, File, Shield, List, PenSquare, Eye } from 'lucide-react';
 import PropertyPreview from '../../components/broker/PropertyPreview';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
@@ -225,11 +225,6 @@ export default function PropertyUpload() {
 
   const handleDragOver = useCallback(e => { e.preventDefault(); setIsDragging(true); }, []);
   const handleDragLeave = useCallback(e => { e.preventDefault(); setIsDragging(false); }, []);
-  const handleDrop = useCallback(e => {
-    e.preventDefault(); setIsDragging(false);
-    processFiles(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')));
-  }, []);
-
   const processFiles = useCallback((files) => {
     const newImages = files.map(f => ({
       file: f, preview: URL.createObjectURL(f),
@@ -237,6 +232,10 @@ export default function PropertyUpload() {
     }));
     setFormData(p => ({ ...p, images: [...p.images, ...newImages].slice(0, 10) }));
   }, []);
+  const handleDrop = useCallback(e => {
+    e.preventDefault(); setIsDragging(false);
+    processFiles(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')));
+  }, [processFiles]);
 
   const removeImage = useCallback((id) => {
     setFormData(p => ({ ...p, images: p.images.filter(i => i.id !== id) }));

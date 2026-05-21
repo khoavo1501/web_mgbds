@@ -1,4 +1,4 @@
-import { Wallet, TrendingUp, DollarSign, Calendar } from "lucide-react";
+import { Wallet, TrendingUp, DollarSign } from "lucide-react";
 import StatCard from "../../components/StatCard";
 
 export default function BrokerFinance() {

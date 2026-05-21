@@ -97,7 +97,7 @@ export default function CreateTransaction() {
         propertyId: '', propertyTitle: '', price: '', completionDate: '',
         depositAmount: '', paymentMethod: 'bank_transfer', note: ''
       });
-    } catch (err) {
+    } catch {
       alert("Có lỗi xảy ra khi tạo giao dịch.");
     }
   };

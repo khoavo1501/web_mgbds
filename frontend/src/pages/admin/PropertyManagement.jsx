@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import Badge from "../../components/Badge";
 import api from "../../services/api";
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 
 export default function PropertyManagement() {
   const [properties, setProperties] = useState([]);
