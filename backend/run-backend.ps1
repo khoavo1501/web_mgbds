@@ -35,7 +35,30 @@ function Test-TcpPortOpen($HostName, $Port) {
     }
 }
 
+function Import-DotEnv($Path) {
+    if (-not (Test-Path $Path)) {
+        return
+    }
+
+    Write-Step "Loading backend environment"
+    foreach ($rawLine in Get-Content $Path) {
+        $line = $rawLine.Trim()
+        if (-not $line -or $line.StartsWith("#")) {
+            continue
+        }
+
+        $key, $value = $line -split "=", 2
+        if (-not $key) {
+            continue
+        }
+
+        [Environment]::SetEnvironmentVariable($key.Trim(), $value.Trim(), "Process")
+    }
+    Write-Host "Loaded .env." -ForegroundColor Green
+}
+
 Set-Location $PSScriptRoot
+Import-DotEnv (Join-Path $PSScriptRoot ".env")
 
 Write-Step "Checking Docker"
 if (-not (Test-DockerReady)) {
