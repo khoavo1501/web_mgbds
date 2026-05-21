@@ -259,6 +259,18 @@ export default function PropertyUpload() {
     setTimeout(() => setToast(null), 4000);
   }, []);
 
+  const uploadImageFile = useCallback(async (file) => {
+    const data = new FormData();
+    data.append('file', file);
+    const res = await api.post('/uploads/images', data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    if (!res.data.success) {
+      throw new Error(res.data.message || 'Upload ảnh thất bại');
+    }
+    return res.data.data.url;
+  }, []);
+
   const handleSaveDraft = useCallback(() => {
     setFormData(p => ({ ...p, status: 'Nháp' }));
     showToast('success', 'Đã lưu nháp thành công!');
@@ -275,21 +287,28 @@ export default function PropertyUpload() {
     // Map loại BĐS tiếng Việt → giá trị backend
     const typeMap = { 'Nhà ở': 'house', 'Đất nền': 'land', 'Chung cư': 'apartment', 'Cho thuê': 'rental' };
 
-    const payload = {
-      title: formData.title.trim(),
-      description: formData.description.trim(),
-      propertyType: typeMap[formData.type] || formData.type,
-      province: 'Đà Nẵng',
-      district: formData.address.trim() ? `${formData.address.trim()}, ${formData.ward}` : formData.ward,
-      area: Number(formData.area),
-      price: Number(formData.price),
-      images: formData.images.length > 0
-        ? formData.images.map((img, idx) => ({ url: img.preview || img.url || '', isPrimary: idx === 0 }))
-        : []
-    };
-
     setIsSubmitting(true);
     try {
+      const uploadedImages = [];
+      for (let idx = 0; idx < formData.images.length; idx += 1) {
+        const img = formData.images[idx];
+        const url = img.file ? await uploadImageFile(img.file) : (img.url || img.preview || '');
+        if (url) {
+          uploadedImages.push({ url, isPrimary: idx === 0 });
+        }
+      }
+
+      const payload = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        propertyType: typeMap[formData.type] || formData.type,
+        province: 'Đà Nẵng',
+        district: formData.address.trim() ? `${formData.address.trim()}, ${formData.ward}` : formData.ward,
+        area: Number(formData.area),
+        price: Number(formData.price),
+        images: uploadedImages
+      };
+
       const res = editingId 
         ? await api.put('/properties/' + editingId, payload)
         : await api.post('/properties', payload);
@@ -313,7 +332,7 @@ export default function PropertyUpload() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, showToast, editingId]);
+  }, [formData, showToast, editingId, uploadImageFile]);
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto min-h-full">
@@ -462,7 +481,7 @@ export default function PropertyUpload() {
                   <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {formData.images.map((img, idx) => (
                       <div key={img.id} className="relative group aspect-square rounded-xl overflow-hidden border border-zinc-200 shadow-sm">
-                        <img src={img.preview} className="w-full h-full object-cover" alt="" />
+                        <img src={img.preview || img.url} className="w-full h-full object-cover" alt="" />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <button type="button" onClick={e => { e.stopPropagation(); removeImage(img.id); }}
                             className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 shadow-lg transition-colors">

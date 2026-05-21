@@ -3,11 +3,7 @@
 
 @layer base {
   * {
-<<<<<<< HEAD
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-=======
     font-family: "Inter", system-ui, -apple-system, sans-serif;
->>>>>>> 12878b6c631bc04ae17a12f87392ac36e2dfe8af
   }
 
   html {
@@ -21,6 +17,12 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+}
+
+@layer components {
+  .field-control {
+    @apply w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-sm font-semibold text-stone-800 outline-none transition-colors placeholder:text-stone-400 focus:border-[#d7b56d] focus:ring-2 focus:ring-[#d7b56d]/20;
+  }
 }
 
 @keyframes fadeIn {

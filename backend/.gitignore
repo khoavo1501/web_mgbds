@@ -47,3 +47,6 @@ Thumbs.db
 application-local.properties
 application-dev.properties
 application-prod.properties
+
+# Uploaded local assets
+images/
