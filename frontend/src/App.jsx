@@ -27,6 +27,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import PropertyManagement from "./pages/admin/PropertyManagement";
 import PropertyApproval from "./pages/admin/PropertyApproval";
 import FinancialManagement from "./pages/admin/FinancialManagement";
+import UserManagement from "./pages/admin/UserManagement";
 
 function App() {
   return (
@@ -66,6 +67,7 @@ function App() {
                 <Route path="/admin/properties" element={<PropertyManagement />} />
                 <Route path="/admin/approval" element={<PropertyApproval />} />
                 <Route path="/admin/finance" element={<FinancialManagement />} />
+                <Route path="/admin/users" element={<UserManagement />} />
               </Route>
             </Route>
 

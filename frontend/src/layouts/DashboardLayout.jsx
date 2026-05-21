@@ -9,6 +9,7 @@ import {
   Search,
   ShieldCheck,
   User,
+  Users,
   Wallet,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -18,6 +19,7 @@ const navItems = [
   { name: "Duyệt BĐS", path: "/admin/approval", icon: CheckSquare },
   { name: "Quản lý BĐS", path: "/admin/properties", icon: Building2 },
   { name: "Tài chính", path: "/admin/finance", icon: Wallet },
+  { name: "Người dùng", path: "/admin/users", icon: Users },
 ];
 
 export default function DashboardLayout() {

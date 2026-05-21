@@ -36,26 +36,33 @@ public class CommissionService {
 
     /** Tổng hoa hồng của broker hiện tại */
     public BigDecimal getTotalCommission() {
-        User currentUser = getCurrentUser();
-        return commissionRepository.findByUser(currentUser).stream()
+        return getVisibleCommissions().stream()
                 .map(Commission::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /** Tổng hoa hồng đã nhận (paid) */
     public BigDecimal getPaidCommission() {
-        User currentUser = getCurrentUser();
-        return commissionRepository.findByUserAndStatus(currentUser, "paid").stream()
+        return getVisibleCommissions().stream()
+                .filter(c -> "paid".equalsIgnoreCase(c.getStatus()))
                 .map(Commission::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /** Tổng hoa hồng đang chờ (pending) */
     public BigDecimal getPendingCommission() {
-        User currentUser = getCurrentUser();
-        return commissionRepository.findByUserAndStatus(currentUser, "pending").stream()
+        return getVisibleCommissions().stream()
+                .filter(c -> "pending".equalsIgnoreCase(c.getStatus()))
                 .map(Commission::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private List<Commission> getVisibleCommissions() {
+        User currentUser = getCurrentUser();
+        if ("broker".equalsIgnoreCase(currentUser.getRole())) {
+            return commissionRepository.findByUser(currentUser);
+        }
+        return commissionRepository.findAll();
     }
 
     private User getCurrentUser() {
