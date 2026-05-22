@@ -100,6 +100,8 @@ export default function PropertyDetail() {
   const [bookingStatus, setBookingStatus] = useState({ type: "", message: "" });
   const [bookingLoading, setBookingLoading] = useState(false);
   const [currentTime] = useState(() => Date.now());
+  const [bookingStep, setBookingStep] = useState(1); // 1: Chọn thời gian, 2: Xác nhận thông tin
+  const [contactNote, setContactNote] = useState("");
   const { user } = useAuth();
   const { toggleFavorite, isFavorite } = useFavorites();
 
@@ -163,8 +165,11 @@ export default function PropertyDetail() {
 
   const isDayFull = (dateKey) => TIME_SLOTS.every((time) => isPastSlot(dateKey, time) || isSlotBooked(dateKey, time));
 
-  const handleBookAppointment = async () => {
-    setBookingStatus({ type: "", message: "" });
+  const handleNextStep = () => {
+    if (!selectedDate || !selectedTime) {
+      setBookingStatus({ type: "error", message: "Vui lòng chọn ngày và giờ xem nhà." });
+      return;
+    }
 
     if (!user) {
       navigate("/auth");
@@ -176,6 +181,25 @@ export default function PropertyDetail() {
       return;
     }
 
+    // Navigate to booking confirmation page with selected date and time
+    navigate(`/properties/${property.propertyId}/book`, {
+      state: {
+        propertyId: property.propertyId,
+        selectedDate: selectedDate,
+        selectedTime: selectedTime,
+        note: contactNote
+      }
+    });
+  };
+
+  const handleBackStep = () => {
+    setBookingStep(1);
+    setBookingStatus({ type: "", message: "" });
+  };
+
+  const handleBookAppointment = async () => {
+    setBookingStatus({ type: "", message: "" });
+
     if (!selectedDate || !selectedTime) {
       setBookingStatus({ type: "error", message: "Vui lòng chọn ngày và giờ xem nhà." });
       return;
@@ -186,13 +210,22 @@ export default function PropertyDetail() {
       const response = await api.post("/appointments", {
         propertyId: property.propertyId,
         scheduledAt: `${selectedDate}T${selectedTime}:00`,
-        note: "Khách hàng đặt lịch từ trang chi tiết bất động sản",
+        note: contactNote || "Khách hàng đặt lịch từ trang chi tiết bất động sản",
       });
 
       if (response.data.success) {
         setBookingStatus({ type: "success", message: "Đặt lịch thành công. Môi giới sẽ xác nhận lịch hẹn của bạn." });
         setSelectedTime("");
+        setSelectedDate(toDateKey(new Date()));
+        setContactNote("");
+        setBookingStep(1);
         fetchBookedAppointments();
+        
+        // Auto close after 2 seconds
+        setTimeout(() => {
+          setShowScheduler(false);
+          setBookingStatus({ type: "", message: "" });
+        }, 2000);
       }
     } catch (error) {
       setBookingStatus({
@@ -398,6 +431,9 @@ export default function PropertyDetail() {
                   onClick={() => {
                     setShowScheduler((value) => !value);
                     setBookingStatus({ type: "", message: "" });
+                    setBookingStep(1);
+                    setSelectedTime("");
+                    setContactNote("");
                   }}
                   className="flex h-11 w-full items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-extrabold text-white transition hover:bg-slate-800"
                 >
@@ -406,81 +442,189 @@ export default function PropertyDetail() {
 
                 {showScheduler && (
                   <div className="mt-5">
-                    <p className="mb-3 text-xs font-semibold text-slate-500">
-                      Chọn ngày còn trống trong 14 ngày tới
-                    </p>
-                    <div className="grid grid-cols-7 gap-2">
-                      {days.map((day) => {
-                        const dateKey = toDateKey(day);
-                        const disabled = isDayFull(dateKey);
-                        const selected = selectedDate === dateKey;
-                        return (
-                          <button
-                            key={dateKey}
-                            type="button"
-                            disabled={disabled}
-                            onClick={() => {
-                              setSelectedDate(dateKey);
-                              setSelectedTime("");
-                              setBookingStatus({ type: "", message: "" });
-                            }}
-                            className={`rounded-md border px-1 py-2 text-center transition disabled:cursor-not-allowed disabled:opacity-35 ${
-                              selected ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white hover:bg-slate-50"
+                    {/* Step 1: Chọn thời gian */}
+                    {bookingStep === 1 && (
+                      <>
+                        <p className="mb-3 text-xs font-semibold text-slate-500">
+                          Chọn ngày còn trống trong 14 ngày tới
+                        </p>
+                        <div className="grid grid-cols-7 gap-2">
+                          {days.map((day) => {
+                            const dateKey = toDateKey(day);
+                            const disabled = isDayFull(dateKey);
+                            const selected = selectedDate === dateKey;
+                            return (
+                              <button
+                                key={dateKey}
+                                type="button"
+                                disabled={disabled}
+                                onClick={() => {
+                                  setSelectedDate(dateKey);
+                                  setSelectedTime("");
+                                  setBookingStatus({ type: "", message: "" });
+                                }}
+                                className={`rounded-md border px-1 py-2 text-center transition disabled:cursor-not-allowed disabled:opacity-35 ${
+                                  selected ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white hover:bg-slate-50"
+                                }`}
+                              >
+                                <span className="block text-[10px] font-bold uppercase">
+                                  {day.toLocaleDateString("vi-VN", { weekday: "short" })}
+                                </span>
+                                <span className="mt-1 block text-sm font-extrabold">{day.getDate()}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <p className="mb-3 mt-5 text-xs font-semibold text-slate-500">Khung giờ còn trống</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {TIME_SLOTS.map((time) => {
+                            const disabled = isPastSlot(selectedDate, time) || isSlotBooked(selectedDate, time);
+                            const selected = selectedTime === time;
+                            return (
+                              <button
+                                key={time}
+                                type="button"
+                                disabled={disabled}
+                                onClick={() => {
+                                  setSelectedTime(time);
+                                  setBookingStatus({ type: "", message: "" });
+                                }}
+                                className={`h-10 rounded-md border text-sm font-bold transition disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 ${
+                                  selected ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
+                                }`}
+                              >
+                                {time}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {bookingStatus.message && (
+                          <div
+                            className={`mt-4 rounded-md border px-3 py-2 text-sm font-semibold ${
+                              bookingStatus.type === "success"
+                                ? "border-green-200 bg-green-50 text-green-700"
+                                : "border-red-200 bg-red-50 text-red-700"
                             }`}
                           >
-                            <span className="block text-[10px] font-bold uppercase">
-                              {day.toLocaleDateString("vi-VN", { weekday: "short" })}
-                            </span>
-                            <span className="mt-1 block text-sm font-extrabold">{day.getDate()}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                            {bookingStatus.message}
+                          </div>
+                        )}
 
-                    <p className="mb-3 mt-5 text-xs font-semibold text-slate-500">Khung giờ còn trống</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {TIME_SLOTS.map((time) => {
-                        const disabled = isPastSlot(selectedDate, time) || isSlotBooked(selectedDate, time);
-                        const selected = selectedTime === time;
-                        return (
-                          <button
-                            key={time}
-                            type="button"
-                            disabled={disabled}
-                            onClick={() => {
-                              setSelectedTime(time);
-                              setBookingStatus({ type: "", message: "" });
-                            }}
-                            className={`h-10 rounded-md border text-sm font-bold transition disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 ${
-                              selected ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
-                            }`}
-                          >
-                            {time}
-                          </button>
-                        );
-                      })}
-                    </div>
+                        <button
+                          type="button"
+                          onClick={handleNextStep}
+                          disabled={!selectedTime}
+                          className="mt-4 flex h-11 w-full items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-extrabold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Xác nhận lịch đặt
+                        </button>
 
-                    {bookingStatus.message && (
-                      <div
-                        className={`mt-4 rounded-md border px-3 py-2 text-sm font-semibold ${
-                          bookingStatus.type === "success"
-                            ? "border-green-200 bg-green-50 text-green-700"
-                            : "border-red-200 bg-red-50 text-red-700"
-                        }`}
-                      >
-                        {bookingStatus.message}
-                      </div>
+                        <p className="mt-3 text-center text-xs font-medium text-slate-500">
+                          Lịch hẹn sẽ ở trạng thái chờ xác nhận sau khi đặt thành công.
+                        </p>
+                      </>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={handleBookAppointment}
-                      disabled={bookingLoading || !selectedTime}
-                      className="mt-4 flex h-11 w-full items-center justify-center rounded-md border border-slate-950 bg-white px-4 text-sm font-extrabold text-slate-950 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {bookingLoading ? "Đang đặt lịch..." : user ? "Xác nhận đặt lịch" : "Đăng nhập để đặt lịch"}
-                    </button>
+                    {/* Step 2: Xác nhận thông tin */}
+                    {bookingStep === 2 && (
+                      <>
+                        <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-3">
+                          <p className="text-xs font-semibold text-green-700">Thời gian đã chọn</p>
+                          <p className="mt-1 text-sm font-extrabold text-green-900">
+                            {selectedTime} - {new Date(selectedDate).toLocaleDateString("vi-VN", { 
+                              weekday: "long", 
+                              day: "numeric", 
+                              month: "long", 
+                              year: "numeric" 
+                            })}
+                          </p>
+                        </div>
+
+                        <div className="mb-4 space-y-3">
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-700">
+                              Họ và tên
+                            </label>
+                            <input
+                              type="text"
+                              value={user?.fullName || ""}
+                              disabled
+                              className="h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-700">
+                              Số điện thoại
+                            </label>
+                            <input
+                              type="text"
+                              value={user?.phone || ""}
+                              disabled
+                              className="h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-700">
+                              Email
+                            </label>
+                            <input
+                              type="text"
+                              value={user?.email || ""}
+                              disabled
+                              className="h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-700">
+                              Ghi chú (không bắt buộc)
+                            </label>
+                            <textarea
+                              value={contactNote}
+                              onChange={(e) => setContactNote(e.target.value)}
+                              rows={3}
+                              placeholder="Thêm ghi chú về yêu cầu của bạn..."
+                              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:border-slate-950 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        {bookingStatus.message && (
+                          <div
+                            className={`mb-4 rounded-md border px-3 py-2 text-sm font-semibold ${
+                              bookingStatus.type === "success"
+                                ? "border-green-200 bg-green-50 text-green-700"
+                                : "border-red-200 bg-red-50 text-red-700"
+                            }`}
+                          >
+                            {bookingStatus.message}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={handleBackStep}
+                            disabled={bookingLoading}
+                            className="flex h-11 items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-extrabold text-slate-950 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Quay lại
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleBookAppointment}
+                            disabled={bookingLoading}
+                            className="flex h-11 flex-1 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-extrabold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {bookingLoading ? "Đang xử lý..." : "Xác nhận đặt lịch"}
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 

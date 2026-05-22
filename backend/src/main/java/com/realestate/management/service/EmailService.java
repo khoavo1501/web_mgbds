@@ -18,7 +18,7 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class EmailService {
 
-    @Autowired
+    @Autowired(required = false)
     private JavaMailSender mailSender;
 
     @Value("${app.email.from:noreply@realestate.com}")
@@ -354,7 +354,7 @@ public class EmailService {
             appointment.getCustomer().getFullName(),
             appointment.getProperty().getTitle(),
             appointment.getScheduledAt().format(DATE_FORMATTER),
-            appointment.getCancellationReason() != null ? appointment.getCancellationReason() : "Không có lý do"
+            appointment.getNote() != null ? appointment.getNote() : "Không có lý do"
         );
     }
 
@@ -448,7 +448,7 @@ public class EmailService {
             appointment.getCustomer().getFullName(),
             appointment.getProperty().getTitle(),
             appointment.getScheduledAt().format(DATE_FORMATTER),
-            appointment.getCancellationReason() != null ? appointment.getCancellationReason() : "Không có lý do"
+            appointment.getNote() != null ? appointment.getNote() : "Không có lý do"
         );
     }
 

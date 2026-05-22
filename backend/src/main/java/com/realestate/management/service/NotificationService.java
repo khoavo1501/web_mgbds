@@ -92,7 +92,7 @@ public class NotificationService {
                 "Lịch hẹn xem BĐS '%s' vào lúc %s đã bị từ chối. Lý do: %s",
                 appointment.getProperty().getTitle(),
                 formatDateTime(appointment.getScheduledAt()),
-                appointment.getCancellationReason() != null ? appointment.getCancellationReason() : "Không có lý do"
+                appointment.getNote() != null ? appointment.getNote() : "Không có lý do"
             ));
             notification.setIsRead(false);
             
@@ -147,7 +147,7 @@ public class NotificationService {
                 appointment.getCustomer().getFullName(),
                 appointment.getProperty().getTitle(),
                 formatDateTime(appointment.getScheduledAt()),
-                appointment.getCancellationReason() != null ? appointment.getCancellationReason() : "Không có lý do"
+                appointment.getNote() != null ? appointment.getNote() : "Không có lý do"
             ));
             notification.setIsRead(false);
             

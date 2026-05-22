@@ -13,6 +13,11 @@ import Auth from "./pages/public/Auth";
 
 // Customer Pages
 import CustomerDashboard from "./pages/customer/CustomerDashboard";
+import MyAppointments from "./pages/customer/MyAppointments";
+import AppointmentDetail from "./pages/customer/AppointmentDetail";
+import RescheduleAppointment from "./pages/customer/RescheduleAppointment";
+import CancelAppointment from "./pages/customer/CancelAppointment";
+import BookAppointment from "./pages/customer/BookAppointment";
 
 // Broker Pages
 import BrokerDashboard from "./pages/broker/BrokerDashboard";
@@ -20,6 +25,7 @@ import LeadManagement from "./pages/broker/LeadManagement";
 import CreateTransaction from "./pages/broker/CreateTransaction";
 import BrokerFinance from "./pages/broker/BrokerFinance";
 import PropertyUpload from "./pages/broker/PropertyUpload";
+import BrokerAppointments from "./pages/broker/BrokerAppointments";
 import BrokerLayout from "./layouts/BrokerLayout";
 
 // Admin Pages
@@ -44,6 +50,11 @@ function App() {
               {/* Customer */}
               <Route element={<ProtectedRoute allowedRoles={['customer']} />}>
                 <Route path="/customer" element={<CustomerDashboard />} />
+                <Route path="/customer/appointments" element={<MyAppointments />} />
+                <Route path="/customer/appointments/:id" element={<AppointmentDetail />} />
+                <Route path="/customer/appointments/:id/reschedule" element={<RescheduleAppointment />} />
+                <Route path="/customer/appointments/:id/cancel" element={<CancelAppointment />} />
+                <Route path="/properties/:propertyId/book" element={<BookAppointment />} />
               </Route>
             </Route>
 
@@ -53,6 +64,7 @@ function App() {
                 <Route path="/broker" element={<BrokerDashboard />} />
                 <Route path="/broker/finance" element={<BrokerFinance />} />
                 <Route path="/broker/leads" element={<LeadManagement />} />
+                <Route path="/broker/appointments" element={<BrokerAppointments />} />
                 <Route path="/broker/transaction" element={<CreateTransaction />} />
                 <Route path="/broker/upload" element={<PropertyUpload />} />
               </Route>

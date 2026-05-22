@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet, Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Building2,
+  Calendar,
   ChevronDown,
   LayoutDashboard,
   LogOut,
@@ -92,6 +93,16 @@ export default function PublicLayout() {
                       <LayoutDashboard className="h-4 w-4" />
                       Dashboard
                     </Link>
+                    {user?.role === 'customer' && (
+                      <Link
+                        to="/customer/appointments"
+                        onClick={() => setShowDropdown(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        <Calendar className="h-4 w-4" />
+                        Lịch hẹn của tôi
+                      </Link>
+                    )}
                     <button
                       type="button"
                       onClick={handleLogout}

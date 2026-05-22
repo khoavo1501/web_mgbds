@@ -46,6 +46,24 @@ public class AppointmentService {
         return appointments.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
+    public AppointmentDTO getAppointmentById(Long id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        User currentUser = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+
+        // Check permission: only customer, broker of this appointment, or admin can view
+        if (!appointment.getCustomer().getUserId().equals(currentUser.getUserId()) &&
+            !appointment.getBroker().getUserId().equals(currentUser.getUserId()) &&
+            !"admin".equalsIgnoreCase(currentUser.getRole())) {
+            throw new RuntimeException("Không có quyền xem lịch hẹn này");
+        }
+
+        return convertToDTO(appointment);
+    }
+
     public List<AppointmentDTO> getPropertyAppointments(Long propertyId) {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new RuntimeException("Property not found"));
@@ -149,12 +167,37 @@ public class AppointmentService {
         dto.setScheduledAt(appointment.getScheduledAt());
         dto.setStatus(appointment.getStatus());
         dto.setNote(appointment.getNote());
+        
+        // Property info
         dto.setPropertyId(appointment.getProperty().getPropertyId());
         dto.setPropertyTitle(appointment.getProperty().getTitle());
+        dto.setPropertyAddress(appointment.getProperty().getDistrict() + ", " + appointment.getProperty().getProvince());
+        
+        // Get primary image
+        if (appointment.getProperty().getImages() != null && !appointment.getProperty().getImages().isEmpty()) {
+            dto.setPropertyImage(appointment.getProperty().getImages().stream()
+                .filter(img -> img.getIsPrimary() != null && img.getIsPrimary())
+                .findFirst()
+                .map(img -> img.getUrl())
+                .orElse(appointment.getProperty().getImages().get(0).getUrl()));
+        }
+        
+        // Customer info
         dto.setCustomerId(appointment.getCustomer().getUserId());
         dto.setCustomerName(appointment.getCustomer().getFullName());
+        dto.setCustomerPhone(appointment.getCustomer().getPhone());
+        dto.setCustomerEmail(appointment.getCustomer().getEmail());
+        
+        // Broker info
         dto.setBrokerId(appointment.getBroker().getUserId());
         dto.setBrokerName(appointment.getBroker().getFullName());
+        dto.setBrokerEmail(appointment.getBroker().getEmail());
+        
+        // Contact info (nếu có, nếu không dùng customer info)
+        dto.setContactName(appointment.getCustomer().getFullName());
+        dto.setContactPhone(appointment.getCustomer().getPhone());
+        dto.setContactEmail(appointment.getCustomer().getEmail());
+        
         return dto;
     }
 }

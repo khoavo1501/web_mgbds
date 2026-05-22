@@ -26,6 +26,16 @@ public class AppointmentController {
         return ResponseEntity.ok(ApiResponse.success("Success", appointmentService.getMyAppointments()));
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<AppointmentDTO>> getAppointmentById(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Success", appointmentService.getAppointmentById(id)));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @GetMapping("/property/{propertyId}")
     public ResponseEntity<ApiResponse<List<AppointmentDTO>>> getPropertyAppointments(@PathVariable Long propertyId) {
         try {

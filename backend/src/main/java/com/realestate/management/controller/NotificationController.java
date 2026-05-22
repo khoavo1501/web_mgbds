@@ -1,7 +1,6 @@
 package com.realestate.management.controller;
 
 import com.realestate.management.dto.ApiResponse;
-import com.realestate.management.dto.NotificationDTO;
 import com.realestate.management.entity.Notification;
 import com.realestate.management.entity.User;
 import com.realestate.management.repository.NotificationRepository;
@@ -35,50 +34,13 @@ public class NotificationController {
     private UserRepository userRepository;
 
     /**
-     * Convert Notification entity sang DTO
-     */
-    private NotificationDTO convertToDTO(Notification notification) {
-        NotificationDTO dto = new NotificationDTO();
-        dto.setNotificationId(notification.getNotificationId());
-        dto.setTitle(notification.getTitle());
-        dto.setMessage(notification.getContent()); // Map content -> message
-        dto.setType(determineNotificationType(notification.getTitle())); // Xác định type từ title
-        dto.setIsRead(notification.getIsRead());
-        dto.setCreatedAt(notification.getCreatedAt());
-        return dto;
-    }
-
-    /**
-     * Xác định type của notification dựa trên title
-     */
-    private String determineNotificationType(String title) {
-        if (title == null) return "NOTIFICATION";
-        
-        if (title.contains("Lịch hẹn mới") || title.contains("lịch hẹn mới")) {
-            return "APPOINTMENT_CREATED";
-        } else if (title.contains("xác nhận") || title.contains("Xác nhận")) {
-            return "APPOINTMENT_CONFIRMED";
-        } else if (title.contains("từ chối") || title.contains("Từ chối")) {
-            return "APPOINTMENT_REJECTED";
-        } else if (title.contains("hủy") || title.contains("Hủy")) {
-            return "APPOINTMENT_CANCELLED";
-        } else if (title.contains("hoàn tất") || title.contains("Hoàn tất")) {
-            return "APPOINTMENT_COMPLETED";
-        } else if (title.contains("dời") || title.contains("Dời")) {
-            return "APPOINTMENT_UPDATED";
-        }
-        
-        return "NOTIFICATION";
-    }
-
-    /**
      * Lấy danh sách thông báo của user hiện tại
      */
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Lấy danh sách thông báo", 
                description = "User xem tất cả thông báo của mình")
-    public ResponseEntity<ApiResponse<Page<NotificationDTO>>> getMyNotifications(
+    public ResponseEntity<ApiResponse<Page<Notification>>> getMyNotifications(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
@@ -92,10 +54,9 @@ public class NotificationController {
             Pageable pageable = PageRequest.of(page, size, sort);
             
             Page<Notification> notifications = notificationRepository.findByUser(currentUser, pageable);
-            Page<NotificationDTO> dtoPage = notifications.map(this::convertToDTO);
             
             return ResponseEntity.ok(
-                ApiResponse.success("Lấy danh sách thông báo thành công", dtoPage)
+                ApiResponse.success("Lấy danh sách thông báo thành công", notifications)
             );
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -135,7 +96,7 @@ public class NotificationController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Đánh dấu đã đọc", 
                description = "Đánh dấu 1 thông báo đã đọc")
-    public ResponseEntity<ApiResponse<NotificationDTO>> markAsRead(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Notification>> markAsRead(@PathVariable Long id) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String email = authentication.getName();
@@ -154,7 +115,7 @@ public class NotificationController {
             Notification updated = notificationRepository.save(notification);
             
             return ResponseEntity.ok(
-                ApiResponse.success("Đánh dấu đã đọc thành công", convertToDTO(updated))
+                ApiResponse.success("Đánh dấu đã đọc thành công", updated)
             );
         } catch (Exception e) {
             return ResponseEntity.badRequest()

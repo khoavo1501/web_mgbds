@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Calendar, Clock, MapPin, User, Phone, Mail, 
   Building2, CheckCircle, XCircle, AlertCircle,
-  ArrowLeft, Edit, Trash2 
+  Edit, Trash2 
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -82,20 +82,16 @@ export default function AppointmentDetail() {
         border: 'border-red-200',
         text: 'text-red-800', 
         label: 'Bị từ chối' 
+      },
+      scheduled: { 
+        icon: CheckCircle, 
+        bg: 'bg-green-50', 
+        border: 'border-green-200',
+        text: 'text-green-800', 
+        label: 'Đã lên lịch' 
       }
     };
     return configs[status] || configs.pending;
-  };
-
-  const formatDateTime = (dateTime) => {
-    return new Date(dateTime).toLocaleString('vi-VN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   if (loading) {
@@ -124,7 +120,6 @@ export default function AppointmentDetail() {
   }
 
   const statusConfig = getStatusConfig(appointment.status);
-  const StatusIcon = statusConfig.icon;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -261,7 +256,7 @@ export default function AppointmentDetail() {
                   Xem chi tiết bất động sản
                 </button>
 
-                {(appointment.status === 'pending' || appointment.status === 'confirmed') && (
+                {(appointment.status === 'pending' || appointment.status === 'confirmed' || appointment.status === 'scheduled') && (
                   <>
                     <button
                       onClick={() => navigate(`/customer/appointments/${id}/reschedule`)}

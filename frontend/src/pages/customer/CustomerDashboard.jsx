@@ -76,9 +76,11 @@ export default function CustomerDashboard() {
   const fetchAppointments = useCallback(async () => {
     setLoadingAppointments(true);
     try {
-      const res = await api.get("/appointments");
+      const res = await api.get("/appointments?page=0&size=100");
       if (res.data.success) {
-        setAppointments(res.data.data || []);
+        // Backend trả về Page object với content array
+        const data = res.data.data;
+        setAppointments(data.content || data || []);
       }
     } catch (err) {
       console.error("Lỗi khi tải danh sách lịch hẹn", err);

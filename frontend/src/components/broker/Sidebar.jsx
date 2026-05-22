@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Building2, LayoutDashboard, Users, ListChecks,
-  UploadCloud, Wallet, LogOut, X, ChevronRight
+  UploadCloud, Wallet, LogOut, X, ChevronRight, Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -17,6 +17,7 @@ const navItems = [
   { name: 'Tổng quan', href: '/broker', icon: LayoutDashboard },
   { name: 'Đăng tin BĐS', href: '/broker/upload', icon: UploadCloud },
   { name: 'Quản lý Lead', href: '/broker/leads', icon: Users },
+  { name: 'Quản lý lịch hẹn', href: '/broker/appointments', icon: Calendar },
   { name: 'Quản lý giao dịch', href: '/broker/transaction', icon: ListChecks },
   { name: 'Hoa hồng', href: '/broker/finance', icon: Wallet },
 ];

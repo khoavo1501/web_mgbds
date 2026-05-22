@@ -97,15 +97,12 @@ export default function RescheduleAppointment() {
         contactEmail: rescheduleData.contactEmail
       };
 
-      console.log('Sending payload:', payload);
-
       const response = await updateAppointment(id, payload);
       if (response.success) {
         alert('Dời lịch thành công! Vui lòng chờ môi giới xác nhận lại.');
         navigate('/customer/appointments');
       }
     } catch (error) {
-      console.error('Error details:', error.response?.data);
       alert(error.response?.data?.message || 'Lỗi khi dời lịch');
     }
   };
