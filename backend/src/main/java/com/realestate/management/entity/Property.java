@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * Entity Property - Bất động sản
- * Status: 'pending', 'published', 'sold'
+ * Status: 'pending', 'published', 'in_transaction', 'sold'
  */
 @Entity
 @Table(name = "properties")
@@ -40,7 +40,7 @@ public class Property {
     private String propertyType; // 'apartment', 'house', 'land', 'villa'
 
     @Column(name = "status", length = 30)
-    private String status = "pending"; // 'pending', 'published', 'sold'
+    private String status = "pending"; // 'pending', 'published', 'in_transaction', 'sold'
 
     @Column(name = "province", nullable = false, length = 100)
     private String province;

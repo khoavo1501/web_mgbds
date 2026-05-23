@@ -12,6 +12,9 @@ import java.math.BigDecimal;
 public class CommissionDTO {
     private Long commissionId;
     private BigDecimal amount;
+    private BigDecimal totalCommissionAmount;
+    private BigDecimal brokerAmount;
+    private BigDecimal companyAmount;
     private String status;
 
     // Transaction info

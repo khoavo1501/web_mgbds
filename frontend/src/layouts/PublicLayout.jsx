@@ -92,6 +92,26 @@ export default function PublicLayout() {
                       <LayoutDashboard className="h-4 w-4" />
                       Dashboard
                     </Link>
+                    {user?.role === "customer" && (
+                      <>
+                        <Link
+                          to="/customer/transactions/active"
+                          onClick={() => setShowDropdown(false)}
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          <LayoutDashboard className="h-4 w-4" />
+                          Đang giao dịch
+                        </Link>
+                        <Link
+                          to="/customer/transactions"
+                          onClick={() => setShowDropdown(false)}
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          <LayoutDashboard className="h-4 w-4" />
+                          Lịch sử giao dịch
+                        </Link>
+                      </>
+                    )}
                     <button
                       type="button"
                       onClick={handleLogout}

@@ -18,6 +18,8 @@ public class AppointmentDTO {
     private String propertyTitle;
     private Long customerId;
     private String customerName;
+    private String customerEmail;
+    private String customerPhone;
     private Long brokerId;
     private String brokerName;
 }

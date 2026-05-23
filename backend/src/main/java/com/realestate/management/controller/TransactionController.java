@@ -1,15 +1,18 @@
 package com.realestate.management.controller;
 
 import com.realestate.management.dto.ApiResponse;
+import com.realestate.management.dto.AppointmentRequest;
 import com.realestate.management.dto.TransactionDTO;
 import com.realestate.management.dto.TransactionRequest;
 import com.realestate.management.service.TransactionService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -84,6 +87,101 @@ public class TransactionController {
         try {
             return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái thành công",
                     transactionService.updateStatus(id, status)));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/appointment/{appointmentId}/deposit")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<TransactionDTO>> createDepositFromAppointment(@PathVariable Long appointmentId) {
+        try {
+            TransactionDTO created = transactionService.createCustomerDepositFromAppointment(appointmentId);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("Dat coc thanh cong, cho admin xac nhan", created));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{id}/confirm-purchase")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<TransactionDTO>> confirmPurchase(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Xác nhận giao dịch thành công",
+                    transactionService.updateStatus(id, "customer_confirmed")));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/{id}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<TransactionDTO>> submitDocuments(
+            @PathVariable Long id,
+            @RequestParam("cccd") MultipartFile cccd,
+            @RequestParam("household") MultipartFile household,
+            @RequestParam("marriage") MultipartFile marriage) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Gửi hồ sơ thành công",
+                    transactionService.submitDocuments(id, cccd, household, marriage)));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{id}/payment-submitted")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<TransactionDTO>> submitPayment(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Đã ghi nhận yêu cầu xác minh thanh toán",
+                    transactionService.updateStatus(id, "payment_submitted")));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{id}/commitment-signed")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<TransactionDTO>> signCommitment(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Da hoan thanh cam ket mua hang",
+                    transactionService.updateStatus(id, "commitment_signed")));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{id}/refund-request")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<TransactionDTO>> requestRefund(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Da gui yeu cau hoan coc",
+                    transactionService.updateStatus(id, "refund_requested")));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{id}/schedule-deal")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<TransactionDTO>> scheduleDeal(
+            @PathVariable Long id,
+            @RequestBody AppointmentRequest request) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Da dat lich giao dich BDS",
+                    transactionService.scheduleDeal(id, request.getScheduledAt())));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{id}/broker-confirm")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<ApiResponse<TransactionDTO>> brokerConfirm(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Da xac nhan nguoi mua thanh toan cho nguoi ban",
+                    transactionService.updateStatus(id, "broker_confirmed")));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }

@@ -26,7 +26,7 @@ CREATE TABLE properties (
     title VARCHAR(500) NOT NULL,
     description TEXT,
     property_type VARCHAR(50) NOT NULL,
-    status VARCHAR(30) DEFAULT 'pending', -- 'pending', 'published', 'sold'
+    status VARCHAR(30) DEFAULT 'pending', -- 'pending', 'published', 'in_transaction', 'sold'
     province VARCHAR(100) NOT NULL,
     district VARCHAR(100) NOT NULL,
     area NUMERIC(10, 2) NOT NULL,
@@ -71,10 +71,12 @@ CREATE TABLE transactions (
     property_id INT NOT NULL REFERENCES properties(property_id),
     customer_id INT NOT NULL REFERENCES users(user_id),
     broker_id INT NOT NULL REFERENCES users(user_id),
+    appointment_id INT REFERENCES appointments(appointment_id),
     total_price NUMERIC(18, 2) NOT NULL,
     deposit_amount NUMERIC(18, 2) DEFAULT 0,
-    status VARCHAR(30) DEFAULT 'pending', -- 'pending', 'completed', 'cancelled'
-    transaction_date DATE DEFAULT CURRENT_DATE
+    status VARCHAR(30) DEFAULT 'pending', -- 'pending', 'customer_confirmed', 'documents_submitted', 'documents_verified', 'payment_submitted', 'deposit_confirmed', 'commitment_signed', 'deal_scheduled', 'broker_confirmed', 'refund_requested', 'refunded', 'completed', 'cancelled'
+    transaction_date DATE DEFAULT CURRENT_DATE,
+    deal_schedule_at TIMESTAMP
 );
 
 -- 8. Bảng Transaction Payments (Thanh toán - Rút gọn các file chứng từ phức tạp)
@@ -83,11 +85,21 @@ CREATE TABLE transaction_payments (
     transaction_id INT NOT NULL REFERENCES transactions(transaction_id),
     amount NUMERIC(18, 2) NOT NULL,
     payment_method VARCHAR(30), -- 'cash', 'transfer'
+    payment_status VARCHAR(30) DEFAULT 'pending', -- 'pending', 'submitted', 'confirmed', 'refund_requested', 'refunded'
     payment_date DATE DEFAULT CURRENT_DATE,
     confirmed_by INT REFERENCES users(user_id)
 );
 
 -- 9. Bảng Contracts (Hợp đồng)
+CREATE TABLE transaction_documents (
+    document_id SERIAL PRIMARY KEY,
+    transaction_id INT NOT NULL REFERENCES transactions(transaction_id),
+    document_type VARCHAR(50) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    url TEXT NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE contracts (
     contract_id SERIAL PRIMARY KEY,
     transaction_id INT NOT NULL REFERENCES transactions(transaction_id),

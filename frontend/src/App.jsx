@@ -13,13 +13,14 @@ import Auth from "./pages/public/Auth";
 
 // Customer Pages
 import CustomerDashboard from "./pages/customer/CustomerDashboard";
+import CustomerTransactions from "./pages/customer/CustomerTransactions";
 
 // Broker Pages
 import BrokerDashboard from "./pages/broker/BrokerDashboard";
 import LeadManagement from "./pages/broker/LeadManagement";
-import CreateTransaction from "./pages/broker/CreateTransaction";
 import BrokerFinance from "./pages/broker/BrokerFinance";
 import PropertyUpload from "./pages/broker/PropertyUpload";
+import BrokerTransactionHistory from "./pages/broker/BrokerTransactionHistory";
 import BrokerLayout from "./layouts/BrokerLayout";
 
 // Admin Pages
@@ -45,6 +46,9 @@ function App() {
               {/* Customer */}
               <Route element={<ProtectedRoute allowedRoles={['customer']} />}>
                 <Route path="/customer" element={<CustomerDashboard />} />
+                <Route path="/customer/transactions" element={<CustomerTransactions />} />
+                <Route path="/customer/transactions/active" element={<CustomerTransactions activeOnly />} />
+                <Route path="/customer/transactions/:transactionId" element={<CustomerTransactions detail />} />
               </Route>
             </Route>
 
@@ -54,7 +58,8 @@ function App() {
                 <Route path="/broker" element={<BrokerDashboard />} />
                 <Route path="/broker/finance" element={<BrokerFinance />} />
                 <Route path="/broker/leads" element={<LeadManagement />} />
-                <Route path="/broker/transaction" element={<CreateTransaction />} />
+                <Route path="/broker/transaction" element={<Navigate to="/broker/transactions/history" replace />} />
+                <Route path="/broker/transactions/history" element={<BrokerTransactionHistory />} />
                 <Route path="/broker/upload" element={<PropertyUpload />} />
               </Route>
             </Route>

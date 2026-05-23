@@ -113,6 +113,7 @@ public class AppointmentService {
         }
 
         if (request.getStatus() != null) {
+            validateStatusTransition(appointment, currentUser, request.getStatus());
             appointment.setStatus(request.getStatus());
         }
 
@@ -121,6 +122,22 @@ public class AppointmentService {
         }
 
         return convertToDTO(appointmentRepository.save(appointment));
+    }
+
+    private void validateStatusTransition(Appointment appointment, User currentUser, String nextStatus) {
+        if (!nextStatus.matches("pending|confirmed|viewed|cancelled")) {
+            throw new RuntimeException("Trang thai lich hen khong hop le");
+        }
+
+        boolean isBroker = appointment.getBroker().getUserId().equals(currentUser.getUserId());
+        boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getRole());
+        if (List.of("confirmed", "viewed").contains(nextStatus) && !isBroker && !isAdmin) {
+            throw new RuntimeException("Chi moi gioi phu trach moi duoc xac nhan lich hen/xem nha");
+        }
+
+        if ("viewed".equals(nextStatus) && !"confirmed".equalsIgnoreCase(appointment.getStatus())) {
+            throw new RuntimeException("Can xac nhan lich hen truoc khi danh dau da dan khach di xem nha");
+        }
     }
 
     @Transactional
@@ -153,6 +170,8 @@ public class AppointmentService {
         dto.setPropertyTitle(appointment.getProperty().getTitle());
         dto.setCustomerId(appointment.getCustomer().getUserId());
         dto.setCustomerName(appointment.getCustomer().getFullName());
+        dto.setCustomerEmail(appointment.getCustomer().getEmail());
+        dto.setCustomerPhone(appointment.getCustomer().getPhone());
         dto.setBrokerId(appointment.getBroker().getUserId());
         dto.setBrokerName(appointment.getBroker().getFullName());
         return dto;

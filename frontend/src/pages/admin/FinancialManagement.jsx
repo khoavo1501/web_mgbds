@@ -27,7 +27,17 @@ import {
 import api from "../../services/api";
 
 const statusLabels = {
-  pending: "Chờ thanh toán",
+  pending: "Chờ khách xác nhận",
+  customer_confirmed: "Đã xác nhận mua",
+  documents_submitted: "Chờ kiểm tra hồ sơ",
+  documents_verified: "Hồ sơ hợp lệ",
+  payment_submitted: "Đang xác minh thanh toán",
+  deposit_confirmed: "Đã xác nhận cọc",
+  commitment_signed: "Đã ký cam kết",
+  deal_scheduled: "Đã đặt lịch giao dịch",
+  broker_confirmed: "Broker đã xác nhận",
+  refund_requested: "Yêu cầu hoàn cọc",
+  refunded: "Đã hoàn cọc",
   completed: "Hoàn tất",
   cancelled: "Đã hủy",
   paid: "Đã chi",
@@ -35,9 +45,25 @@ const statusLabels = {
 
 const statusStyles = {
   pending: "bg-amber-50 text-amber-800 ring-amber-200",
+  customer_confirmed: "bg-blue-50 text-blue-700 ring-blue-200",
+  documents_submitted: "bg-amber-50 text-amber-800 ring-amber-200",
+  documents_verified: "bg-sky-50 text-sky-700 ring-sky-200",
+  payment_submitted: "bg-indigo-50 text-indigo-700 ring-indigo-200",
+  deposit_confirmed: "bg-sky-50 text-sky-700 ring-sky-200",
+  commitment_signed: "bg-teal-50 text-teal-700 ring-teal-200",
+  deal_scheduled: "bg-sky-50 text-sky-700 ring-sky-200",
+  broker_confirmed: "bg-cyan-50 text-cyan-700 ring-cyan-200",
+  refund_requested: "bg-orange-50 text-orange-700 ring-orange-200",
+  refunded: "bg-slate-100 text-slate-700 ring-slate-200",
   completed: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   cancelled: "bg-rose-50 text-rose-700 ring-rose-200",
   paid: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+};
+
+const paymentMethodLabels = {
+  transfer: "Chuyển khoản",
+  bank_transfer: "Chuyển khoản",
+  cash: "Tiền mặt",
 };
 
 const formatVnd = (value) =>
@@ -102,11 +128,15 @@ export default function FinancialManagement() {
     try {
       const response = await api.patch(`/transactions/${transaction.transactionId}/status?status=${status}`);
       if (response.data.success) {
+        const actionMessages = {
+          documents_verified: `Đã xác minh hồ sơ ${transaction.transactionCode}.`,
+          deposit_confirmed: `Đã xác nhận cọc ${transaction.transactionCode}.`,
+          refunded: `Đã ghi nhận hoàn cọc ${transaction.transactionCode}.`,
+          cancelled: `Đã hủy giao dịch ${transaction.transactionCode}.`,
+        };
         showToast(
-          status === "completed" ? "success" : "error",
-          status === "completed"
-            ? `Đã xác nhận giao dịch ${transaction.transactionCode}.`
-            : `Đã hủy giao dịch ${transaction.transactionCode}.`
+          status === "cancelled" ? "error" : "success",
+          actionMessages[status] || `Đã cập nhật ${transaction.transactionCode}.`
         );
         await fetchFinanceData();
       } else {
@@ -122,6 +152,7 @@ export default function FinancialManagement() {
   const summary = useMemo(() => {
     const completed = transactions.filter((item) => item.status === "completed");
     const pending = transactions.filter((item) => item.status === "pending");
+    const depositConfirmed = transactions.filter((item) => item.status === "deposit_confirmed");
     const cancelled = transactions.filter((item) => item.status === "cancelled");
 
     return {
@@ -130,6 +161,7 @@ export default function FinancialManagement() {
       pendingValue: pending.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0),
       completedCount: completed.length,
       pendingCount: pending.length,
+      depositConfirmedCount: depositConfirmed.length,
       cancelledCount: cancelled.length,
       totalCount: transactions.length,
     };
@@ -154,7 +186,7 @@ export default function FinancialManagement() {
       if (!grouped[key]) {
         grouped[key] = { month: key, revenue: 0, deposit: 0, commission: 0 };
       }
-      grouped[key].commission += Number(item.amount || 0);
+      grouped[key].commission += Number(item.brokerAmount || item.amount || 0);
     });
 
     return Object.values(grouped).slice(-8);
@@ -166,7 +198,7 @@ export default function FinancialManagement() {
       if (!acc[key]) {
         acc[key] = { broker: key, amount: 0 };
       }
-      acc[key].amount += Number(item.amount || 0);
+      acc[key].amount += Number(item.brokerAmount || item.amount || 0);
       return acc;
     }, {});
 
@@ -238,7 +270,7 @@ export default function FinancialManagement() {
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Metric title="Doanh thu hoàn tất" value={formatVnd(summary.revenue)} helper={`${summary.completedCount} giao dịch`} icon={Banknote} tone="dark" />
         <Metric title="Tiền cọc ghi nhận" value={formatVnd(summary.deposits)} helper={`${summary.totalCount} giao dịch`} icon={CreditCard} tone="gold" />
-        <Metric title="Hoa hồng chờ chi" value={formatVnd(commissionSummary.pending)} helper="Theo bảng hoa hồng" icon={Clock3} tone="amber" />
+        <Metric title="Cọc chờ xác nhận" value={summary.pendingCount} helper={`${summary.depositConfirmedCount} giao dịch đã xác nhận cọc`} icon={Clock3} tone="amber" />
         <Metric title="Hoa hồng đã chi" value={formatVnd(commissionSummary.paid)} helper={`Tổng: ${formatVnd(commissionSummary.total)}`} icon={BadgeCheck} tone="green" />
       </section>
 
@@ -344,7 +376,17 @@ export default function FinancialManagement() {
               className="h-11 rounded-lg border border-stone-200 bg-white px-3 text-sm font-black text-stone-800 outline-none transition-colors focus:border-[#d7b56d]"
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="pending">Chờ xử lý</option>
+              <option value="pending">Chờ xác nhận cọc</option>
+              <option value="customer_confirmed">Đã xác nhận mua</option>
+              <option value="documents_submitted">Chờ kiểm tra hồ sơ</option>
+              <option value="documents_verified">Hồ sơ hợp lệ</option>
+              <option value="payment_submitted">Đang xác minh thanh toán</option>
+              <option value="deposit_confirmed">Đã xác nhận cọc</option>
+              <option value="commitment_signed">Đã ký cam kết</option>
+              <option value="deal_scheduled">Đã đặt lịch giao dịch</option>
+              <option value="broker_confirmed">Broker đã xác nhận</option>
+              <option value="refund_requested">Yêu cầu hoàn cọc</option>
+              <option value="refunded">Đã hoàn cọc</option>
               <option value="completed">Hoàn tất</option>
               <option value="cancelled">Đã hủy</option>
               <option value="paid">Đã chi hoa hồng</option>
@@ -418,7 +460,7 @@ function TransactionTable({ loading, rows, processingId, onStatusChange }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-[1040px] w-full">
+      <table className="min-w-[1160px] w-full">
         <thead className="bg-[#fbf8f1] text-xs font-black uppercase tracking-wider text-stone-500">
           <tr>
             <th className="px-5 py-3 text-left">Giao dịch</th>
@@ -427,6 +469,8 @@ function TransactionTable({ loading, rows, processingId, onStatusChange }) {
             <th className="px-5 py-3 text-left">Môi giới</th>
             <th className="px-5 py-3 text-right">Giá trị</th>
             <th className="px-5 py-3 text-right">Cọc</th>
+            <th className="px-5 py-3 text-right">Còn lại</th>
+            <th className="px-5 py-3 text-left">Thanh toán</th>
             <th className="px-5 py-3 text-left">Trạng thái</th>
             <th className="px-5 py-3 text-right">Thao tác</th>
           </tr>
@@ -451,21 +495,66 @@ function TransactionTable({ loading, rows, processingId, onStatusChange }) {
               <td className="px-5 py-4 text-sm font-bold text-stone-700">{item.brokerName || "N/A"}</td>
               <td className="px-5 py-4 text-right text-sm font-black text-stone-950">{formatVnd(item.totalPrice)}</td>
               <td className="px-5 py-4 text-right text-sm font-black text-[#8b6f2f]">{formatVnd(item.depositAmount)}</td>
+              <td className="px-5 py-4 text-right text-sm font-black text-stone-700">{formatVnd(item.remainingAmount)}</td>
+              <td className="px-5 py-4 text-sm font-bold text-stone-600">
+                {paymentMethodLabels[item.paymentMethod] || item.paymentMethod || "N/A"}
+              </td>
               <td className="px-5 py-4">
                 <StatusPill status={item.status} />
               </td>
               <td className="px-5 py-4">
                 <div className="flex justify-end gap-2">
-                  {item.status === "pending" ? (
+                  {item.status === "documents_submitted" ? (
                     <>
                       <ActionButton
-                        title="Xác nhận hoàn tất"
+                        title="Xác minh hồ sơ"
                         disabled={processingId === item.transactionId}
-                        onClick={() => onStatusChange(item, "completed")}
+                        onClick={() => onStatusChange(item, "documents_verified")}
                         tone="success"
                       >
                         {processingId === item.transactionId ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                       </ActionButton>
+                      <ActionButton
+                        title="Hủy giao dịch"
+                        disabled={processingId === item.transactionId}
+                        onClick={() => onStatusChange(item, "cancelled")}
+                        tone="danger"
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </ActionButton>
+                    </>
+                  ) : item.status === "payment_submitted" ? (
+                    <>
+                      <ActionButton
+                        title="Xác nhận cọc"
+                        disabled={processingId === item.transactionId}
+                        onClick={() => onStatusChange(item, "deposit_confirmed")}
+                        tone="success"
+                      >
+                        {processingId === item.transactionId ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      </ActionButton>
+                      <ActionButton
+                        title="Hủy giao dịch"
+                        disabled={processingId === item.transactionId}
+                        onClick={() => onStatusChange(item, "cancelled")}
+                        tone="danger"
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </ActionButton>
+                    </>
+                  ) : item.status === "refund_requested" ? (
+                    <>
+                      <ActionButton
+                        title="Xác nhận đã hoàn cọc"
+                        disabled={processingId === item.transactionId}
+                        onClick={() => onStatusChange(item, "refunded")}
+                        tone="success"
+                      >
+                        {processingId === item.transactionId ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      </ActionButton>
+                    </>
+                  ) : item.status === "pending" || item.status === "customer_confirmed" || item.status === "documents_verified" || item.status === "deposit_confirmed" ? (
+                    <>
                       <ActionButton
                         title="Hủy giao dịch"
                         disabled={processingId === item.transactionId}
@@ -504,7 +593,9 @@ function CommissionTable({ loading, rows }) {
             <th className="px-5 py-3 text-left">Bất động sản</th>
             <th className="px-5 py-3 text-left">Môi giới</th>
             <th className="px-5 py-3 text-right">Giá trị giao dịch</th>
-            <th className="px-5 py-3 text-right">Số tiền</th>
+            <th className="px-5 py-3 text-right">Tổng HH</th>
+            <th className="px-5 py-3 text-right">Môi giới 60%</th>
+            <th className="px-5 py-3 text-right">Công ty 40%</th>
             <th className="px-5 py-3 text-left">Trạng thái</th>
           </tr>
         </thead>
@@ -518,7 +609,7 @@ function CommissionTable({ loading, rows }) {
                   </div>
                   <div>
                     <p className="font-black text-stone-950">#{item.commissionId}</p>
-                    <p className="text-xs font-bold text-stone-500">2% theo giao dịch</p>
+                    <p className="text-xs font-bold text-stone-500">2% chia 60/40</p>
                   </div>
                 </div>
               </td>
@@ -528,7 +619,9 @@ function CommissionTable({ loading, rows }) {
               </td>
               <td className="px-5 py-4 text-sm font-bold text-stone-700">{item.userName || "N/A"}</td>
               <td className="px-5 py-4 text-right text-sm font-black text-stone-950">{formatVnd(item.transactionTotalPrice)}</td>
-              <td className="px-5 py-4 text-right text-sm font-black text-[#8b6f2f]">{formatVnd(item.amount)}</td>
+              <td className="px-5 py-4 text-right text-sm font-black text-stone-950">{formatVnd(item.totalCommissionAmount)}</td>
+              <td className="px-5 py-4 text-right text-sm font-black text-[#8b6f2f]">{formatVnd(item.brokerAmount || item.amount)}</td>
+              <td className="px-5 py-4 text-right text-sm font-black text-[#2f6f73]">{formatVnd(item.companyAmount)}</td>
               <td className="px-5 py-4">
                 <StatusPill status={item.status} />
               </td>

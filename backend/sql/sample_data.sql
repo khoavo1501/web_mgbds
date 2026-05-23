@@ -58,7 +58,7 @@ INSERT INTO categories (category_type, category_name, parent_id) VALUES
 -- ===================================================================
 
 INSERT INTO properties (property_code, title, description, property_type, status, province, district, area, price, created_by, assigned_to, created_at) VALUES
-('BDS-2024-0001', 'Căn hộ cao cấp 2PN tại Cầu Giấy', 'Căn hộ đẹp, view đẹp, nội thất đầy đủ, gần trường học, siêu thị', 'apartment', 'published', 'Hà Nội', 'Cầu Giấy', 75.5, 3500000000, 1, 2, CURRENT_TIMESTAMP),
+('BDS-2024-0001', 'Căn hộ cao cấp 2PN tại Cầu Giấy', 'Căn hộ đẹp, view đẹp, nội thất đầy đủ, gần trường học, siêu thị', 'apartment', 'in_transaction', 'Hà Nội', 'Cầu Giấy', 75.5, 3500000000, 1, 2, CURRENT_TIMESTAMP),
 ('BDS-2024-0002', 'Nhà riêng 4 tầng Đống Đa', 'Nhà đẹp, ô tô đỗ cửa, kinh doanh tốt', 'house', 'published', 'Hà Nội', 'Đống Đa', 120.0, 8500000000, 1, 2, CURRENT_TIMESTAMP),
 ('BDS-2024-0003', 'Biệt thự Vinhomes Riverside', 'Biệt thự sang trọng, view sông, có hồ bơi riêng', 'villa', 'published', 'Hà Nội', 'Cầu Giấy', 250.0, 25000000000, 2, 2, CURRENT_TIMESTAMP),
 ('BDS-2024-0004', 'Căn hộ 3PN Quận 2', 'Căn hộ rộng rãi, view thành phố, nội thất cao cấp', 'apartment', 'published', 'Hồ Chí Minh', 'Quận 2', 95.0, 5500000000, 2, 3, CURRENT_TIMESTAMP),
@@ -137,10 +137,24 @@ INSERT INTO leads (customer_name, customer_phone, property_id, assigned_to, stat
 INSERT INTO appointments (property_id, customer_id, broker_id, scheduled_at, status, note) VALUES
 (1, 4, 2, CURRENT_TIMESTAMP + INTERVAL '2 days', 'scheduled', 'Khách muốn xem vào buổi sáng'),
 (2, 5, 2, CURRENT_TIMESTAMP + INTERVAL '3 days', 'scheduled', 'Khách quan tâm đến vị trí'),
-(4, 4, 3, CURRENT_TIMESTAMP + INTERVAL '1 day', 'scheduled', 'Khách muốn xem nội thất');
+(4, 4, 3, CURRENT_TIMESTAMP + INTERVAL '1 day', 'scheduled', 'Khách muốn xem nội thất'),
+(1, 4, 2, CURRENT_TIMESTAMP - INTERVAL '1 day', 'viewed', 'Môi giới đã dẫn khách đi xem nhà');
 
 -- ===================================================================
--- 8. Insert Notifications
+-- 8. Insert Transactions cho luồng customer
+-- ===================================================================
+
+INSERT INTO transactions (transaction_code, property_id, customer_id, broker_id, total_price, deposit_amount, status, transaction_date) VALUES
+('GD2023-003', 1, 4, 2, 3500000000, 350000000, 'pending', CURRENT_DATE);
+
+INSERT INTO transaction_payments (transaction_id, amount, payment_method, payment_status, payment_date, confirmed_by) VALUES
+((SELECT transaction_id FROM transactions WHERE transaction_code = 'GD2023-003'), 350000000, 'transfer', 'pending', CURRENT_DATE, NULL);
+
+INSERT INTO commissions (transaction_id, user_id, amount, status) VALUES
+((SELECT transaction_id FROM transactions WHERE transaction_code = 'GD2023-003'), 2, 42000000, 'pending');
+
+-- ===================================================================
+-- 9. Insert Notifications
 -- ===================================================================
 
 INSERT INTO notifications (user_id, title, content, is_read, created_at) VALUES
@@ -166,5 +180,13 @@ UNION ALL
 SELECT 'Leads', COUNT(*) FROM leads
 UNION ALL
 SELECT 'Appointments', COUNT(*) FROM appointments
+UNION ALL
+SELECT 'Transactions', COUNT(*) FROM transactions
+UNION ALL
+SELECT 'Transaction Payments', COUNT(*) FROM transaction_payments
+UNION ALL
+SELECT 'Transaction Documents', COUNT(*) FROM transaction_documents
+UNION ALL
+SELECT 'Commissions', COUNT(*) FROM commissions
 UNION ALL
 SELECT 'Notifications', COUNT(*) FROM notifications;

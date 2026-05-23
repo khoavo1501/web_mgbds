@@ -37,6 +37,7 @@ public class CommissionService {
     /** Tổng hoa hồng của broker hiện tại */
     public BigDecimal getTotalCommission() {
         return getVisibleCommissions().stream()
+                .filter(c -> !"cancelled".equalsIgnoreCase(c.getStatus()))
                 .map(Commission::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
@@ -75,12 +76,16 @@ public class CommissionService {
         CommissionDTO dto = new CommissionDTO();
         dto.setCommissionId(c.getCommissionId());
         dto.setAmount(c.getAmount());
+        dto.setBrokerAmount(c.getAmount());
         dto.setStatus(c.getStatus());
 
         if (c.getTransaction() != null) {
             dto.setTransactionId(c.getTransaction().getTransactionId());
             dto.setTransactionCode(c.getTransaction().getTransactionCode());
             dto.setTransactionTotalPrice(c.getTransaction().getTotalPrice());
+            BigDecimal totalCommission = c.getTransaction().getTotalPrice().multiply(new BigDecimal("0.02"));
+            dto.setTotalCommissionAmount(totalCommission);
+            dto.setCompanyAmount(totalCommission.multiply(new BigDecimal("0.40")));
             if (c.getTransaction().getProperty() != null) {
                 dto.setPropertyTitle(c.getTransaction().getProperty().getTitle());
             }

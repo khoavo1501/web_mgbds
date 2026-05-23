@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
 import api from "../../services/api";
 
 export default function CreateTransaction() {
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
   const [selectedAppId, setSelectedAppId] = useState("");
 
@@ -14,19 +16,26 @@ export default function CreateTransaction() {
     idCard: '',
     propertyId: '',
     propertyTitle: '',
+    customerId: '',
     price: '',
     completionDate: '',
     depositAmount: '',
-    paymentMethod: 'bank_transfer',
+    paymentMethod: 'transfer',
     note: ''
   });
+  const [submitting, setSubmitting] = useState(false);
+
+  const calculateDefaultDeposit = (price) => {
+    const numericPrice = Number(price || 0);
+    return numericPrice > 0 ? Math.round(numericPrice * 0.1) : "";
+  };
 
   useEffect(() => {
     api.get('/appointments')
       .then(res => {
         if (res.data.success) {
           // You may want to filter for appointments with specific status (e.g. 'scheduled' or 'completed')
-          setAppointments(res.data.data);
+          setAppointments((res.data.data || []).filter((item) => item.status !== "cancelled"));
         }
       })
       .catch(err => console.error("Lỗi khi lấy lịch hẹn:", err));
@@ -40,6 +49,10 @@ export default function CreateTransaction() {
       setFormData(prev => ({
         ...prev,
         customerName: app.customerName || '',
+        phone: app.customerPhone || '',
+        email: app.customerEmail || '',
+        idCard: '',
+        customerId: app.customerId || '',
         propertyId: app.propertyId || '',
         propertyTitle: app.propertyTitle || ''
       }));
@@ -49,7 +62,8 @@ export default function CreateTransaction() {
         if (propRes.data.success) {
           setFormData(prev => ({
             ...prev,
-            price: propRes.data.data.price || ''
+            price: propRes.data.data.price || '',
+            depositAmount: calculateDefaultDeposit(propRes.data.data.price || '')
           }));
         }
       } catch (err) {
@@ -59,16 +73,25 @@ export default function CreateTransaction() {
       setFormData(prev => ({
         ...prev,
         customerName: '',
+        phone: '',
+        email: '',
+        idCard: '',
+        customerId: '',
         propertyId: '',
         propertyTitle: '',
-        price: ''
+        price: '',
+        depositAmount: ''
       }));
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+      ...(name === "price" ? { depositAmount: calculateDefaultDeposit(value) } : {})
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -77,28 +100,45 @@ export default function CreateTransaction() {
       alert("Vui lòng chọn lịch hẹn/bất động sản.");
       return;
     }
+    if (!formData.customerId) {
+      alert("Lịch hẹn không có thông tin khách hàng hợp lệ.");
+      return;
+    }
+    if (Number(formData.depositAmount) > Number(formData.price)) {
+      alert("Tiền cọc không được lớn hơn giá trị giao dịch.");
+      return;
+    }
 
+    setSubmitting(true);
     try {
-      // Giả lập gửi API tạo transaction
       const payload = {
-        appointmentId: Number(selectedAppId),
-        ...formData,
-        price: Number(formData.price),
-        depositAmount: Number(formData.depositAmount)
+        propertyId: Number(formData.propertyId),
+        customerId: Number(formData.customerId),
+        totalPrice: Number(formData.price),
+        depositAmount: Number(formData.depositAmount || 0),
+        paymentMethod: formData.paymentMethod,
+        note: formData.note
       };
+
+      const response = await api.post("/transactions", payload);
+      if (!response.data.success) {
+        alert(response.data.message || "Tạo giao dịch thất bại.");
+        return;
+      }
+
+      alert(`Tạo giao dịch đặt cọc thành công: ${response.data.data.transactionCode}`);
+      navigate("/broker/transactions/history");
       
-      console.log("Submitting transaction:", payload);
-      alert("Tạo giao dịch đặt cọc thành công!");
-      
-      // Reset form sau khi tạo xong
       setSelectedAppId("");
       setFormData({
         customerName: '', phone: '', email: '', idCard: '',
-        propertyId: '', propertyTitle: '', price: '', completionDate: '',
-        depositAmount: '', paymentMethod: 'bank_transfer', note: ''
+        customerId: '', propertyId: '', propertyTitle: '', price: '', completionDate: '',
+        depositAmount: '', paymentMethod: 'transfer', note: ''
       });
-    } catch {
-      alert("Có lỗi xảy ra khi tạo giao dịch.");
+    } catch (error) {
+      alert(error.response?.data?.message || "Có lỗi xảy ra khi tạo giao dịch.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -120,10 +160,15 @@ export default function CreateTransaction() {
             <option value="">-- Chọn khách hàng / lịch hẹn --</option>
             {appointments.map(app => (
               <option key={app.appointmentId} value={app.appointmentId}>
-                Khách: {app.customerName} | BĐS: {app.propertyTitle} ({new Date(app.scheduledAt).toLocaleDateString('vi-VN')})
+                Khách: {app.customerName} | BĐS: {app.propertyTitle} | {app.status} ({new Date(app.scheduledAt).toLocaleDateString('vi-VN')})
               </option>
             ))}
           </select>
+          {appointments.length === 0 && (
+            <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
+              Chưa có lịch hẹn hợp lệ cho broker này. Hãy xác nhận lịch hẹn hoặc tạo lịch xem nhà trước.
+            </p>
+          )}
           <p className="mt-2 text-xs text-blue-600">Việc chọn lịch hẹn sẽ tự động điền thông tin khách hàng và bất động sản tương ứng.</p>
         </div>
 
@@ -132,9 +177,9 @@ export default function CreateTransaction() {
           <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Thông tin Khách hàng</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input name="customerName" value={formData.customerName} onChange={handleChange} label="Họ và tên" required placeholder="Nguyễn Văn A" readOnly={!!selectedAppId} />
-            <Input name="phone" value={formData.phone} onChange={handleChange} label="Số điện thoại" required placeholder="0901234567" />
-            <Input name="email" value={formData.email} onChange={handleChange} label="Địa chỉ email" type="email" placeholder="khachhang@email.com" />
-            <Input name="idCard" value={formData.idCard} onChange={handleChange} label="CMND / CCCD / Hộ chiếu" required placeholder="012345678901" />
+            <Input name="phone" value={formData.phone} onChange={handleChange} label="Số điện thoại" placeholder="Tự động điền từ lịch hẹn" readOnly={!!selectedAppId && !!formData.phone} />
+            <Input name="email" value={formData.email} onChange={handleChange} label="Địa chỉ email" type="email" placeholder="Tự động điền từ lịch hẹn" readOnly={!!selectedAppId && !!formData.email} />
+            <Input name="idCard" value={formData.idCard} onChange={handleChange} label="CMND / CCCD / Hộ chiếu" placeholder="Bổ sung nếu cần" />
           </div>
         </div>
 
@@ -154,12 +199,14 @@ export default function CreateTransaction() {
         <div>
           <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Thông tin Tài chính</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input name="depositAmount" value={formData.depositAmount} onChange={handleChange} label="Số tiền đặt cọc (VNĐ)" type="number" required placeholder="VD: 100000000" />
+            <Input name="depositAmount" value={formData.depositAmount} onChange={handleChange} label="Số tiền thanh toán/cọc (VNĐ)" type="number" required placeholder="VD: 100000000" />
+            <p className="col-span-1 md:col-span-2 text-xs font-semibold text-slate-500">
+              Nếu số tiền bằng toàn bộ giá trị giao dịch, hệ thống sẽ tự động hoàn tất và chuyển BĐS sang đã bán.
+            </p>
             <div className="col-span-1 md:col-span-2">
               <label className="mb-1 block text-sm font-medium text-slate-700">Hình thức thanh toán</label>
               <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="bank_transfer">Chuyển khoản ngân hàng</option>
-                <option value="credit_card">Thẻ tín dụng</option>
+                <option value="transfer">Chuyển khoản ngân hàng</option>
                 <option value="cash">Tiền mặt</option>
               </select>
             </div>
@@ -179,7 +226,7 @@ export default function CreateTransaction() {
 
         <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
           <Button variant="outline" type="button">Hủy</Button>
-          <Button type="submit">Tạo giao dịch</Button>
+          <Button type="submit" disabled={submitting}>{submitting ? "Đang tạo..." : "Tạo giao dịch"}</Button>
         </div>
       </form>
     </div>
