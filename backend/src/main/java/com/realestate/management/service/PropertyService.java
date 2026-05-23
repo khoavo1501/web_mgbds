@@ -55,6 +55,9 @@ public class PropertyService {
         );
 
         Page<Property> propertyPage;
+        if (!canViewAllProperties() && searchRequest.getStatus() == null) {
+            searchRequest.setStatus("published");
+        }
 
         // Nếu có keyword, tìm kiếm theo keyword
         // Nếu có các filter khác, tìm kiếm theo nhiều tiêu chí
@@ -91,9 +94,7 @@ public class PropertyService {
         else {
             // Kiểm tra xem có authenticated user không
             try {
-                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-                if (authentication != null && authentication.isAuthenticated() 
-                    && !authentication.getPrincipal().equals("anonymousUser")) {
+                if (canViewAllProperties()) {
                     // User đã đăng nhập -> Lấy tất cả BĐS
                     propertyPage = propertyRepository.findAll(pageable);
                 } else {
@@ -130,6 +131,21 @@ public class PropertyService {
             return null;
         }
         return keyword.trim();
+    }
+
+    private boolean canViewAllProperties() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()
+                    || authentication.getPrincipal().equals("anonymousUser")) {
+                return false;
+            }
+            return userRepository.findByEmail(authentication.getName())
+                    .map(user -> "admin".equalsIgnoreCase(user.getRole()) || "broker".equalsIgnoreCase(user.getRole()))
+                    .orElse(false);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**
@@ -309,7 +325,7 @@ public class PropertyService {
     @Transactional
     public PropertyDTO updatePropertyStatus(Long id, String status) {
         // Validate status
-        if (!status.matches("pending|published|sold|rented|rejected")) {
+        if (!status.matches("pending|published|in_transaction|sold|rented|rejected")) {
             throw new RuntimeException("Trạng thái không hợp lệ. Chỉ chấp nhận: pending, published, sold, rented, rejected");
         }
 

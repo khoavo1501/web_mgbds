@@ -29,6 +29,9 @@ public class TransactionDocument {
     @Column(name = "document_type", nullable = false, length = 50)
     private String documentType; // CCCD, Hộ khẩu, Biên lai, Hợp đồng cọc...
 
+    @Column(name = "file_name")
+    private String fileName;
+
     @Column(name = "file_url", nullable = false, length = 500)
     private String fileUrl;
 

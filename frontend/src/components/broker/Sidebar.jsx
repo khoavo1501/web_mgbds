@@ -16,7 +16,7 @@ const navItems = [
   { name: 'Tổng quan', href: '/broker', icon: LayoutDashboard },
   { name: 'Đăng tin BĐS', href: '/broker/upload', icon: UploadCloud },
   { name: 'Quản lý Lead', href: '/broker/leads', icon: Users },
-  { name: 'Quản lý giao dịch', href: '/broker/transaction', icon: ListChecks },
+  { name: 'BĐS đang giao dịch', href: '/broker/transactions/history', icon: ListChecks },
   { name: 'Hoa hồng', href: '/broker/finance', icon: Wallet },
 ];
 

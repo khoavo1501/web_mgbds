@@ -31,6 +31,9 @@ public class TransactionPayment {
     @Column(name = "payment_method", length = 30)
     private String paymentMethod; // 'cash', 'transfer'
 
+    @Column(name = "payment_status", length = 30)
+    private String paymentStatus = "pending"; // 'pending', 'submitted', 'confirmed'
+
     @Column(name = "payment_date")
     private LocalDate paymentDate = LocalDate.now();
 

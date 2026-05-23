@@ -8,11 +8,15 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
  * Entity Transaction - Giao dịch
- * Status: 'pending', 'completed', 'cancelled'
+ * Status: 'pending', 'customer_confirmed', 'documents_submitted',
+ * 'documents_verified', 'payment_submitted', 'deposit_confirmed',
+ * 'commitment_signed', 'deal_scheduled', 'broker_confirmed', 'refund_requested', 'refunded',
+ * 'completed', 'cancelled'
  */
 @Entity
 @Table(name = "transactions")
@@ -36,10 +40,13 @@ public class Transaction {
     private BigDecimal depositAmount = BigDecimal.ZERO;
 
     @Column(name = "status", length = 30)
-    private String status = "pending"; // 'pending', 'completed', 'cancelled'
+    private String status = "pending";
 
     @Column(name = "transaction_date")
     private LocalDate transactionDate = LocalDate.now();
+
+    @Column(name = "deal_schedule_at")
+    private LocalDateTime dealScheduleAt;
 
     // ===================================================================
     // Relationships
@@ -60,9 +67,18 @@ public class Transaction {
     @JsonIgnore
     private User broker;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "appointment_id")
+    @JsonIgnore
+    private Appointment appointment;
+
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<TransactionPayment> payments;
+
+    @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<TransactionDocument> documents;
 
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore

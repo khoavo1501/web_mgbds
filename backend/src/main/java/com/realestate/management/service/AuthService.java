@@ -25,6 +25,10 @@ public class AuthService {
 
     @Transactional
     public User register(RegisterRequest request) {
+        if (!"customer".equalsIgnoreCase(request.getRole())) {
+            throw new RuntimeException("Chỉ admin mới được tạo tài khoản broker hoặc admin");
+        }
+
         String email = request.getEmail().trim().toLowerCase();
         if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("Email đã được sử dụng");

@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -15,13 +17,28 @@ public class TransactionDTO {
     private String transactionCode;
     private BigDecimal totalPrice;
     private BigDecimal depositAmount;
+    private BigDecimal remainingAmount;
+    private BigDecimal commissionDeduction;
+    private BigDecimal brokerCommissionAmount;
+    private BigDecimal companyCommissionAmount;
+    private BigDecimal refundableDeposit;
+    private String paymentMethod;
+    private Boolean depositConfirmed;
+    private Boolean documentsSubmitted;
+    private Boolean documentsVerified;
     private String status;
     private LocalDate transactionDate;
+    private LocalDateTime dealScheduleAt;
 
     // Property info
     private Long propertyId;
     private String propertyTitle;
     private String propertyCode;
+    private String propertyType;
+    private String propertyProvince;
+    private String propertyDistrict;
+    private BigDecimal propertyArea;
+    private BigDecimal propertyPrice;
 
     // Customer info
     private Long customerId;
@@ -33,4 +50,34 @@ public class TransactionDTO {
     private Long brokerId;
     private String brokerName;
     private String brokerEmail;
+
+    private Long appointmentId;
+    private LocalDateTime appointmentScheduledAt;
+    private String appointmentStatus;
+    private String appointmentNote;
+
+    private List<TransactionDocumentDTO> documents;
+    private List<TransactionPaymentDTO> payments;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TransactionDocumentDTO {
+        private Long documentId;
+        private String documentType;
+        private String fileName;
+        private String url;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TransactionPaymentDTO {
+        private Long paymentId;
+        private BigDecimal amount;
+        private String paymentMethod;
+        private String paymentStatus;
+        private LocalDate paymentDate;
+        private String confirmedByName;
+    }
 }

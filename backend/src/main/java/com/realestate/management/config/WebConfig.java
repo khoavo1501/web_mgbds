@@ -14,11 +14,19 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${app.upload.image-dir:images}")
     private String imageDir;
 
+    @Value("${app.upload.document-dir:documents}")
+    private String documentDir;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         Path uploadPath = Paths.get(imageDir).toAbsolutePath().normalize();
         registry
                 .addResourceHandler("/images/**")
                 .addResourceLocations(uploadPath.toUri().toString());
+
+        Path documentPath = Paths.get(documentDir).toAbsolutePath().normalize();
+        registry
+                .addResourceHandler("/documents/**")
+                .addResourceLocations(documentPath.toUri().toString());
     }
 }

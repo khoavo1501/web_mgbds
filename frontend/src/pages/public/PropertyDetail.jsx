@@ -32,6 +32,7 @@ const propertyTypeLabels = {
 
 const statusLabels = {
   published: "Đang mở bán",
+  in_transaction: "Đang giao dịch",
   pending: "Chờ duyệt",
   rejected: "Đã từ chối",
   sold: "Đã bán",

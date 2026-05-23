@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Bath,
   BedDouble,
@@ -21,6 +21,7 @@ const statusLabels = {
   pending: "Chờ xác nhận",
   scheduled: "Đã lên lịch",
   confirmed: "Đã xác nhận",
+  viewed: "Đã xem nhà",
   completed: "Đã hoàn tất",
   cancelled: "Đã hủy",
 };
@@ -56,7 +57,7 @@ const getPropertyImage = (property) => {
 };
 
 const getStatusClass = (status) => {
-  if (status === "confirmed" || status === "scheduled") return "bg-green-50 text-green-700";
+  if (status === "confirmed" || status === "scheduled" || status === "viewed") return "bg-green-50 text-green-700";
   if (status === "cancelled") return "bg-red-50 text-red-700";
   if (status === "completed") return "bg-slate-100 text-slate-700";
   return "bg-amber-50 text-amber-700";
@@ -72,6 +73,7 @@ export default function CustomerDashboard() {
   const [rescheduleId, setRescheduleId] = useState(null);
   const { favorites } = useFavorites();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const fetchAppointments = useCallback(async () => {
     setLoadingAppointments(true);
@@ -158,6 +160,18 @@ export default function CustomerDashboard() {
     }
   };
 
+  const handleCreateDeposit = async (appointment) => {
+    if (!window.confirm("Bạn xác nhận đặt cọc 10% giá trị bất động sản này?")) return;
+    try {
+      const res = await api.post(`/transactions/appointment/${appointment.appointmentId}/deposit`);
+      if (res.data.success) {
+        navigate(`/customer/transactions/${res.data.data.transactionId}`);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || "Không thể đặt cọc bất động sản này.");
+    }
+  };
+
   return (
     <div>
       <section className="mb-8 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
@@ -177,6 +191,12 @@ export default function CustomerDashboard() {
           >
             <CalendarClock className="h-4 w-4" />
             Tìm bất động sản
+          </Link>
+          <Link
+            to="/customer/transactions/active"
+            className="inline-flex w-fit items-center gap-2 rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
+          >
+            Đang giao dịch
           </Link>
         </div>
       </section>
@@ -283,6 +303,15 @@ export default function CustomerDashboard() {
                               Hủy
                             </button>
                           </div>
+                        )}
+                        {appointment.status === "viewed" && (
+                          <button
+                            type="button"
+                            onClick={() => handleCreateDeposit(appointment)}
+                            className="inline-flex rounded-md bg-slate-950 px-3 py-2 text-xs font-extrabold text-white transition hover:bg-slate-800"
+                          >
+                            Đặt cọc 10%
+                          </button>
                         )}
                       </td>
                     </tr>
