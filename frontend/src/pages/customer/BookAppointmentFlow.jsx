@@ -1,501 +1,648 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import {
-  Bath,
-  BedDouble,
-  CalendarDays,
-  CheckCircle2,
-  Heart,
-  Mail,
-  MapPin,
-  Phone,
-  Share2,
-  Square,
-  UserCircle,
-} from "lucide-react";
-import api from "../../services/api";
-import { useAuth } from "../../context/AuthContext";
-import { useFavorites } from "../../context/FavoritesContext";
+﻿import { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { 
+  Calendar, Clock, MapPin, Building2, User, Phone, Mail,
+  Check, ArrowLeft, Home, CalendarCheck
+} from 'lucide-react';
+import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
-const PLACEHOLDER_IMAGE =
-  "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1400&q=80";
-
-const TIME_SLOTS = ["08:30", "09:30", "10:30", "14:00", "15:00", "16:00"];
-
-const propertyTypeLabels = {
-  apartment: "Căn hộ",
-  house: "Nhà phố",
-  land: "Đất nền",
-  villa: "Biệt thự",
-  shophouse: "Shophouse",
-};
-
-const statusLabels = {
-  published: "Đang mở bán",
-  in_transaction: "Đang giao dịch",
-  pending: "Chờ duyệt",
-  rejected: "Đã từ chối",
-  sold: "Đã bán",
-  Available: "Đang mở bán",
-};
-
-const hasValue = (value) => value !== undefined && value !== null && value !== "";
-
-const toDateKey = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-const formatPrice = (price) => {
-  if (!hasValue(price)) return "";
-  if (Number(price) >= 1000000000) {
-    return `${Number(price / 1000000000).toLocaleString("vi-VN", {
-      maximumFractionDigits: 1,
-    })} tỷ`;
-  }
-  return `${Number(price / 1000000).toLocaleString("vi-VN")} triệu`;
-};
-
-const formatArea = (area) => {
-  if (!hasValue(area)) return "";
-  return `${Number(area).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} m²`;
-};
-
-const formatDate = (date) => {
-  if (!hasValue(date)) return "";
-  const parsedDate = new Date(date);
-  if (Number.isNaN(parsedDate.getTime())) return "";
-  return parsedDate.toLocaleDateString("vi-VN");
-};
-
-const getPropertyTypeLabel = (type) => propertyTypeLabels[type] || type || "";
-
-const getLocation = (property) =>
-  [property.address, property.ward, property.district, property.province].filter(Boolean).join(", ");
-
-const getNextDays = (count = 14) => {
-  const days = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  for (let index = 0; index < count; index += 1) {
-    const day = new Date(today);
-    day.setDate(today.getDate() + index);
-    days.push(day);
-  }
-
-  return days;
-};
-
-export default function PropertyDetail() {
-  const { id } = useParams();
+export default function BookAppointmentFlow() {
+  const { propertyId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  
+  // Get data from PropertyDetail
+  const { selectedDate: initialDate, selectedTime: initialTime, note: initialNote } = location.state || {};
+  
+  // State
+  const [step, setStep] = useState(initialDate && initialTime ? 2 : 1); // Start at step 2 if coming from PropertyDetail
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [bookedAppointments, setBookedAppointments] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(toDateKey(new Date()));
-  const [selectedTime, setSelectedTime] = useState("");
-  const [showScheduler, setShowScheduler] = useState(false);
-  const [bookingStatus, setBookingStatus] = useState({ type: "", message: "" });
-  const [currentTime] = useState(() => Date.now());
-  const { user } = useAuth();
-  const { toggleFavorite, isFavorite } = useFavorites();
+  const [submitting, setSubmitting] = useState(false);
+  const [appointmentResult, setAppointmentResult] = useState(null);
+  
+  // Booking data
+  const [selectedDate] = useState(initialDate);
+  const [selectedTime] = useState(initialTime);
+  const [noteForBroker] = useState(initialNote || '');
+  
+  // Step 2: Contact info
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    note: ''
+  });
+  
+  // Edit mode for each field
+  const [editMode, setEditMode] = useState({
+    name: false,
+    phone: false,
+    email: false
+  });
 
   useEffect(() => {
-    const fetchProperty = async () => {
-      try {
-        const response = await api.get(`/properties/${id}`);
-        if (response.data.success) {
-          setProperty(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch property details", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    
+    // Redirect if no booking data
+    if (!selectedDate || !selectedTime) {
+      navigate(`/properties/${propertyId}`);
+      return;
+    }
+    
+    fetchPropertyDetail();
+  }, [propertyId, user, selectedDate, selectedTime]);
 
-    fetchProperty();
-  }, [id]);
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.fullName || '',
+        phone: user.phone || '',
+        email: user.email || '',
+        note: noteForBroker || ''
+      });
+    }
+  }, [user, noteForBroker]);
 
-  const fetchBookedAppointments = useCallback(async () => {
+  const fetchPropertyDetail = async () => {
     try {
-      const response = await api.get(`/appointments/property/${id}`);
+      setLoading(true);
+      const response = await api.get(`/properties/${propertyId}`);
       if (response.data.success) {
-        setBookedAppointments(response.data.data || []);
+        setProperty(response.data.data);
       }
     } catch (error) {
-      console.error("Failed to fetch property appointments", error);
+      console.error('Error fetching property:', error);
+      alert('Không thể tải thông tin bất động sản');
+    } finally {
+      setLoading(false);
     }
-  }, [id]);
-
-  useEffect(() => {
-    fetchBookedAppointments();
-  }, [fetchBookedAppointments]);
-
-  const images = useMemo(() => {
-    if (!property?.images?.length) return [PLACEHOLDER_IMAGE];
-    return property.images.map((image) => image.url).filter(Boolean);
-  }, [property]);
-
-  const days = useMemo(() => getNextDays(14), []);
-
-  const bookedSlots = useMemo(() => {
-    const slots = new Set();
-    bookedAppointments.forEach((appointment) => {
-      const date = new Date(appointment.scheduledAt);
-      if (!Number.isNaN(date.getTime())) {
-        slots.add(`${toDateKey(date)}T${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`);
-      }
-    });
-    return slots;
-  }, [bookedAppointments]);
-
-  const isPastSlot = (dateKey, time) => {
-    const slotDate = new Date(`${dateKey}T${time}:00`);
-    return slotDate.getTime() <= currentTime;
   };
 
-  const isSlotBooked = (dateKey, time) => bookedSlots.has(`${dateKey}T${time}`);
-
-  const isDayFull = (dateKey) => TIME_SLOTS.every((time) => isPastSlot(dateKey, time) || isSlotBooked(dateKey, time));
-
-  const handleBookAppointment = () => {
-    setBookingStatus({ type: "", message: "" });
-
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
-
-    if (user.role !== "customer") {
-      setBookingStatus({ type: "error", message: "Chỉ tài khoản khách hàng mới có thể đặt lịch xem nhà." });
-      return;
-    }
-
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
     if (!selectedDate || !selectedTime) {
-      setBookingStatus({ type: "error", message: "Vui lòng chọn ngày và giờ xem nhà." });
+      alert('Vui lòng chọn ngày và giờ');
       return;
     }
 
-    // Navigate sang BookAppointmentFlow với date/time đã chọn
-    navigate(`/properties/${property.propertyId}/book-flow`, {
-      state: {
-        selectedDate: new Date(`${selectedDate}T${selectedTime}:00`),
-        selectedTime: selectedTime,
-        note: "",
-      },
-    });
+    try {
+      setSubmitting(true);
+      
+      const [hours, minutes] = selectedTime.split(':');
+      const scheduledAt = new Date(selectedDate);
+      scheduledAt.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+      const appointmentData = {
+        propertyId: parseInt(propertyId),
+        scheduledAt: scheduledAt.toISOString(),
+        note: formData.note || noteForBroker || 'Khách hàng đặt lịch xem nhà'
+      };
+
+      const response = await api.post('/appointments', appointmentData);
+      
+      if (response.data.success) {
+        setAppointmentResult({
+          property: property,
+          date: selectedDate,
+          time: selectedTime,
+          appointment: response.data.data
+        });
+        setStep(3);
+      }
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+      alert(error.response?.data?.message || 'Không thể đặt lịch. Vui lòng thử lại.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
     return (
-      <div className="grid min-h-[60vh] place-items-center bg-slate-50">
-        <div className="h-12 w-12 animate-spin rounded-full border-2 border-slate-200 border-t-slate-950" />
+      <div className="flex justify-center items-center h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   if (!property) {
     return (
-      <div className="min-h-[60vh] bg-slate-50 px-4 py-20 text-center">
-        <h2 className="text-2xl font-extrabold text-slate-950">Không tìm thấy bất động sản</h2>
-        <p className="mt-3 text-sm font-medium text-slate-500">
-          Tin đăng này không tồn tại hoặc đã được gỡ khỏi hệ thống.
-        </p>
-        <Link
-          to="/properties"
-          className="mt-6 inline-flex rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
-        >
-          Quay lại danh sách
-        </Link>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <Building2 className="mx-auto h-16 w-16 text-gray-400" />
+          <h3 className="mt-4 text-lg font-medium text-gray-900">Không tìm thấy bất động sản</h3>
+          <button
+            onClick={() => navigate('/properties')}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Quay lại danh sách
+          </button>
+        </div>
       </div>
     );
   }
 
-  const typeLabel = getPropertyTypeLabel(property.propertyType);
-  const location = getLocation(property);
-  const price = formatPrice(property.price);
-  const area = formatArea(property.area);
-  const favorite = isFavorite(property.propertyId);
-  const broker = property.assignedTo || property.createdBy;
-  const hasBrokerInfo = broker?.fullName || broker?.phone || broker?.email;
-
-  const overviewItems = [
-    area && { icon: Square, label: area },
-    hasValue(property.bedrooms) && { icon: BedDouble, label: `${property.bedrooms} PN` },
-    hasValue(property.bathrooms) && { icon: Bath, label: `${property.bathrooms} WC` },
-  ].filter(Boolean);
-
-  const detailItems = [
-    typeLabel && { label: "Loại hình", value: typeLabel },
-    property.status && { label: "Trạng thái", value: statusLabels[property.status] || property.status },
-    property.propertyCode && { label: "Mã tin", value: property.propertyCode },
-    property.province && { label: "Tỉnh/Thành", value: property.province },
-    property.district && { label: "Quận/Huyện", value: property.district },
-    property.ward && { label: "Phường/Xã", value: property.ward },
-    area && { label: "Diện tích", value: area },
-    hasValue(property.bedrooms) && { label: "Phòng ngủ", value: property.bedrooms },
-    hasValue(property.bathrooms) && { label: "Phòng tắm", value: property.bathrooms },
-    formatDate(property.createdAt) && { label: "Ngày đăng", value: formatDate(property.createdAt) },
-    formatDate(property.updatedAt) && { label: "Cập nhật", value: formatDate(property.updatedAt) },
-  ].filter(Boolean);
-
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-500">
-          <Link to="/" className="hover:text-slate-950">Trang chủ</Link>
-          <span>/</span>
-          <Link to="/properties" className="hover:text-slate-950">{typeLabel || "Bất động sản"}</Link>
-          <span>/</span>
-          <span className="text-slate-950">{property.title}</span>
-        </div>
-
-        <section className="grid gap-2 overflow-hidden rounded-lg md:grid-cols-[1.55fr_0.5fr]">
-          <div className="h-[420px] overflow-hidden bg-slate-200">
-            <img src={images[0]} alt={property.title} className="h-full w-full object-cover" />
-          </div>
-          <div className="grid gap-2">
-            <div className="h-[206px] overflow-hidden bg-slate-200">
-              <img src={images[1] || images[0]} alt={property.title} className="h-full w-full object-cover" />
+  // Step 3: Success Screen
+  if (step === 3 && appointmentResult) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-600 rounded-full mb-6">
+              <Check className="w-12 h-12 text-white" />
             </div>
-            <div className="h-[206px] overflow-hidden bg-slate-200">
-              <img src={images[2] || images[0]} alt={property.title} className="h-full w-full object-cover" />
-            </div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-3">Đặt lịch thành công!</h1>
+            <p className="text-gray-600">
+              Cảm ơn bạn đã tin tưởng EstateLink Pro. Lịch hẹn của bạn đã được xác nhận với đại lý.
+            </p>
           </div>
-        </section>
 
-        <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_390px]">
-          <div>
-            <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-slate-950">
-                    {property.title}
-                  </h1>
-                  {(property.status === 'locked' || property.status === 'in_transaction' || property.isLocked) && (
-                    <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-yellow-200">Đang giao dịch</span>
-                  )}
-                  {property.status === 'sold' && (
-                    <span className="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-red-200">Đã bán</span>
-                  )}
-                </div>
-                {location && (
-                  <p className="mt-3 flex items-start gap-2 text-sm font-medium text-slate-600">
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                    {location}
-                  </p>
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <div className="flex gap-4">
+              <div className="w-32 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                {property.images && property.images.length > 0 ? (
+                  <img
+                    src={property.images.find(img => img.isPrimary)?.url || property.images[0]?.url}
+                    alt={property.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Building2 className="w-12 h-12 text-gray-400" />
+                  </div>
                 )}
               </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
-                  aria-label="Chia sẻ"
-                >
-                  <Share2 className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggleFavorite(property)}
-                  className={`grid h-10 w-10 place-items-center rounded-full border transition ${
-                    favorite ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
-                  aria-label="Lưu bất động sản"
-                >
-                  <Heart className={`h-4 w-4 ${favorite ? "fill-current" : ""}`} />
-                </button>
-              </div>
-            </div>
-
-            {(price || overviewItems.length > 0) && (
-              <div className="flex flex-wrap items-center gap-5 border-b border-slate-200 py-5">
-                {price && <p className="text-3xl font-extrabold text-slate-950">{price}</p>}
-                {overviewItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <span key={item.label} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                      <Icon className="h-4 w-4 text-slate-500" />
-                      {item.label}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-
-            {property.description && (
-              <section className="border-b border-slate-200 py-6">
-                <h2 className="text-lg font-extrabold text-slate-950">Thông tin mô tả</h2>
-                <p className="mt-4 whitespace-pre-line text-sm font-medium leading-7 text-slate-600">
-                  {property.description}
+              
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{property.title}</h3>
+                <p className="text-gray-600 flex items-center gap-2 mb-4">
+                  <MapPin className="w-4 h-4" />
+                  {property.address || `${property.district}, ${property.province}`}
                 </p>
-              </section>
-            )}
-
-            {detailItems.length > 0 && (
-              <section className="py-6">
-                <h2 className="text-lg font-extrabold text-slate-950">Đặc điểm bất động sản</h2>
-                <div className="mt-4 grid border-t border-slate-200 sm:grid-cols-2">
-                  {detailItems.map((item) => (
-                    <div
-                      key={item.label}
-                      className="grid grid-cols-[130px_1fr] gap-4 border-b border-slate-200 py-4 text-sm"
-                    >
-                      <span className="font-medium text-slate-500">{item.label}</span>
-                      <span className="font-bold text-slate-950">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-          </div>
-
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-              {hasBrokerInfo && (
-                <div className="mb-5 flex items-center gap-3">
-                  <div className="grid h-14 w-14 place-items-center rounded-full bg-slate-100 text-slate-600">
-                    <UserCircle className="h-9 w-9" />
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">NGÀY HẸN</p>
+                    <p className="font-bold text-gray-900 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      {appointmentResult.date.toLocaleDateString('vi-VN')}
+                    </p>
                   </div>
                   <div>
-                    {broker.fullName && <p className="font-extrabold text-slate-950">{broker.fullName}</p>}
-                    <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-green-600">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Môi giới chuyên nghiệp
+                    <p className="text-sm text-gray-500 mb-1">GIỜ HẸN</p>
+                    <p className="font-bold text-gray-900 flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      {appointmentResult.time.split(' - ')[0]}
                     </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <button
+              onClick={() => navigate('/customer/appointments')}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gray-900 text-white rounded-xl hover:bg-gray-800 font-semibold transition-colors"
+            >
+              <CalendarCheck className="w-5 h-5" />
+              Xem lịch của tôi
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-semibold transition-colors"
+            >
+              <Home className="w-5 h-5" />
+              Về trang chủ
+            </button>
+          </div>
+
+          <p className="text-center text-sm text-gray-500 mt-6">
+            Bạn cần hỗ trợ? <button className="text-blue-600 hover:underline font-semibold">Liên hệ với chúng tôi</button>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4 max-w-7xl">
+        {/* Header */}
+        <div className="mb-6">
+          <button
+            onClick={() => step === 1 ? navigate(`/properties/${propertyId}`) : handleBackToStep1()}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            {step === 1 ? 'Quay lại chi tiết' : 'Quay lại chọn thời gian'}
+          </button>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {step === 1 ? 'Chọn thời gian xem nhà' : 'Xác nhận thông tin liên hệ'}
+          </h1>
+          <p className="text-gray-600 mt-2">
+            {step === 1 
+              ? 'Vui lòng chọn ngày và giờ phù hợp để chuyên viên tư vấn của chúng tôi có thể sắp xếp đón tiếp bạn tốt nhất.'
+              : 'Thông tin liên hệ của bạn được lấy từ hồ sơ cá nhân. Vui lòng kiểm tra lại trước khi xác nhận.'
+            }
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left - Main Content */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-sm p-8">
+              {/* Step 1: Select Time */}
+              {step === 1 && (
+                <div>
+                  {/* Calendar */}
+                  <div className="mb-8">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-xl font-bold text-gray-900">
+                        Tháng {currentMonth.getMonth() + 1}, {currentMonth.getFullYear()}
+                      </h3>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={previousMonth}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={nextMonth}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-2">
+                      {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map(day => (
+                        <div key={day} className="text-center font-bold text-gray-600 py-2 text-sm">
+                          {day}
+                        </div>
+                      ))}
+                      
+                      {getDaysInMonth(currentMonth).map((date, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleDateSelect(date)}
+                          disabled={isDateDisabled(date)}
+                          className={`
+                            aspect-square rounded-lg flex items-center justify-center text-sm font-bold
+                            transition-colors
+                            ${!date ? 'invisible' : ''}
+                            ${isDateDisabled(date) ? 'text-gray-300 cursor-not-allowed bg-gray-50' : 'hover:bg-blue-50'}
+                            ${selectedDate && date && selectedDate.toDateString() === date.toDateString() 
+                              ? 'bg-green-600 text-white hover:bg-green-700' 
+                              : 'text-gray-900'}
+                          `}
+                        >
+                          {date ? date.getDate() : ''}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Time Slots */}
+                  {selectedDate && (
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">
+                        {selectedDate.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                      </h3>
+                      
+                      {/* Morning */}
+                      <div className="mb-6">
+                        <h4 className="text-lg font-bold text-gray-900 mb-3">Buổi Sáng</h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {morningSlots.map(timeSlot => {
+                            const isBooked = isTimeSlotBooked(selectedDate, timeSlot);
+                            const isSelected = selectedTime === timeSlot;
+                            
+                            return (
+                              <button
+                                key={timeSlot}
+                                onClick={() => handleTimeSelect(timeSlot)}
+                                disabled={isBooked}
+                                className={`
+                                  py-3 px-4 rounded-lg text-sm font-bold transition-colors border-2
+                                  ${isBooked 
+                                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
+                                    : 'hover:bg-green-50 border-gray-200'}
+                                  ${isSelected 
+                                    ? 'bg-green-600 text-white border-green-600 hover:bg-green-700' 
+                                    : ''}
+                                `}
+                              >
+                                {timeSlot}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Afternoon */}
+                      <div className="mb-6">
+                        <h4 className="text-lg font-bold text-gray-900 mb-3">Buổi Chiều</h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {afternoonSlots.map(timeSlot => {
+                            const isBooked = isTimeSlotBooked(selectedDate, timeSlot);
+                            const isSelected = selectedTime === timeSlot;
+                            
+                            return (
+                              <button
+                                key={timeSlot}
+                                onClick={() => handleTimeSelect(timeSlot)}
+                                disabled={isBooked}
+                                className={`
+                                  py-3 px-4 rounded-lg text-sm font-bold transition-colors border-2
+                                  ${isBooked 
+                                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
+                                    : 'hover:bg-green-50 border-gray-200'}
+                                  ${isSelected 
+                                    ? 'bg-green-600 text-white border-green-600 hover:bg-green-700' 
+                                    : ''}
+                                `}
+                              >
+                                {timeSlot}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Note */}
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                          Ghi chú cho chuyên viên (Tùy chọn)
+                        </label>
+                        <textarea
+                          value={noteForBroker}
+                          onChange={(e) => setNoteForBroker(e.target.value)}
+                          rows={3}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none resize-none"
+                          placeholder="Ví dụ: Tôi muốn hỏi thêm về pháp lý của căn hộ này..."
+                        />
+                      </div>
+
+                      {/* Next Button */}
+                      <div className="mt-8">
+                        <button
+                          type="button"
+                          onClick={handleNextToStep2}
+                          disabled={!selectedDate || !selectedTime}
+                          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 font-bold transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-lg"
+                        >
+                          <Calendar className="w-5 h-5" />
+                          Xác nhận lịch đặt
+                        </button>
+                        <p className="text-center text-sm text-gray-500 mt-3">
+                          Lịch hẹn sẽ ở trạng thái chờ xác nhận sau khi đặt thành công.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Step 2: Contact Info */}
+              {step === 2 && (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                        Họ và tên *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) => setFormData({...formData, name: e.target.value})}
+                          disabled={!editMode.name}
+                          className={`w-full px-4 py-3 border-2 rounded-lg transition-colors ${
+                            editMode.name 
+                              ? 'border-green-500 bg-white focus:outline-none' 
+                              : 'border-gray-200 bg-gray-50 text-gray-600'
+                          }`}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditMode({...editMode, name: !editMode.name})}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-blue-600 hover:text-blue-700 font-semibold"
+                        >
+                          {editMode.name ? 'Xong' : 'Sửa'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                        Số điện thoại *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                          disabled={!editMode.phone}
+                          className={`w-full px-4 py-3 border-2 rounded-lg transition-colors ${
+                            editMode.phone 
+                              ? 'border-green-500 bg-white focus:outline-none' 
+                              : 'border-gray-200 bg-gray-50 text-gray-600'
+                          }`}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditMode({...editMode, phone: !editMode.phone})}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-blue-600 hover:text-blue-700 font-semibold"
+                        >
+                          {editMode.phone ? 'Xong' : 'Sửa'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Email *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        disabled={!editMode.email}
+                        className={`w-full px-4 py-3 border-2 rounded-lg transition-colors ${
+                          editMode.email 
+                            ? 'border-green-500 bg-white focus:outline-none' 
+                            : 'border-gray-200 bg-gray-50 text-gray-600'
+                        }`}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setEditMode({...editMode, email: !editMode.email})}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-blue-600 hover:text-blue-700 font-semibold"
+                      >
+                        {editMode.email ? 'Xong' : 'Sửa'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Lời nhắn cho chuyên viên (Tùy chọn)
+                    </label>
+                    <textarea
+                      value={formData.note}
+                      onChange={(e) => setFormData({...formData, note: e.target.value})}
+                      rows={4}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none resize-none"
+                      placeholder="Tôi muốn hỏi thêm về pháp lý của căn hộ này..."
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 font-bold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        Đang xử lý...
+                      </>
+                    ) : (
+                      'Xác nhận đặt lịch'
+                    )}
+                  </button>
+
+                  <p className="text-center text-sm text-gray-500">
+                    Bằng cách nhấn xác nhận, bạn đồng ý với Điều khoản dịch vụ của chúng tôi.
+                  </p>
+                </form>
+              )}
+            </div>
+          </div>
+
+          {/* Right - Property Summary */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden sticky top-8">
+              {/* Selected Time Summary (only show when time is selected) */}
+              {selectedDate && selectedTime && (
+                <div className="bg-gray-900 text-white p-6 mb-0">
+                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <Check className="w-5 h-5" />
+                    Tóm tắt lịch hẹn
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Calendar className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm text-gray-400">Ngày hẹn</p>
+                        <p className="font-bold">
+                          {selectedDate.toLocaleDateString('vi-VN', { 
+                            weekday: 'short', 
+                            day: 'numeric', 
+                            month: 'numeric', 
+                            year: 'numeric' 
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Clock className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm text-gray-400">Giờ hẹn</p>
+                        <p className="font-bold">{selectedTime}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {broker?.phone && (
-                <a
-                  href={`tel:${broker.phone}`}
-                  className="mb-4 flex h-11 items-center justify-center gap-2 rounded-md bg-green-600 px-4 text-sm font-bold text-white transition hover:bg-green-700"
-                >
-                  <Phone className="h-4 w-4" />
-                  {broker.phone}
-                </a>
-              )}
-
-              <div className="border-t border-slate-100 pt-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <CalendarDays className="h-5 w-5 text-slate-700" />
-                  <h2 className="text-base font-extrabold text-slate-950">Đặt lịch xem nhà</h2>
+              {/* Property Info */}
+              <div className="relative">
+                <div className="aspect-video bg-gray-200">
+                  {property.images && property.images.length > 0 ? (
+                    <img
+                      src={property.images.find(img => img.isPrimary)?.url || property.images[0]?.url}
+                      alt={property.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Building2 className="w-16 h-16 text-gray-400" />
+                    </div>
+                  )}
+                  {property.status === 'published' && (
+                    <span className="absolute top-3 right-3 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                      Đang bán
+                    </span>
+                  )}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowScheduler((value) => !value);
-                    setBookingStatus({ type: "", message: "" });
-                  }}
-                  className="flex h-11 w-full items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-extrabold text-white transition hover:bg-slate-800"
-                >
-                  {showScheduler ? "Ẩn lịch đặt hẹn" : "Đặt lịch xem nhà"}
-                </button>
-
-                {showScheduler && (
-                  <div className="mt-5">
-                    <p className="mb-3 text-xs font-semibold text-slate-500">
-                      Chọn ngày còn trống trong 14 ngày tới
-                    </p>
-                    <div className="grid grid-cols-7 gap-2">
-                      {days.map((day) => {
-                        const dateKey = toDateKey(day);
-                        const disabled = isDayFull(dateKey);
-                        const selected = selectedDate === dateKey;
-                        return (
-                          <button
-                            key={dateKey}
-                            type="button"
-                            disabled={disabled}
-                            onClick={() => {
-                              setSelectedDate(dateKey);
-                              setSelectedTime("");
-                              setBookingStatus({ type: "", message: "" });
-                            }}
-                            className={`rounded-md border px-1 py-2 text-center transition disabled:cursor-not-allowed disabled:opacity-35 ${
-                              selected ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white hover:bg-slate-50"
-                            }`}
-                          >
-                            <span className="block text-[10px] font-bold uppercase">
-                              {day.toLocaleDateString("vi-VN", { weekday: "short" })}
-                            </span>
-                            <span className="mt-1 block text-sm font-extrabold">{day.getDate()}</span>
-                          </button>
-                        );
-                      })}
+                <div className="p-6">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">{property.title}</h3>
+                  <p className="text-gray-600 flex items-center gap-2 mb-4 text-sm">
+                    <MapPin className="w-4 h-4 flex-shrink-0" />
+                    {property.address || `${property.district}, ${property.province}`}
+                  </p>
+                  
+                  <div className="border-t pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm text-gray-500">Giá dự kiến</span>
+                      <span className="text-2xl font-bold text-green-600">
+                        {property.price ? 
+                          (property.price >= 1000000000 ? 
+                            `${(property.price / 1000000000).toFixed(1)} tỷ VND` : 
+                            `${(property.price / 1000000).toFixed(0)} triệu VND`
+                          ) : 
+                          'Liên hệ'
+                        }
+                      </span>
                     </div>
-
-                    <p className="mb-3 mt-5 text-xs font-semibold text-slate-500">Khung giờ còn trống</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {TIME_SLOTS.map((time) => {
-                        const disabled = isPastSlot(selectedDate, time) || isSlotBooked(selectedDate, time);
-                        const selected = selectedTime === time;
-                        return (
-                          <button
-                            key={time}
-                            type="button"
-                            disabled={disabled}
-                            onClick={() => {
-                              setSelectedTime(time);
-                              setBookingStatus({ type: "", message: "" });
-                            }}
-                            className={`h-10 rounded-md border text-sm font-bold transition disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 ${
-                              selected ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
-                            }`}
-                          >
-                            {time}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {bookingStatus.message && (
-                      <div
-                        className={`mt-4 rounded-md border px-3 py-2 text-sm font-semibold ${
-                          bookingStatus.type === "success"
-                            ? "border-green-200 bg-green-50 text-green-700"
-                            : "border-red-200 bg-red-50 text-red-700"
-                        }`}
-                      >
-                        {bookingStatus.message}
+                    
+                    {property.area && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">Diện tích</span>
+                        <span className="font-bold text-gray-900">{property.area}m²</span>
                       </div>
                     )}
-
-                    <button
-                      type="button"
-                      onClick={handleBookAppointment}
-                      disabled={!selectedTime}
-                      className="mt-4 flex h-11 w-full items-center justify-center rounded-md border border-slate-950 bg-white px-4 text-sm font-extrabold text-slate-950 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {user ? "Xác nhận đặt lịch" : "Đăng nhập để đặt lịch"}
-                    </button>
                   </div>
-                )}
 
-                {broker?.email && (
-                  <a
-                    href={`mailto:${broker.email}`}
-                    className="mt-3 flex h-11 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-bold text-slate-950 transition hover:bg-slate-50"
-                  >
-                    <Mail className="h-4 w-4" />
-                    Yêu cầu tư vấn
-                  </a>
-                )}
+                  {/* Broker Info */}
+                  {property.assignedTo && (
+                    <div className="mt-4 pt-4 border-t">
+                      <p className="text-xs text-gray-500 mb-2">Chuyên viên tư vấn</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5 text-gray-600" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900">{property.assignedTo.fullName}</p>
+                          {property.assignedTo.phone && (
+                            <p className="text-xs text-gray-600">{property.assignedTo.phone}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-
-              <p className="mt-5 text-xs font-medium leading-5 text-slate-500">
-                Lịch hẹn sẽ ở trạng thái chờ xác nhận sau khi đặt thành công.
-              </p>
             </div>
-          </aside>
-        </section>
-      </main>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
