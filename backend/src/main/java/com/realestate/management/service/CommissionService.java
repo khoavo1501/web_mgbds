@@ -89,6 +89,9 @@ public class CommissionService {
             if (c.getTransaction().getProperty() != null) {
                 dto.setPropertyTitle(c.getTransaction().getProperty().getTitle());
             }
+            if (c.getTransaction().getCustomer() != null) {
+                dto.setCustomerName(c.getTransaction().getCustomer().getFullName());
+            }
         }
         if (c.getUser() != null) {
             dto.setUserId(c.getUser().getUserId());

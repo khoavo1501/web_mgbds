@@ -234,7 +234,7 @@ public class TransactionService {
     /** Cập nhật trạng thái giao dịch */
     @Transactional
     public TransactionDTO updateStatus(Long id, String status) {
-        if (!status.matches("customer_confirmed|contract_agreed|documents_submitted|documents_verified|payment_submitted|deposit_paid|notarizing|completed|cancelled|rejected")) {
+        if (!status.matches("customer_confirmed|contract_agreed|documents_submitted|documents_verified|payment_submitted|deposit_confirmed|notarizing|completed|cancelled|rejected|refund_requested|refunded|broker_confirmed|deal_scheduled")) {
             throw new RuntimeException("Trạng thái không hợp lệ: " + status);
         }
         Transaction t = transactionRepository.findById(id)
@@ -245,7 +245,7 @@ public class TransactionService {
         boolean isCustomer = t.getCustomer() != null && t.getCustomer().getUserId().equals(currentUser.getUserId());
         boolean isBroker = t.getBroker() != null && t.getBroker().getUserId().equals(currentUser.getUserId());
 
-        if (List.of("documents_verified", "deposit_paid", "rejected").contains(status) && !isAdmin) {
+        if (List.of("documents_verified", "deposit_confirmed", "rejected", "refunded").contains(status) && !isAdmin) {
             throw new RuntimeException("Chỉ admin mới được xác minh hồ sơ hoặc xác nhận cọc");
         }
 
@@ -262,7 +262,7 @@ public class TransactionService {
 
         t.setStatus(status);
 
-        if ("deposit_paid".equals(status)) {
+        if ("deposit_confirmed".equals(status)) {
             transactionPaymentRepository.findByTransaction(t).forEach(payment -> {
                 if (payment.getConfirmedBy() == null) {
                     payment.setConfirmedBy(currentUser);

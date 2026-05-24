@@ -67,6 +67,8 @@ export default function CustomerDashboard() {
   const [activeTab, setActiveTab] = useState("appointments");
   const [appointments, setAppointments] = useState([]);
   const [loadingAppointments, setLoadingAppointments] = useState(true);
+  const [transactions, setTransactions] = useState([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [bookingProperty, setBookingProperty] = useState(null);
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
@@ -89,9 +91,24 @@ export default function CustomerDashboard() {
     }
   }, []);
 
+  const fetchTransactions = useCallback(async () => {
+    setLoadingTransactions(true);
+    try {
+      const res = await api.get("/transactions");
+      if (res.data.success) {
+        setTransactions(res.data.data || []);
+      }
+    } catch (err) {
+      console.error("Lỗi khi tải danh sách giao dịch", err);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchAppointments();
-  }, [fetchAppointments]);
+    fetchTransactions();
+  }, [fetchAppointments, fetchTransactions]);
 
   const resetBookingForm = () => {
     setBookingProperty(null);
@@ -207,12 +224,12 @@ export default function CustomerDashboard() {
           <p className="mt-2 text-3xl font-extrabold text-slate-950">{appointments.length}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-bold text-slate-500">Đang quan tâm</p>
-          <p className="mt-2 text-3xl font-extrabold text-slate-950">{favorites.length}</p>
+          <p className="text-sm font-bold text-slate-500">Giao dịch</p>
+          <p className="mt-2 text-3xl font-extrabold text-slate-950">{transactions.length}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-bold text-slate-500">Tài khoản</p>
-          <p className="mt-2 text-lg font-extrabold text-slate-950">Khách hàng</p>
+          <p className="text-sm font-bold text-slate-500">Đang quan tâm</p>
+          <p className="mt-2 text-3xl font-extrabold text-slate-950">{favorites.length}</p>
         </div>
       </div>
 
@@ -220,6 +237,7 @@ export default function CustomerDashboard() {
         <nav className="flex gap-8">
           {[
             { id: "appointments", label: "Lịch hẹn của tôi" },
+            { id: "transactions", label: "Giao dịch của tôi" },
             { id: "favorites", label: "Bất động sản yêu thích" },
           ].map((tab) => (
             <button
@@ -328,6 +346,70 @@ export default function CustomerDashboard() {
                   <tr>
                     <td colSpan="5" className="px-6 py-10 text-center text-sm font-medium text-slate-500">
                       Bạn chưa có lịch hẹn nào.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "transactions" && (
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    Mã Giao Dịch
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    Bất động sản
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    Trạng thái
+                  </th>
+                  <th className="px-6 py-4 text-right text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    Thao tác
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 bg-white">
+                {loadingTransactions ? (
+                  <tr>
+                    <td colSpan="4" className="px-6 py-8 text-center text-sm font-medium text-slate-500">
+                      Đang tải giao dịch...
+                    </td>
+                  </tr>
+                ) : transactions.length > 0 ? (
+                  transactions.map((tx) => (
+                    <tr key={tx.transactionId} className="hover:bg-slate-50/70">
+                      <td className="px-6 py-4 text-sm font-extrabold text-slate-950">
+                        {tx.transactionCode}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-bold text-slate-800">
+                        {tx.propertyTitle}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${getStatusClass(tx.status)}`}>
+                          {statusLabels[tx.status] || tx.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Link
+                          to={`/customer/transactions/${tx.transactionId}`}
+                          className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                        >
+                          Xem chi tiết
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" className="px-6 py-8 text-center text-sm font-medium text-slate-500">
+                      Bạn chưa có giao dịch nào.
                     </td>
                   </tr>
                 )}

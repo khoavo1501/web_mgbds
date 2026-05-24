@@ -567,6 +567,17 @@ function TransactionTable({ loading, rows, processingId, onStatusChange }) {
                         {processingId === item.transactionId ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                       </ActionButton>
                     </>
+                  ) : item.status === "broker_confirmed" ? (
+                    <>
+                      <ActionButton
+                        title="Hoàn tất giao dịch (Đã nhận đủ tiền)"
+                        disabled={processingId === item.transactionId}
+                        onClick={() => onStatusChange(item, "completed")}
+                        tone="success"
+                      >
+                        {processingId === item.transactionId ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      </ActionButton>
+                    </>
                   ) : item.status === "pending" || item.status === "customer_confirmed" || item.status === "documents_verified" || item.status === "deposit_confirmed" ? (
                     <>
                       <ActionButton

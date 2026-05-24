@@ -90,7 +90,7 @@ const getNextDays = (count = 14) => {
 };
 
 export default function PropertyDetail() {
-  const { id } = useParams();
+  const { propertyId: id } = useParams();
   const navigate = useNavigate();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -181,9 +181,9 @@ export default function PropertyDetail() {
     }
 
     // Navigate sang BookAppointmentFlow với date/time đã chọn
-    navigate(`/properties/${property.propertyId}/book-flow`, {
+    navigate(`/properties/${property.propertyId}/book`, {
       state: {
-        selectedDate: new Date(`${selectedDate}T${selectedTime}:00`),
+        selectedDate: selectedDate,
         selectedTime: selectedTime,
         note: "",
       },

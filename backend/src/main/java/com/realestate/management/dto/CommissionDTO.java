@@ -25,6 +25,9 @@ public class CommissionDTO {
     // Property info
     private String propertyTitle;
 
+    // Customer info
+    private String customerName;
+
     // Broker info
     private Long userId;
     private String userName;

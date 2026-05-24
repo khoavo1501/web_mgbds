@@ -8,6 +8,7 @@ import {
   LogOut,
   Search,
   ShieldCheck,
+  FileCheck,
   User,
   Users,
   Wallet,
@@ -19,6 +20,7 @@ const navItems = [
   { name: "Tổng quan", path: "/admin", icon: LayoutDashboard },
   { name: "Duyệt BĐS", path: "/admin/approval", icon: CheckSquare },
   { name: "Quản lý BĐS", path: "/admin/properties", icon: Building2 },
+  { name: "Duyệt pháp lý", path: "/admin/transactions", icon: FileCheck },
   { name: "Tài chính", path: "/admin/finance", icon: Wallet },
   { name: "Người dùng", path: "/admin/users", icon: Users },
 ];

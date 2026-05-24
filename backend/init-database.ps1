@@ -106,11 +106,8 @@ if ($LASTEXITCODE -ne 0) {
 Write-Step "Waiting for PostgreSQL"
 Wait-PostgresReady
 
-Write-Step "Running schema"
-Invoke-SqlFile (Join-Path $PSScriptRoot "sql\index.sql")
-
-Write-Step "Running sample data"
-Invoke-SqlFile (Join-Path $PSScriptRoot "sql\sample_data.sql")
+Write-Step "Running schema and data"
+Invoke-SqlFile (Join-Path $PSScriptRoot "sql\bds.sql")
 
 Write-Step "Database initialized"
 docker exec mgbds_postgres psql -U postgres -d mgbds_db -c "select 'users' as table_name, count(*) from users union all select 'properties', count(*) from properties union all select 'appointments', count(*) from appointments union all select 'categories', count(*) from categories order by table_name;"

@@ -23,7 +23,6 @@ import CancelAppointment from "./pages/customer/CancelAppointment";
 
 // Broker Pages
 import BrokerDashboard from "./pages/broker/BrokerDashboard";
-import LeadManagement from "./pages/broker/LeadManagement";
 import BrokerFinance from "./pages/broker/BrokerFinance";
 import PropertyUpload from "./pages/broker/PropertyUpload";
 import BrokerTransactionHistory from "./pages/broker/BrokerTransactionHistory";
@@ -37,6 +36,7 @@ import PropertyManagement from "./pages/admin/PropertyManagement";
 import PropertyApproval from "./pages/admin/PropertyApproval";
 import FinancialManagement from "./pages/admin/FinancialManagement";
 import UserManagement from "./pages/admin/UserManagement";
+import AdminTransactionManagement from "./pages/admin/AdminTransactionManagement";
 
 function App() {
   return (
@@ -72,7 +72,6 @@ function App() {
                 <Route path="/broker" element={<BrokerDashboard />} />
                 <Route path="/broker/appointments" element={<BrokerAppointments />} />
                 <Route path="/broker/finance" element={<BrokerFinance />} />
-                <Route path="/broker/leads" element={<LeadManagement />} />
                 <Route path="/broker/transaction" element={<Navigate to="/broker/transactions/history" replace />} />
                 <Route path="/broker/transactions/history" element={<BrokerTransactionHistory />} />
                 <Route path="/broker/transactions/create" element={<CreateTransaction />} />
@@ -87,6 +86,7 @@ function App() {
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/properties" element={<PropertyManagement />} />
                 <Route path="/admin/approval" element={<PropertyApproval />} />
+                <Route path="/admin/transactions" element={<AdminTransactionManagement />} />
                 <Route path="/admin/finance" element={<FinancialManagement />} />
                 <Route path="/admin/users" element={<UserManagement />} />
               </Route>
