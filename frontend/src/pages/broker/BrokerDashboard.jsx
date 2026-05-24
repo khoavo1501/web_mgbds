@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Users, Calendar, TrendingUp } from "lucide-react";
 import StatCard from "../../components/StatCard";
 import Badge from "../../components/Badge";
+import { Link } from "react-router-dom";
 import api from "../../services/api";
 
 const appointmentStatusLabels = {
@@ -121,6 +122,11 @@ export default function BrokerDashboard() {
                       <div className="mt-2 flex flex-col gap-2">
                         <button onClick={() => handleUpdateStatus(apt.appointmentId, 'viewed')} className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200">Xác nhận đã dẫn khách xem nhà</button>
                         <button onClick={() => openRescheduleModal(apt)} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200">Dời lịch</button>
+                      </div>
+                    )}
+                    {apt.status === 'viewed' && (
+                      <div className="mt-2 flex flex-col gap-2">
+                        <Link to={`/broker/transactions/create?appointmentId=${apt.appointmentId}`} className="text-xs text-center font-semibold bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700">Tạo Giao Dịch Đặt Cọc</Link>
                       </div>
                     )}
                   </div>

@@ -17,6 +17,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${app.upload.document-dir:documents}")
     private String documentDir;
 
+    @Value("${app.upload.base-dir:uploads}")
+    private String uploadBaseDir;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         Path uploadPath = Paths.get(imageDir).toAbsolutePath().normalize();
@@ -28,5 +31,10 @@ public class WebConfig implements WebMvcConfigurer {
         registry
                 .addResourceHandler("/documents/**")
                 .addResourceLocations(documentPath.toUri().toString());
+                
+        Path uploadBasePath = Paths.get(uploadBaseDir).toAbsolutePath().normalize();
+        registry
+                .addResourceHandler("/uploads/**")
+                .addResourceLocations(uploadBasePath.toUri().toString());
     }
 }

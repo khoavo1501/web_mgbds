@@ -41,9 +41,13 @@ public class AuditLogAspect {
         String description = auditAction.description() + " (Method: " + method.getName() + ")";
 
         AuditLog log = new AuditLog();
-        log.setActionType(actionType);
-        log.setDescription(description);
-        log.setUser(currentUser);
+        log.setAction(actionType + " - " + description);
+        if (currentUser != null) {
+            log.setActorId(currentUser.getUserId());
+            log.setActorRole(currentUser.getRole());
+        }
+        log.setEntityType("UNKNOWN");
+        log.setEntityId(0L);
         auditLogRepository.save(log);
     }
 }

@@ -23,8 +23,10 @@ import {
   TrendingUp,
   Wallet,
   XCircle,
+  FileText,
 } from "lucide-react";
 import api from "../../services/api";
+import DocumentViewerModal from "../../components/DocumentViewerModal";
 
 const statusLabels = {
   pending: "Chờ khách xác nhận",
@@ -453,6 +455,9 @@ function StatusPill({ status }) {
 }
 
 function TransactionTable({ loading, rows, processingId, onStatusChange }) {
+  const [selectedTx, setSelectedTx] = useState(null);
+  const [selectedPaymentTx, setSelectedPaymentTx] = useState(null);
+
   if (loading) return <TableLoading label="Đang tải giao dịch..." />;
   if (rows.length === 0) {
     return <EmptyState title="Không có giao dịch phù hợp" description="Thử đổi bộ lọc hoặc tạo giao dịch mới từ tài khoản môi giới." />;
@@ -477,7 +482,16 @@ function TransactionTable({ loading, rows, processingId, onStatusChange }) {
         </thead>
         <tbody className="divide-y divide-stone-100">
           {rows.map((item) => (
-            <tr key={item.transactionId} className="transition-colors hover:bg-[#fbf8f1]">
+            <tr 
+              key={item.transactionId} 
+              className={`transition-colors hover:bg-[#fbf8f1] ${
+                item.status === "documents_submitted" || item.status === "payment_submitted" ? "cursor-pointer" : ""
+              }`}
+              onClick={() => {
+                if (item.status === "documents_submitted") setSelectedTx(item);
+                if (item.status === "payment_submitted") setSelectedPaymentTx(item);
+              }}
+            >
               <td className="px-5 py-4">
                 <p className="font-black text-stone-950">{item.transactionCode}</p>
                 <p className="mt-1 text-xs font-bold text-stone-500">
@@ -507,12 +521,12 @@ function TransactionTable({ loading, rows, processingId, onStatusChange }) {
                   {item.status === "documents_submitted" ? (
                     <>
                       <ActionButton
-                        title="Xác minh hồ sơ"
+                        title="Kiểm tra hồ sơ"
                         disabled={processingId === item.transactionId}
-                        onClick={() => onStatusChange(item, "documents_verified")}
+                        onClick={() => setSelectedTx(item)}
                         tone="success"
                       >
-                        {processingId === item.transactionId ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                        <CheckCircle2 className="h-4 w-4" />
                       </ActionButton>
                       <ActionButton
                         title="Hủy giao dịch"
@@ -528,10 +542,10 @@ function TransactionTable({ loading, rows, processingId, onStatusChange }) {
                       <ActionButton
                         title="Xác nhận cọc"
                         disabled={processingId === item.transactionId}
-                        onClick={() => onStatusChange(item, "deposit_confirmed")}
+                        onClick={() => setSelectedPaymentTx(item)}
                         tone="success"
                       >
-                        {processingId === item.transactionId ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                        <CheckCircle2 className="h-4 w-4" />
                       </ActionButton>
                       <ActionButton
                         title="Hủy giao dịch"
@@ -573,6 +587,209 @@ function TransactionTable({ loading, rows, processingId, onStatusChange }) {
           ))}
         </tbody>
       </table>
+      
+      {selectedTx && (
+        <DocumentVerificationModal 
+          transaction={selectedTx} 
+          onClose={() => setSelectedTx(null)} 
+          onVerified={() => {
+            setSelectedTx(null);
+            onStatusChange(selectedTx, "documents_verified");
+          }} 
+        />
+      )}
+
+      {selectedPaymentTx && (
+        <PaymentVerificationModal 
+          transaction={selectedPaymentTx} 
+          onClose={() => setSelectedPaymentTx(null)} 
+          onVerified={() => {
+            setSelectedPaymentTx(null);
+            onStatusChange(selectedPaymentTx, "deposit_confirmed");
+          }} 
+          onReject={() => {
+            setSelectedPaymentTx(null);
+            onStatusChange(selectedPaymentTx, "cancelled");
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function PaymentVerificationModal({ transaction, onClose, onVerified, onReject }) {
+  const receiptDoc = (transaction.documents || []).find(d => d.documentType === 'receipt');
+  const [viewDoc, setViewDoc] = useState(null);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/55 px-4 backdrop-blur-sm">
+      <div className="max-h-[88vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white shadow-2xl">
+        <div className="flex items-start justify-between border-b border-stone-200 p-6">
+          <div>
+            <h2 className="text-xl font-black text-stone-950">Xác nhận thanh toán</h2>
+            <p className="mt-1 text-sm font-medium text-stone-500">Mã giao dịch: {transaction.transactionCode}</p>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-2 text-stone-500 hover:bg-stone-100">
+            <XCircle className="h-5 w-5" />
+          </button>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          <div className="rounded-lg border border-stone-200 p-4">
+            <h3 className="font-bold text-stone-900 mb-2">Biên lai chuyển khoản</h3>
+            {receiptDoc ? (
+              <div 
+                className="block max-w-full overflow-hidden rounded-lg border border-stone-200 cursor-pointer hover:opacity-90"
+                onClick={() => setViewDoc({ url: receiptDoc.url, name: receiptDoc.fileName, type: receiptDoc.url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image' })}
+              >
+                {receiptDoc.url.toLowerCase().endsWith('.pdf') ? (
+                  <div className="w-full h-32 bg-stone-100 flex items-center justify-center text-stone-500 font-bold">PDF Document</div>
+                ) : (
+                  <img src={receiptDoc.url} alt="Biên lai" className="w-full h-auto object-contain max-h-64" />
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-stone-500">Chưa có biên lai.</p>
+            )}
+          </div>
+          <div className="flex justify-between items-center bg-stone-50 p-4 rounded-lg border border-stone-200">
+            <span className="font-bold text-stone-700">Số tiền cần cọc:</span>
+            <span className="font-black text-emerald-600 text-lg">{new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(transaction.depositAmount || 0))} VNĐ</span>
+          </div>
+        </div>
+        
+        <div className="flex justify-end gap-3 border-t border-stone-200 p-6">
+          <button onClick={onReject} className="rounded-lg bg-rose-100 px-4 py-2 text-sm font-bold text-rose-700 hover:bg-rose-200">
+            Từ chối (Hủy GD)
+          </button>
+          <button onClick={onVerified} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700">
+            Xác nhận đã nhận tiền
+          </button>
+        </div>
+      </div>
+      <DocumentViewerModal 
+        isOpen={!!viewDoc} 
+        onClose={() => setViewDoc(null)} 
+        documentUrl={viewDoc?.url} 
+        documentName={viewDoc?.name} 
+        documentType={viewDoc?.type} 
+      />
+    </div>
+  );
+}
+
+function DocumentVerificationModal({ transaction, onClose, onVerified }) {
+  const [docs, setDocs] = useState(transaction.documents || []);
+  const [loading, setLoading] = useState(false);
+  const [rejectReasons, setRejectReasons] = useState({});
+  const [viewDoc, setViewDoc] = useState(null);
+
+  const handleAction = async (docId, action) => {
+    setLoading(true);
+    try {
+      const url = `/transactions/${transaction.transactionId}/documents/${docId}/${action}`;
+      const reason = rejectReasons[docId] || "Không hợp lệ";
+      const params = action === 'reject' ? { reason } : {};
+      const res = await api.patch(url, null, { params });
+      
+      if (res.data.success) {
+        setDocs(current => current.map(d => d.documentId === docId ? { ...d, status: action === 'verify' ? 'verified' : 'rejected' } : d));
+      } else {
+        alert(res.data.message || "Thao tác thất bại");
+      }
+    } catch (err) {
+      alert("Lỗi khi cập nhật trạng thái tài liệu");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const allProcessed = docs.length > 0 && docs.every(d => d.status === 'verified' || d.status === 'rejected');
+  const allVerified = docs.length > 0 && docs.every(d => d.status === 'verified');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/55 px-4 backdrop-blur-sm">
+      <div className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white shadow-2xl">
+        <div className="flex items-start justify-between border-b border-stone-200 p-6">
+          <div>
+            <h2 className="text-xl font-black text-stone-950">Kiểm tra hồ sơ</h2>
+            <p className="mt-1 text-sm font-medium text-stone-500">Mã giao dịch: {transaction.transactionCode}</p>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-2 text-stone-500 hover:bg-stone-100">
+            <XCircle className="h-5 w-5" />
+          </button>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          {docs.length === 0 ? (
+            <p className="text-sm text-stone-500">Không có hồ sơ nào được tải lên.</p>
+          ) : (
+            docs.map(doc => (
+              <div key={doc.documentId} className="flex flex-col gap-3 rounded-lg border border-stone-200 p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-stone-900">{doc.documentType}</h3>
+                    <button 
+                      onClick={() => setViewDoc({ url: doc.url, name: doc.fileName, type: doc.url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image' })} 
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      {doc.fileName || 'Xem tài liệu'}
+                    </button>
+                  </div>
+                  <StatusPill status={doc.status} />
+                </div>
+                
+                {doc.status === 'pending' && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <input 
+                      type="text" 
+                      placeholder="Lý do từ chối (nếu có)" 
+                      className="flex-1 rounded-md border border-stone-300 px-3 py-1.5 text-sm outline-none"
+                      value={rejectReasons[doc.documentId] || ''}
+                      onChange={e => setRejectReasons(p => ({ ...p, [doc.documentId]: e.target.value }))}
+                    />
+                    <button 
+                      onClick={() => handleAction(doc.documentId, 'reject')}
+                      disabled={loading || !rejectReasons[doc.documentId]}
+                      className="rounded bg-rose-100 px-3 py-1.5 text-sm font-bold text-rose-700 hover:bg-rose-200 disabled:opacity-50"
+                    >
+                      Từ chối
+                    </button>
+                    <button 
+                      onClick={() => handleAction(doc.documentId, 'verify')}
+                      disabled={loading}
+                      className="rounded bg-emerald-100 px-3 py-1.5 text-sm font-bold text-emerald-700 hover:bg-emerald-200 disabled:opacity-50"
+                    >
+                      Xác minh
+                    </button>
+                  </div>
+                )}
+                {doc.status === 'rejected' && doc.rejectReason && (
+                  <p className="text-sm text-rose-600 mt-2">Lý do: {doc.rejectReason}</p>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+        
+        <div className="flex justify-end gap-3 border-t border-stone-200 p-6">
+          <button onClick={onClose} className="rounded-lg bg-stone-100 px-4 py-2 text-sm font-bold text-stone-700 hover:bg-stone-200">
+            Đóng
+          </button>
+          {allProcessed && allVerified && (
+            <button onClick={onVerified} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700">
+              Hoàn tất xác minh
+            </button>
+          )}
+        </div>
+      </div>
+      <DocumentViewerModal 
+        isOpen={!!viewDoc} 
+        onClose={() => setViewDoc(null)} 
+        documentUrl={viewDoc?.url} 
+        documentName={viewDoc?.name} 
+        documentType={viewDoc?.type} 
+      />
     </div>
   );
 }

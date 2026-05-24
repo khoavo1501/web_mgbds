@@ -19,6 +19,7 @@ import {
   Upload,
 } from "lucide-react";
 import api from "../../services/api";
+import AnimatedTimeline from "../../components/AnimatedTimeline";
 
 const activeStatuses = new Set([
   "pending",
@@ -306,12 +307,12 @@ function MiniMoney({ label, value }) {
 }
 
 function TransactionWorkspace({ transaction, onUpdated, showToast }) {
-  const [files, setFiles] = useState({ cccd: null, household: null, marriage: null });
+  const [files, setFiles] = useState({ cccd: null, household: null });
   const [dealDate, setDealDate] = useState("");
   const [dealTime, setDealTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const step = getStep(transaction.status);
-  const allFilesReady = files.cccd && files.household && files.marriage;
+  const allFilesReady = !!files.cccd && !!files.household;
 
   const runAction = async (action, successMessage) => {
     setSubmitting(true);
@@ -334,19 +335,41 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
 
   const submitDocuments = () =>
     runAction(async () => {
-      const formData = new FormData();
-      formData.append("cccd", files.cccd);
-      formData.append("household", files.household);
-      formData.append("marriage", files.marriage);
-      const response = await api.post(`/transactions/${transaction.transactionId}/documents`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      if (!files.cccd || !files.household) {
+        throw new Error("Vui lòng tải lên CCCD và Sổ hộ khẩu");
+      }
+      
+      const upload = async (file) => {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await api.post('/uploads/documents', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          params: { type: 'customer-documents' } 
+        });
+        return res.data.data.url;
+      };
+
+      const cccdUrl = await upload(files.cccd);
+      const householdUrl = await upload(files.household);
+
+      const response = await api.post(`/transactions/${transaction.transactionId}/documents`, null, {
+        params: { cccdUrl, householdUrl }
       });
       return response.data.data;
     }, "Đã gửi hồ sơ");
 
   const submitPayment = () =>
     runAction(async () => {
-      const response = await api.patch(`/transactions/${transaction.transactionId}/payment-submitted`);
+      if (!files.receipt) throw new Error("Vui lòng tải lên biên lai chuyển khoản");
+      const fd = new FormData();
+      fd.append('file', files.receipt);
+      const uploadRes = await api.post('/uploads/documents', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        params: { type: 'payment-receipts' } 
+      });
+      const receiptUrl = uploadRes.data.data.url;
+
+      const response = await api.patch(`/transactions/${transaction.transactionId}/payment-submitted?receiptUrl=${encodeURIComponent(receiptUrl)}`);
       return response.data.data;
     }, "Đã ghi nhận thanh toán, chờ admin xác nhận");
 
@@ -354,7 +377,7 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
     runAction(async () => {
       const response = await api.patch(`/transactions/${transaction.transactionId}/commitment-signed`);
       return response.data.data;
-    }, "Đã hoàn thành cam kết mua hàng");
+    }, "Đã hoàn thành cam kết mua bất động sản");
 
   const requestRefund = () => {
     if (!window.confirm("Bạn muốn yêu cầu hoàn cọc sau khi trừ phí môi giới?")) return;
@@ -410,21 +433,48 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
       </div>
 
       <div className="border-b border-slate-100 p-6">
-        <StepBar step={step} />
+        <AnimatedTimeline 
+          steps={[
+            { id: 'customer_confirmed', label: 'Xác nhận' },
+            { id: 'documents_submitted', label: 'Hồ sơ' },
+            { id: 'documents_verified', label: 'Kiểm tra' },
+            { id: 'payment_submitted', label: 'Thanh toán' },
+            { id: 'completed', label: 'Hoàn tất' }
+          ]} 
+          currentStatus={transaction.status} 
+        />
       </div>
 
       <div className="grid gap-6 p-6 xl:grid-cols-[1fr_320px]">
         <section className="space-y-5">
           <PropertySnapshot transaction={transaction} />
 
+          {/* Countdown timer if pending, confirmed or submitted */}
+          {["pending", "customer_confirmed", "documents_submitted", "documents_verified"].includes(transaction.status) && transaction.expiredAt && (
+            <CountdownTimer expiredAt={transaction.expiredAt} />
+          )}
+
           {transaction.status === "pending" && (
-            <Panel icon={ShieldCheck} title="Xác nhận giao dịch">
-              <p className="text-sm font-medium text-slate-500">
-                Kiểm tra thông tin giao dịch. Sau khi đồng ý mua, bạn có thể gửi hồ sơ bắt buộc cho hệ thống.
+            <Panel icon={ShieldCheck} title="Xác nhận & Đồng ý hợp đồng">
+              <p className="text-sm font-medium text-slate-500 mb-4">
+                Vui lòng xem kỹ nội dung hợp đồng đặt cọc mẫu dưới đây. Sau khi đồng ý, bạn có thể gửi hồ sơ bắt buộc cho hệ thống.
               </p>
-              <label className="mt-5 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">
+              
+              <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <a href="/contracts/contract1.png" target="_blank" rel="noreferrer" className="block border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
+                  <img src="/contracts/contract1.png" alt="Hợp đồng 1" className="w-full h-auto object-cover" />
+                </a>
+                <a href="/contracts/contract2.png" target="_blank" rel="noreferrer" className="block border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
+                  <img src="/contracts/contract2.png" alt="Hợp đồng 2" className="w-full h-auto object-cover" />
+                </a>
+                <a href="/contracts/contract3.png" target="_blank" rel="noreferrer" className="block border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
+                  <img src="/contracts/contract3.png" alt="Hợp đồng 3" className="w-full h-auto object-cover" />
+                </a>
+              </div>
+
+              <label className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900 cursor-pointer">
                 <input type="checkbox" className="mt-1" defaultChecked />
-                Tôi đồng ý mua bất động sản này và tiếp tục quy trình giao dịch.
+                Tôi đã đọc và đồng ý với các điều khoản trong hợp đồng để tiếp tục quy trình giao dịch.
               </label>
               <button
                 type="button"
@@ -437,15 +487,29 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
             </Panel>
           )}
 
-          {transaction.status === "customer_confirmed" && (
+          {["customer_confirmed", "documents_submitted"].includes(transaction.status) && (
             <Panel icon={Upload} title="Chuẩn bị hồ sơ">
               <p className="text-sm font-medium text-slate-500">
-                Upload đủ CCCD, Sổ hộ khẩu và Giấy xác nhận hôn nhân để admin kiểm tra.
+                Upload đầy đủ CCCD và Sổ hộ khẩu của bạn để hệ thống tạo thông tin trên hợp đồng điện tử.
               </p>
-              <div className="mt-5 grid gap-4 md:grid-cols-3">
-                <UploadBox label="CCCD" file={files.cccd} onChange={(file) => setFiles((current) => ({ ...current, cccd: file }))} />
-                <UploadBox label="Sổ hộ khẩu" file={files.household} onChange={(file) => setFiles((current) => ({ ...current, household: file }))} />
-                <UploadBox label="Giấy xác nhận hôn nhân" file={files.marriage} onChange={(file) => setFiles((current) => ({ ...current, marriage: file }))} />
+              
+              {/* Show rejection reasons if any */}
+              {transaction.documents?.some(d => d.status === "rejected") && (
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
+                  <h4 className="text-sm font-bold text-red-800 mb-2">Hồ sơ bị từ chối:</h4>
+                  <ul className="list-disc pl-5 text-sm text-red-700 space-y-1">
+                    {transaction.documents.filter(d => d.status === "rejected").map(d => (
+                      <li key={d.documentId}>
+                        <strong>{d.documentType}:</strong> {d.rejectReason || "Không hợp lệ"}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-xs font-bold text-red-600">Vui lòng tải lên lại các giấy tờ bị từ chối.</p>
+                </div>
+              )}
+              <div className="mt-5 grid gap-4 md:grid-cols-2 max-w-lg">
+                <UploadBox label="Căn cước công dân (Bản gốc)" file={files.cccd} onChange={(file) => setFiles((current) => ({ ...current, cccd: file }))} />
+                <UploadBox label="Sổ hộ khẩu (Hoặc Xác nhận cư trú)" file={files.household} onChange={(file) => setFiles((current) => ({ ...current, household: file }))} />
               </div>
               <button
                 type="button"
@@ -473,17 +537,19 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
               transaction={transaction}
               submitting={submitting}
               onCopy={copyValue}
+              files={files}
+              setFiles={setFiles}
               onSubmitPayment={submitPayment}
             />
           )}
 
           {transaction.status === "deposit_confirmed" && (
-            <Panel icon={CheckCircle2} title="Hoàn thành cam kết mua hàng">
+            <Panel icon={CheckCircle2} title="Hoàn thành cam kết mua bất động sản">
               <p className="text-sm font-medium text-slate-500">
-                Khoản cọc đã được admin xác nhận. Bạn cần hoàn thành đơn cam kết mua hàng trước khi đặt lịch giao dịch bất động sản với môi giới.
+                Khoản cọc đã được admin xác nhận. Bạn cần hoàn thành đơn cam kết mua bất động sản trước khi đặt lịch giao dịch bất động sản với môi giới.
               </p>
               <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <p className="text-sm font-black text-slate-950">Đơn cam kết mua hàng</p>
+                <p className="text-sm font-black text-slate-950">Đơn cam kết mua bất động sản</p>
                 <p className="mt-2 text-sm font-medium text-slate-600">
                   Tôi xác nhận tiếp tục mua bất động sản {transaction.propertyTitle} với mã giao dịch {transaction.transactionCode}.
                 </p>
@@ -495,7 +561,7 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
                   disabled={submitting}
                   className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-950 px-5 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-60"
                 >
-                  Ký cam kết mua hàng
+                  Ký cam kết mua bất động sản
                 </button>
               </div>
             </Panel>
@@ -627,24 +693,7 @@ function ValueBox({ icon: Icon, label, value }) {
   );
 }
 
-function StepBar({ step }) {
-  const labels = ["Xác nhận", "Hồ sơ", "Kiểm tra", "Thanh toán", "Hoàn tất"];
-  return (
-    <div className="grid gap-2 md:grid-cols-5">
-      {labels.map((label, index) => (
-        <div
-          key={label}
-          className={`rounded-lg border px-3 py-3 ${
-            step >= index + 1 ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-slate-50 text-slate-500"
-          }`}
-        >
-          <p className="text-[11px] font-black uppercase tracking-wider">Bước {index + 1}</p>
-          <p className="mt-1 text-sm font-black">{label}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
+// StepBar removed in favor of AnimatedTimeline
 
 function Panel({ icon: Icon, title, children }) {
   return (
@@ -763,37 +812,104 @@ function UploadBox({ label, file, onChange }) {
   );
 }
 
-function PaymentPanel({ transaction, submitting, onCopy, onSubmitPayment }) {
+function PaymentPanel({ transaction, submitting, onCopy, files, setFiles, onSubmitPayment }) {
+  const [checkedItems, setCheckedItems] = useState({ qr: false, account: false, content: false });
+
   const transferContent = `${transaction.transactionCode} ${transaction.customerName || ""}`.trim();
   const isSubmitted = transaction.status === "payment_submitted";
+
+  const allChecked = checkedItems.qr && checkedItems.account && checkedItems.content;
 
   return (
     <Panel icon={QrCode} title="Thanh toán chuyển khoản">
       <div className="mt-5 grid gap-5 lg:grid-cols-[220px_1fr]">
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-center">
-          <div className="mx-auto flex aspect-square w-full max-w-44 items-center justify-center rounded-lg bg-white shadow-inner">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-center relative group cursor-pointer" onClick={() => setCheckedItems(prev => ({...prev, qr: !prev.qr}))}>
+          <div className="absolute top-2 right-2">
+             <input type="checkbox" checked={checkedItems.qr} onChange={() => {}} className="w-5 h-5 accent-slate-900 pointer-events-none" />
+          </div>
+          <div className="mx-auto flex aspect-square w-full max-w-44 items-center justify-center rounded-lg bg-white shadow-inner transition-transform group-hover:scale-105">
             <QrCode className="h-28 w-28 text-slate-950" />
           </div>
-          <p className="mt-3 text-xs font-black uppercase tracking-wider text-slate-400">QR đặt cọc</p>
+          <p className="mt-3 text-xs font-black uppercase tracking-wider text-slate-400">Quét QR đặt cọc</p>
         </div>
         <div className="space-y-3">
-          <CopyLine label="Ngân hàng" value={bankInfo.bank} onCopy={onCopy} />
-          <CopyLine label="Số tài khoản" value={bankInfo.accountNumber} onCopy={onCopy} />
-          <CopyLine label="Chủ tài khoản" value={bankInfo.accountName} onCopy={onCopy} />
-          <CopyLine label="Nội dung CK" value={transferContent} onCopy={onCopy} />
-          <CopyLine label="Số tiền" value={formatVnd(transaction.depositAmount)} onCopy={onCopy} />
+          <div className="flex items-center gap-3">
+            <input type="checkbox" checked={checkedItems.account} onChange={() => setCheckedItems(prev => ({...prev, account: !prev.account}))} className="w-5 h-5 accent-slate-900 cursor-pointer" />
+            <div className="flex-1">
+              <CopyLine label="Số tài khoản" value={`${bankInfo.accountNumber} - ${bankInfo.bank} (${bankInfo.accountName})`} onCopy={onCopy} />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <input type="checkbox" checked={checkedItems.content} onChange={() => setCheckedItems(prev => ({...prev, content: !prev.content}))} className="w-5 h-5 accent-slate-900 cursor-pointer" />
+            <div className="flex-1">
+              <CopyLine label="Nội dung CK" value={transferContent} onCopy={onCopy} />
+            </div>
+          </div>
+          <div className="flex items-center gap-3 pl-8">
+            <div className="flex-1">
+              <CopyLine label="Số tiền" value={formatVnd(transaction.depositAmount)} onCopy={onCopy} />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="mt-5">
+        <label className="block text-sm font-bold text-slate-700 mb-2">Biên lai chuyển khoản <span className="text-red-500">*</span></label>
+        <div className="max-w-xs">
+          <UploadBox label="Tải lên biên lai" file={files?.receipt} onChange={(file) => setFiles((current) => ({ ...current, receipt: file }))} />
         </div>
       </div>
       <button
         type="button"
         onClick={onSubmitPayment}
-        disabled={submitting || isSubmitted}
+        disabled={submitting || isSubmitted || !files?.receipt || !allChecked}
         className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-950 px-5 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
         {isSubmitted ? "Đang chờ admin xác nhận" : "Tôi đã chuyển khoản"}
       </button>
     </Panel>
+  );
+}
+
+function CountdownTimer({ expiredAt }) {
+  const [timeLeft, setTimeLeft] = useState("");
+
+  useEffect(() => {
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const expiration = new Date(expiredAt).getTime();
+      const diff = expiration - now;
+
+      if (diff <= 0) {
+        setTimeLeft("Đã hết hạn");
+        return;
+      }
+
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [expiredAt]);
+
+  return (
+    <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <Clock3 className="h-5 w-5 text-red-600" />
+        <div>
+          <h4 className="text-sm font-bold text-red-800">Thời gian giữ chỗ còn lại</h4>
+          <p className="text-xs text-red-600 font-medium mt-0.5">Vui lòng hoàn thành hồ sơ và thanh toán trước khi hết hạn.</p>
+        </div>
+      </div>
+      <div className="text-2xl font-black text-red-700 tracking-wider font-mono bg-white px-4 py-2 rounded-lg border border-red-100 shadow-sm">
+        {timeLeft}
+      </div>
+    </div>
   );
 }
 
@@ -872,6 +988,17 @@ function PaymentHistory({ payments }) {
   );
 }
 
+function getDocumentTypeName(type) {
+  switch (type) {
+    case 'cccd': return 'Căn cước công dân';
+    case 'household': return 'Sổ hộ khẩu / Xác nhận cư trú';
+    case 'marriage': return 'Giấy xác nhận tình trạng hôn nhân';
+    case 'receipt': return 'Biên lai chuyển khoản';
+    case 'contract': return 'Hợp đồng giao dịch';
+    default: return 'Tài liệu đính kèm';
+  }
+}
+
 function DocumentList({ documents }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -891,7 +1018,7 @@ function DocumentList({ documents }) {
               rel="noreferrer"
               className="block rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
             >
-              {document.fileName}
+              {getDocumentTypeName(document.documentType)}
             </a>
           ))
         )}

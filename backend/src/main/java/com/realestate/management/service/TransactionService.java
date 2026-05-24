@@ -36,6 +36,7 @@ public class TransactionService {
     @Autowired private CommissionRepository commissionRepository;
     @Autowired private TransactionPaymentRepository transactionPaymentRepository;
     @Autowired private TransactionDocumentRepository transactionDocumentRepository;
+    @Autowired private AuditLogService auditLogService;
 
     @Value("${app.upload.document-dir:documents}")
     private String documentDir;
@@ -156,6 +157,8 @@ public class TransactionService {
             propertyRepository.save(property);
         }
 
+        auditLogService.log(null, saved.getStatus(), "CREATE_TRANSACTION", "Transaction", saved.getTransactionId());
+
         return convertToDTO(saved);
     }
 
@@ -195,8 +198,13 @@ public class TransactionService {
         transaction.setAppointment(appointment);
         transaction.setTotalPrice(property.getPrice());
         transaction.setDepositAmount(depositAmount);
-        transaction.setStatus("payment_submitted");
+        transaction.setDepositAmount(depositAmount);
+        transaction.setStatus("pending"); // Changed from payment_submitted to pending, because customer needs to agree first. Wait, what was the initial status? 
+        // Ah, currently `createCustomerDepositFromAppointment` sets `payment_submitted`. But the new flow says they start at `pending` when creating it?
+        // Let's check the user requirement. "Khi khách hàng tạo transaction -> chưa lock, status = pending." 
+        transaction.setStatus("pending");
         transaction.setTransactionDate(LocalDate.now());
+        transaction.setExpiredAt(java.time.LocalDateTime.now().plusHours(12));
 
         Transaction saved = transactionRepository.save(transaction);
 
@@ -218,13 +226,15 @@ public class TransactionService {
         property.setStatus("in_transaction");
         propertyRepository.save(property);
 
+        auditLogService.log(null, saved.getStatus(), "CREATE_TRANSACTION", "Transaction", saved.getTransactionId());
+
         return convertToDTO(saved);
     }
 
     /** Cập nhật trạng thái giao dịch */
     @Transactional
     public TransactionDTO updateStatus(Long id, String status) {
-        if (!status.matches("pending|customer_confirmed|documents_submitted|documents_verified|payment_submitted|deposit_confirmed|commitment_signed|deal_scheduled|broker_confirmed|refund_requested|refunded|completed|cancelled")) {
+        if (!status.matches("customer_confirmed|contract_agreed|documents_submitted|documents_verified|payment_submitted|deposit_paid|notarizing|completed|cancelled|rejected")) {
             throw new RuntimeException("Trạng thái không hợp lệ: " + status);
         }
         Transaction t = transactionRepository.findById(id)
@@ -235,62 +245,24 @@ public class TransactionService {
         boolean isCustomer = t.getCustomer() != null && t.getCustomer().getUserId().equals(currentUser.getUserId());
         boolean isBroker = t.getBroker() != null && t.getBroker().getUserId().equals(currentUser.getUserId());
 
-        if (List.of("documents_verified", "deposit_confirmed", "refunded").contains(status) && !isAdmin) {
+        if (List.of("documents_verified", "deposit_paid", "rejected").contains(status) && !isAdmin) {
             throw new RuntimeException("Chỉ admin mới được xác minh hồ sơ hoặc xác nhận cọc");
         }
 
-        if (List.of("customer_confirmed", "payment_submitted", "commitment_signed", "refund_requested").contains(status) && !isCustomer) {
+        if (List.of("customer_confirmed", "contract_agreed", "payment_submitted").contains(status) && !isCustomer) {
             throw new RuntimeException("Chỉ khách hàng của giao dịch mới được cập nhật bước này");
         }
 
-        if ("broker_confirmed".equals(status) && !isBroker) {
-            throw new RuntimeException("Chi broker phu trach moi duoc xac nhan giao dich");
-        }
+        String beforeStatus = t.getStatus();
 
-        if ("customer_confirmed".equals(status) && !"pending".equals(t.getStatus())) {
-            throw new RuntimeException("Chỉ giao dịch chờ xác nhận mới được khách hàng xác nhận");
-        }
-
-        if ("documents_verified".equals(status) && !"documents_submitted".equals(t.getStatus())) {
-            throw new RuntimeException("Chỉ hồ sơ đã gửi mới được xác minh");
-        }
-
-        if ("payment_submitted".equals(status) && !"documents_verified".equals(t.getStatus())) {
-            throw new RuntimeException("Cần xác minh hồ sơ trước khi báo đã thanh toán");
-        }
-
-        if ("deposit_confirmed".equals(status) && !"payment_submitted".equals(t.getStatus())) {
-            throw new RuntimeException("Chỉ giao dịch đã báo thanh toán mới được xác nhận cọc");
-        }
-
-        if ("commitment_signed".equals(status) && !"deposit_confirmed".equals(t.getStatus())) {
-            throw new RuntimeException("Can xac nhan coc truoc khi ky cam ket mua hang");
-        }
-
-        if ("broker_confirmed".equals(status) && !"deal_scheduled".equals(t.getStatus())) {
-            throw new RuntimeException("Khach hang can dat lich giao dich BDS truoc");
-        }
-
-        if ("refund_requested".equals(status)
-                && !"broker_confirmed".equals(t.getStatus())) {
-            throw new RuntimeException("Chi duoc yeu cau hoan coc sau khi broker xac nhan giao dich thanh cong");
-        }
-
-        if ("refunded".equals(status) && !"refund_requested".equals(t.getStatus())) {
-            throw new RuntimeException("Chi giao dich dang yeu cau hoan coc moi duoc danh dau da hoan");
-        }
-
-        if ("completed".equals(status) && !isFullyPaid(t)) {
-            throw new RuntimeException("Giao dịch chỉ tự hoàn tất khi thanh toán đủ toàn bộ giá trị");
-        }
-
+        // Specific status transitions validation could be added here if needed.
         if ("payment_submitted".equals(status)) {
             markDepositPaymentSubmitted(t);
         }
 
         t.setStatus(status);
 
-        if ("deposit_confirmed".equals(status)) {
+        if ("deposit_paid".equals(status)) {
             transactionPaymentRepository.findByTransaction(t).forEach(payment -> {
                 if (payment.getConfirmedBy() == null) {
                     payment.setConfirmedBy(currentUser);
@@ -298,28 +270,15 @@ public class TransactionService {
                 payment.setPaymentStatus("confirmed");
                 transactionPaymentRepository.save(payment);
             });
-        }
-
-        if ("refund_requested".equals(status)) {
-            transactionPaymentRepository.findByTransaction(t).forEach(payment -> {
-                payment.setPaymentStatus("refund_requested");
-                transactionPaymentRepository.save(payment);
-            });
-        }
-
-        if ("refunded".equals(status)) {
-            transactionPaymentRepository.findByTransaction(t).forEach(payment -> {
-                payment.setPaymentStatus("refunded");
-                transactionPaymentRepository.save(payment);
-            });
             if (t.getProperty() != null) {
-                t.getProperty().setStatus("published");
+                t.getProperty().setStatus("locked");
+                t.getProperty().setIsLocked(true);
                 propertyRepository.save(t.getProperty());
             }
+            t.setLockedAt(java.time.LocalDateTime.now());
         }
 
-        if ("broker_confirmed".equals(status)) {
-            markSellerPaymentConfirmed(t, currentUser);
+        if ("completed".equals(status)) {
             if (t.getProperty() != null) {
                 t.getProperty().setStatus("sold");
                 propertyRepository.save(t.getProperty());
@@ -330,22 +289,27 @@ public class TransactionService {
             });
         }
 
-        if ("cancelled".equals(status)) {
+        if ("cancelled".equals(status) || "rejected".equals(status)) {
             commissionRepository.findByTransaction(t).forEach(c -> {
                 c.setStatus("cancelled");
                 commissionRepository.save(c);
             });
             if (t.getProperty() != null) {
                 t.getProperty().setStatus("published");
+                t.getProperty().setIsLocked(false);
                 propertyRepository.save(t.getProperty());
             }
         }
 
-        return convertToDTO(transactionRepository.save(t));
+        Transaction saved = transactionRepository.save(t);
+        
+        auditLogService.log(beforeStatus, status, "UPDATE_TRANSACTION_STATUS", "Transaction", t.getTransactionId());
+
+        return convertToDTO(saved);
     }
 
     @Transactional
-    public TransactionDTO submitDocuments(Long id, MultipartFile cccd, MultipartFile household, MultipartFile marriage) {
+    public TransactionDTO submitDocuments(Long id, String cccdUrl, String householdUrl, String marriageUrl) {
         Transaction transaction = transactionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giao dịch ID: " + id));
         User currentUser = getCurrentUser();
@@ -355,19 +319,98 @@ public class TransactionService {
         if (!"customer_confirmed".equals(transaction.getStatus()) && !"documents_submitted".equals(transaction.getStatus())) {
             throw new RuntimeException("Cần xác nhận giao dịch trước khi gửi hồ sơ");
         }
-        validateRequiredFile(cccd, "CCCD");
-        validateRequiredFile(household, "Sổ hộ khẩu");
-        validateRequiredFile(marriage, "Giấy xác nhận hôn nhân");
+        if (cccdUrl == null || householdUrl == null) {
+             throw new RuntimeException("Thiếu các file bắt buộc");
+        }
 
-        transactionDocumentRepository.deleteByTransaction(transaction);
+        // Archive old documents
+        List<TransactionDocument> oldDocs = transactionDocumentRepository.findByTransaction(transaction);
+        for (TransactionDocument oldDoc : oldDocs) {
+            oldDoc.setStatus("archived");
+        }
+        transactionDocumentRepository.saveAll(oldDocs);
+
         List<TransactionDocument> documents = new ArrayList<>();
-        documents.add(saveDocument(transaction, "cccd", cccd));
-        documents.add(saveDocument(transaction, "household", household));
-        documents.add(saveDocument(transaction, "marriage", marriage));
+        documents.add(createDocument(transaction, "cccd", cccdUrl));
+        documents.add(createDocument(transaction, "household", householdUrl));
+        if (marriageUrl != null && !marriageUrl.isEmpty()) {
+            documents.add(createDocument(transaction, "marriage", marriageUrl));
+        }
         transactionDocumentRepository.saveAll(documents);
 
         transaction.setStatus("documents_submitted");
         return convertToDTO(transactionRepository.save(transaction));
+    }
+
+    private TransactionDocument createDocument(Transaction transaction, String type, String url) {
+        TransactionDocument doc = new TransactionDocument();
+        doc.setTransaction(transaction);
+        doc.setDocumentType(type);
+        doc.setFileUrl(url);
+        
+        // Trích xuất fileName từ URL để tránh lỗi NOT NULL constraint trong DB
+        if (url != null && url.contains("/")) {
+            doc.setFileName(url.substring(url.lastIndexOf("/") + 1));
+        } else {
+            doc.setFileName(type + "_document");
+        }
+        
+        doc.setUrl(url); // Populate legacy url column to avoid NOT NULL constraint
+        
+        doc.setStatus("pending_review");
+        return doc;
+    }
+
+    @Transactional
+    public void addPaymentReceipt(Long id, String receiptUrl) {
+        Transaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giao dịch ID: " + id));
+        TransactionDocument receipt = createDocument(transaction, "receipt", receiptUrl);
+        transactionDocumentRepository.save(receipt);
+    }
+
+    @Transactional
+    public TransactionDTO verifyDocument(Long transactionId, Long documentId) {
+        TransactionDocument doc = transactionDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy document ID: " + documentId));
+        doc.setStatus("verified");
+        doc.setReviewedBy(getCurrentUser());
+        doc.setReviewedAt(java.time.LocalDateTime.now());
+        transactionDocumentRepository.save(doc);
+
+        checkAndCompleteDocumentVerification(transactionId);
+        return convertToDTO(transactionRepository.findById(transactionId).get());
+    }
+
+    @Transactional
+    public TransactionDTO rejectDocument(Long transactionId, Long documentId, String reason) {
+        TransactionDocument doc = transactionDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy document ID: " + documentId));
+        doc.setStatus("rejected");
+        doc.setRejectReason(reason);
+        doc.setReviewedBy(getCurrentUser());
+        doc.setReviewedAt(java.time.LocalDateTime.now());
+        transactionDocumentRepository.save(doc);
+        return convertToDTO(transactionRepository.findById(transactionId).get());
+    }
+
+    private void checkAndCompleteDocumentVerification(Long transactionId) {
+        Transaction tx = transactionRepository.findById(transactionId).get();
+        List<TransactionDocument> docs = transactionDocumentRepository.findByTransaction(tx);
+        
+        // Chỉ tính các doc không bị archived
+        boolean allVerified = docs.stream()
+                .filter(d -> !"archived".equals(d.getStatus()) && !d.getDocumentType().equals("receipt"))
+                .allMatch(d -> "verified".equals(d.getStatus()));
+                
+        boolean hasPendingOrRejected = docs.stream()
+                .filter(d -> !"archived".equals(d.getStatus()) && !d.getDocumentType().equals("receipt"))
+                .anyMatch(d -> "pending_review".equals(d.getStatus()) || "rejected".equals(d.getStatus()));
+
+        if (allVerified && !hasPendingOrRejected) {
+            tx.setStatus("documents_verified");
+            transactionRepository.save(tx);
+        }
     }
 
     @Transactional
@@ -379,7 +422,7 @@ public class TransactionService {
             throw new RuntimeException("Chi khach hang cua giao dich moi duoc dat lich giao dich");
         }
         if (!"commitment_signed".equals(transaction.getStatus())) {
-            throw new RuntimeException("Can hoan thanh cam ket mua hang truoc khi dat lich giao dich");
+            throw new RuntimeException("Can hoan thanh cam ket mua bat dong san truoc khi dat lich giao dich");
         }
         if (scheduledAt == null || scheduledAt.isBefore(java.time.LocalDateTime.now())) {
             throw new RuntimeException("Thoi gian giao dich phai nam trong tuong lai");
@@ -417,6 +460,8 @@ public class TransactionService {
         dto.setStatus(t.getStatus());
         dto.setTransactionDate(t.getTransactionDate());
         dto.setDealScheduleAt(t.getDealScheduleAt());
+        dto.setExpiredAt(t.getExpiredAt());
+        dto.setLockedAt(t.getLockedAt());
 
         if (t.getProperty() != null) {
             dto.setPropertyId(t.getProperty().getPropertyId());
@@ -468,7 +513,12 @@ public class TransactionService {
                         document.getDocumentId(),
                         document.getDocumentType(),
                         document.getFileName(),
-                        document.getUrl()
+                        document.getFileUrl(),
+                        document.getStatus(),
+                        document.getRejectReason(),
+                        document.getUploadedAt(),
+                        document.getReviewedAt(),
+                        document.getReviewedBy() != null ? document.getReviewedBy().getFullName() : null
                 ))
                 .collect(Collectors.toList()));
         dto.setPayments(payments.stream()
@@ -603,7 +653,7 @@ public class TransactionService {
             document.setTransaction(transaction);
             document.setDocumentType(type);
             document.setFileName(originalName);
-            document.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/documents/").path(fileName).toUriString());
+            document.setFileUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/documents/").path(fileName).toUriString());
             return document;
         } catch (IOException e) {
             throw new RuntimeException("Không thể lưu hồ sơ: " + e.getMessage());

@@ -9,10 +9,9 @@ import java.util.List;
 
 @Repository
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
-
-    List<AuditLog> findByUser(User user);
+    List<AuditLog> findByActorId(Long actorId);
     
-    List<AuditLog> findByActionType(String actionType);
+    List<AuditLog> findByAction(String action);
     
-    List<AuditLog> findByUserOrderByCreatedAtDesc(User user);
+    List<AuditLog> findByActorIdOrderByTimestampDesc(Long actorId);
 }

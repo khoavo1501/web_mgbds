@@ -115,16 +115,16 @@ public class TransactionController {
         }
     }
 
-    @PostMapping(value = "/{id}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/{id}/documents")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<TransactionDTO>> submitDocuments(
             @PathVariable Long id,
-            @RequestParam("cccd") MultipartFile cccd,
-            @RequestParam("household") MultipartFile household,
-            @RequestParam("marriage") MultipartFile marriage) {
+            @RequestParam("cccdUrl") String cccdUrl,
+            @RequestParam("householdUrl") String householdUrl,
+            @RequestParam(value = "marriageUrl", required = false) String marriageUrl) {
         try {
             return ResponseEntity.ok(ApiResponse.success("Gửi hồ sơ thành công",
-                    transactionService.submitDocuments(id, cccd, household, marriage)));
+                    transactionService.submitDocuments(id, cccdUrl, householdUrl, marriageUrl)));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
@@ -132,10 +132,16 @@ public class TransactionController {
 
     @PatchMapping("/{id}/payment-submitted")
     @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<ApiResponse<TransactionDTO>> submitPayment(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<TransactionDTO>> submitPayment(
+            @PathVariable Long id,
+            @RequestParam("receiptUrl") String receiptUrl) {
         try {
-            return ResponseEntity.ok(ApiResponse.success("Đã ghi nhận yêu cầu xác minh thanh toán",
-                    transactionService.updateStatus(id, "payment_submitted")));
+            TransactionDTO updated = transactionService.updateStatus(id, "payment_submitted");
+            // Optionally, we could save the receiptUrl as a document in the transaction
+            // but for now we just change status and handle URL in service if needed.
+            // Wait, we need to save the receiptUrl somewhere!
+            transactionService.addPaymentReceipt(id, receiptUrl);
+            return ResponseEntity.ok(ApiResponse.success("Đã ghi nhận yêu cầu xác minh thanh toán", updated));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
@@ -145,7 +151,7 @@ public class TransactionController {
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<TransactionDTO>> signCommitment(@PathVariable Long id) {
         try {
-            return ResponseEntity.ok(ApiResponse.success("Da hoan thanh cam ket mua hang",
+            return ResponseEntity.ok(ApiResponse.success("Da hoan thanh cam ket mua bat dong san",
                     transactionService.updateStatus(id, "commitment_signed")));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
@@ -182,6 +188,30 @@ public class TransactionController {
         try {
             return ResponseEntity.ok(ApiResponse.success("Da xac nhan nguoi mua thanh toan cho nguoi ban",
                     transactionService.updateStatus(id, "broker_confirmed")));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{id}/documents/{documentId}/verify")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<TransactionDTO>> verifyDocument(
+            @PathVariable Long id, @PathVariable Long documentId) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Đã xác thực tài liệu",
+                    transactionService.verifyDocument(id, documentId)));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{id}/documents/{documentId}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<TransactionDTO>> rejectDocument(
+            @PathVariable Long id, @PathVariable Long documentId, @RequestParam String reason) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Đã từ chối tài liệu",
+                    transactionService.rejectDocument(id, documentId, reason)));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }

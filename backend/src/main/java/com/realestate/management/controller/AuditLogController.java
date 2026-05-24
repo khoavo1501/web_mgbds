@@ -25,7 +25,7 @@ public class AuditLogController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<AuditLog>>> getAuditLogs() {
-        List<AuditLog> logs = auditLogRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+        List<AuditLog> logs = auditLogRepository.findAll(Sort.by(Sort.Direction.DESC, "timestamp"));
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách log thành công", logs));
     }
 }

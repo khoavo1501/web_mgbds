@@ -71,7 +71,7 @@ CREATE TABLE transactions (
     property_id INT NOT NULL REFERENCES properties(property_id),
     customer_id INT NOT NULL REFERENCES users(user_id),
     broker_id INT NOT NULL REFERENCES users(user_id),
-    appointment_id INT REFERENCES appointments(appointment_id),
+    appointment_id INT,
     total_price NUMERIC(18, 2) NOT NULL,
     deposit_amount NUMERIC(18, 2) DEFAULT 0,
     status VARCHAR(30) DEFAULT 'pending', -- 'pending', 'customer_confirmed', 'documents_submitted', 'documents_verified', 'payment_submitted', 'deposit_confirmed', 'commitment_signed', 'deal_scheduled', 'broker_confirmed', 'refund_requested', 'refunded', 'completed', 'cancelled'

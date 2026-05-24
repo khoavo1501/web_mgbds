@@ -62,6 +62,10 @@ public class AppointmentService {
         String email = authentication.getName();
         User customer = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
+        if (request.getScheduledAt() == null || request.getScheduledAt().isBefore(java.time.LocalDateTime.now())) {
+            throw new RuntimeException("Thời gian lịch hẹn không hợp lệ (phải chọn ngày giờ trong tương lai)");
+        }
+
         Property property = propertyRepository.findById(request.getPropertyId())
                 .orElseThrow(() -> new RuntimeException("Property not found"));
 

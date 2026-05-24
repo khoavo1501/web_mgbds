@@ -23,10 +23,16 @@ export default function PropertyCard({ property }) {
         >
           <Heart className={`h-5 w-5 ${isFavorite(property.propertyId) ? 'text-red-500 fill-current' : 'text-gray-500'}`} />
         </button>
-        <div className="absolute top-2 right-2">
-          <Badge status={property.status === 'Available' ? 'success' : 'pending'}>
-            {property.status}
-          </Badge>
+        <div className="absolute top-2 right-2 flex flex-col gap-1">
+          {(property.status === 'locked' || property.status === 'in_transaction' || property.isLocked) && (
+            <Badge status="warning">Đang giao dịch</Badge>
+          )}
+          {property.status === 'published' && (
+            <Badge status="success">Đang bán</Badge>
+          )}
+          {property.status === 'sold' && (
+            <Badge status="error">Đã bán</Badge>
+          )}
         </div>
         <div className="absolute bottom-2 left-2 bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">
           ${property.price.toLocaleString()}

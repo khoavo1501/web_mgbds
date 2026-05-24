@@ -13,10 +13,9 @@ import java.util.List;
 
 /**
  * Entity Transaction - Giao dịch
- * Status: 'pending', 'customer_confirmed', 'documents_submitted',
- * 'documents_verified', 'payment_submitted', 'deposit_confirmed',
- * 'commitment_signed', 'deal_scheduled', 'broker_confirmed', 'refund_requested', 'refunded',
- * 'completed', 'cancelled'
+ * Status: 'customer_confirmed', 'contract_agreed', 'documents_submitted',
+ * 'documents_verified', 'payment_submitted', 'deposit_paid',
+ * 'notarizing', 'completed', 'cancelled', 'rejected'
  */
 @Entity
 @Table(name = "transactions")
@@ -40,13 +39,19 @@ public class Transaction {
     private BigDecimal depositAmount = BigDecimal.ZERO;
 
     @Column(name = "status", length = 30)
-    private String status = "pending";
+    private String status = "customer_confirmed";
 
     @Column(name = "transaction_date")
     private LocalDate transactionDate = LocalDate.now();
 
     @Column(name = "deal_schedule_at")
     private LocalDateTime dealScheduleAt;
+
+    @Column(name = "expired_at")
+    private LocalDateTime expiredAt;
+
+    @Column(name = "locked_at")
+    private LocalDateTime lockedAt;
 
     // ===================================================================
     // Relationships

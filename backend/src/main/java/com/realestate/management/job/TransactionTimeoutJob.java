@@ -1,22 +1,18 @@
 package com.realestate.management.job;
 
-import com.realestate.management.entity.Property;
 import com.realestate.management.entity.Transaction;
 import com.realestate.management.repository.PropertyRepository;
 import com.realestate.management.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Component
 public class TransactionTimeoutJob {
-
-    private static final Logger logger = LoggerFactory.getLogger(TransactionTimeoutJob.class);
 
     @Autowired
     private TransactionRepository transactionRepository;
@@ -24,29 +20,34 @@ public class TransactionTimeoutJob {
     @Autowired
     private PropertyRepository propertyRepository;
 
-    /**
-     * Chạy mỗi 15 phút (900000 ms)
-     * Kiểm tra các giao dịch quá hạn thanh toán cọc
-     */
-    @Scheduled(fixedRate = 900000)
+    @Scheduled(fixedRate = 60000) // Chạy mỗi phút
+    @Transactional
     public void cancelExpiredTransactions() {
-        logger.info("Running Transaction Timeout Job...");
-        
-        List<Transaction> allTransactions = transactionRepository.findAll();
         LocalDateTime now = LocalDateTime.now();
+        List<Transaction> pendingTransactions = transactionRepository.findByStatusIn(
+                List.of("pending", "contract_agreed", "documents_submitted", "documents_verified", "payment_submitted")
+        );
 
-        for (Transaction t : allTransactions) {
-            if ("deposit_pending".equals(t.getStatus()) && t.getExpiredAt() != null && t.getExpiredAt().isBefore(now)) {
-                logger.info("Cancelling expired transaction: " + t.getTransactionCode());
+        for (Transaction tx : pendingTransactions) {
+            LocalDateTime expiredAt = tx.getExpiredAt();
+            
+            // Nếu không có expired_at, fallback dùng transaction_date cộng thêm 12h (hoặc thời điểm hiện tại coi như hết hạn nếu quá lâu)
+            if (expiredAt == null) {
+                expiredAt = tx.getTransactionDate().atStartOfDay().plusHours(12);
+            }
+
+            if (now.isAfter(expiredAt)) {
+                tx.setStatus("cancelled");
+                transactionRepository.save(tx);
                 
-                // 1. Đổi trạng thái giao dịch
-                t.setStatus("cancelled");
-                transactionRepository.save(t);
-
-                // 2. Nhả lock cho BĐS
-                Property p = t.getProperty();
-                p.setIsLocked(false);
-                propertyRepository.save(p);
+                if (tx.getProperty() != null) {
+                    tx.getProperty().setIsLocked(false);
+                    // Nếu nó đang in_transaction thì trả về published
+                    if ("in_transaction".equals(tx.getProperty().getStatus())) {
+                        tx.getProperty().setStatus("published");
+                    }
+                    propertyRepository.save(tx.getProperty());
+                }
             }
         }
     }

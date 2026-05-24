@@ -52,3 +52,4 @@ application-prod.properties
 # Uploaded local assets
 images/
 documents/
+uploads/

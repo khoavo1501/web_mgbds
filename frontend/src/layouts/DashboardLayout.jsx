@@ -13,6 +13,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import NotificationDropdown from "../components/NotificationDropdown";
 
 const navItems = [
   { name: "Tổng quan", path: "/admin", icon: LayoutDashboard },
@@ -105,10 +106,7 @@ export default function DashboardLayout() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="relative rounded-lg border border-stone-200 bg-white p-2.5 text-stone-500 shadow-sm transition-colors hover:text-stone-950">
-              <Bell className="h-5 w-5" />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white" />
-            </button>
+            <NotificationDropdown />
             <button className="rounded-lg border border-stone-200 bg-white p-2.5 text-stone-500 shadow-sm transition-colors hover:text-stone-950">
               <Home className="h-5 w-5" />
             </button>

@@ -286,33 +286,41 @@ export default function CustomerDashboard() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right text-sm">
-                        {(appointment.status === "pending" || appointment.status === "scheduled") && (
-                          <div className="flex justify-end gap-3">
-                            <button
-                              type="button"
-                              onClick={() => openRescheduleModal(appointment)}
-                              className="font-bold text-slate-700 hover:text-slate-950"
-                            >
-                              Dời lịch
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleCancel(appointment.appointmentId)}
-                              className="font-bold text-red-600 hover:text-red-700"
-                            >
-                              Hủy
-                            </button>
-                          </div>
-                        )}
-                        {appointment.status === "viewed" && (
-                          <button
-                            type="button"
-                            onClick={() => handleCreateDeposit(appointment)}
-                            className="inline-flex rounded-md bg-slate-950 px-3 py-2 text-xs font-extrabold text-white transition hover:bg-slate-800"
+                        <div className="flex justify-end items-center gap-3">
+                          <Link
+                            to={`/properties/${appointment.propertyId}`}
+                            className="font-bold text-blue-600 hover:text-blue-800"
                           >
-                            Đặt cọc 10%
-                          </button>
-                        )}
+                            Xem chi tiết
+                          </Link>
+                          {(appointment.status === "pending" || appointment.status === "scheduled") && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => openRescheduleModal(appointment)}
+                                className="font-bold text-slate-700 hover:text-slate-950"
+                              >
+                                Dời lịch
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleCancel(appointment.appointmentId)}
+                                className="font-bold text-red-600 hover:text-red-700"
+                              >
+                                Hủy
+                              </button>
+                            </>
+                          )}
+                          {appointment.status === "viewed" && (
+                            <button
+                              type="button"
+                              onClick={() => handleCreateDeposit(appointment)}
+                              className="inline-flex rounded-md bg-slate-950 px-3 py-2 text-xs font-extrabold text-white transition hover:bg-slate-800"
+                            >
+                              Đặt cọc 10%
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
