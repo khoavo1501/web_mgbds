@@ -14,12 +14,26 @@ public class AppointmentDTO {
     private LocalDateTime scheduledAt;
     private String status;
     private String note;
+    
+    // Property info
     private Long propertyId;
     private String propertyTitle;
+    private String propertyAddress;
+    private String propertyImage;
+    
+    // Customer info
     private Long customerId;
     private String customerName;
-    private String customerEmail;
     private String customerPhone;
+    private String customerEmail;
+    
+    // Broker info
     private Long brokerId;
     private String brokerName;
+    private String brokerEmail;
+    
+    // Contact info (có thể khác với customer info)
+    private String contactName;
+    private String contactPhone;
+    private String contactEmail;
 }

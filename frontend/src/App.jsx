@@ -14,6 +14,12 @@ import Auth from "./pages/public/Auth";
 // Customer Pages
 import CustomerDashboard from "./pages/customer/CustomerDashboard";
 import CustomerTransactions from "./pages/customer/CustomerTransactions";
+import MyAppointments from "./pages/customer/MyAppointments";
+import AppointmentDetail from "./pages/customer/AppointmentDetail";
+import BookAppointmentFlow from "./pages/customer/BookAppointmentFlow";
+import BookAppointment from "./pages/customer/BookAppointment";
+import RescheduleAppointment from "./pages/customer/RescheduleAppointment";
+import CancelAppointment from "./pages/customer/CancelAppointment";
 
 // Broker Pages
 import BrokerDashboard from "./pages/broker/BrokerDashboard";
@@ -22,6 +28,7 @@ import BrokerFinance from "./pages/broker/BrokerFinance";
 import PropertyUpload from "./pages/broker/PropertyUpload";
 import BrokerTransactionHistory from "./pages/broker/BrokerTransactionHistory";
 import CreateTransaction from "./pages/broker/CreateTransaction";
+import BrokerAppointments from "./pages/broker/BrokerAppointments";
 import BrokerLayout from "./layouts/BrokerLayout";
 
 // Admin Pages
@@ -50,6 +57,12 @@ function App() {
                 <Route path="/customer/transactions" element={<CustomerTransactions />} />
                 <Route path="/customer/transactions/active" element={<CustomerTransactions activeOnly />} />
                 <Route path="/customer/transactions/:transactionId" element={<CustomerTransactions detail />} />
+                <Route path="/customer/appointments" element={<MyAppointments />} />
+                <Route path="/customer/appointments/:id" element={<AppointmentDetail />} />
+                <Route path="/customer/appointments/:id/reschedule" element={<RescheduleAppointment />} />
+                <Route path="/customer/appointments/:id/cancel" element={<CancelAppointment />} />
+                <Route path="/properties/:propertyId/book" element={<BookAppointment />} />
+                <Route path="/properties/:propertyId/book-flow" element={<BookAppointmentFlow />} />
               </Route>
             </Route>
 
@@ -57,6 +70,7 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={['broker']} />}>
               <Route element={<BrokerLayout />}>
                 <Route path="/broker" element={<BrokerDashboard />} />
+                <Route path="/broker/appointments" element={<BrokerAppointments />} />
                 <Route path="/broker/finance" element={<BrokerFinance />} />
                 <Route path="/broker/leads" element={<LeadManagement />} />
                 <Route path="/broker/transaction" element={<Navigate to="/broker/transactions/history" replace />} />
