@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
 import api from "../../services/api";
 
 export default function CreateTransaction() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [appointments, setAppointments] = useState([]);
   const [selectedAppId, setSelectedAppId] = useState("");
 
@@ -34,27 +35,38 @@ export default function CreateTransaction() {
     api.get('/appointments')
       .then(res => {
         if (res.data.success) {
-          // You may want to filter for appointments with specific status (e.g. 'scheduled' or 'completed')
-          setAppointments((res.data.data || []).filter((item) => item.status !== "cancelled"));
+          const apps = (res.data.data || []).filter((item) => item.status !== "cancelled");
+          setAppointments(apps);
+          
+          // Auto-select from URL
+          const urlAppId = searchParams.get('appointmentId');
+          if (urlAppId && apps.find(a => a.appointmentId === Number(urlAppId))) {
+            handleAppSelection(urlAppId, apps);
+          }
         }
       })
       .catch(err => console.error("Lỗi khi lấy lịch hẹn:", err));
-  }, []);
+  }, [searchParams]);
 
-  const handleAppChange = async (e) => {
-    const val = e.target.value;
+  const handleAppSelection = async (val, appsList = appointments) => {
     setSelectedAppId(val);
-    const app = appointments.find(a => a.appointmentId === Number(val));
+    const app = appsList.find(a => a.appointmentId === Number(val));
     if (app) {
+      // Calculate default completion date (+15 days)
+      const d = new Date();
+      d.setDate(d.getDate() + 15);
+      const defaultDate = d.toISOString().split('T')[0];
+
       setFormData(prev => ({
         ...prev,
         customerName: app.customerName || '',
         phone: app.customerPhone || '',
         email: app.customerEmail || '',
-        idCard: '',
+        idCard: '', // Auto-filled if exists later
         customerId: app.customerId || '',
         propertyId: app.propertyId || '',
-        propertyTitle: app.propertyTitle || ''
+        propertyTitle: app.propertyTitle || '',
+        completionDate: defaultDate
       }));
       // Lấy thông tin BĐS để điền giá tự động
       try {
@@ -72,17 +84,15 @@ export default function CreateTransaction() {
     } else {
       setFormData(prev => ({
         ...prev,
-        customerName: '',
-        phone: '',
-        email: '',
-        idCard: '',
-        customerId: '',
-        propertyId: '',
-        propertyTitle: '',
-        price: '',
-        depositAmount: ''
+        customerName: '', phone: '', email: '', idCard: '',
+        customerId: '', propertyId: '', propertyTitle: '',
+        price: '', depositAmount: '', completionDate: ''
       }));
     }
+  };
+
+  const handleAppChange = (e) => {
+    handleAppSelection(e.target.value);
   };
 
   const handleChange = (e) => {
@@ -176,10 +186,10 @@ export default function CreateTransaction() {
         <div>
           <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Thông tin Khách hàng</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input name="customerName" value={formData.customerName} onChange={handleChange} label="Họ và tên" required placeholder="Nguyễn Văn A" readOnly={!!selectedAppId} />
-            <Input name="phone" value={formData.phone} onChange={handleChange} label="Số điện thoại" placeholder="Tự động điền từ lịch hẹn" readOnly={!!selectedAppId && !!formData.phone} />
-            <Input name="email" value={formData.email} onChange={handleChange} label="Địa chỉ email" type="email" placeholder="Tự động điền từ lịch hẹn" readOnly={!!selectedAppId && !!formData.email} />
-            <Input name="idCard" value={formData.idCard} onChange={handleChange} label="CMND / CCCD / Hộ chiếu" placeholder="Bổ sung nếu cần" />
+            <Input name="customerName" value={formData.customerName} onChange={handleChange} label="Họ và tên" required placeholder="Nguyễn Văn A" readOnly className="bg-slate-50 cursor-not-allowed" />
+            <Input name="phone" value={formData.phone} onChange={handleChange} label="Số điện thoại" placeholder="Tự động điền từ lịch hẹn" readOnly className="bg-slate-50 cursor-not-allowed" />
+            <Input name="email" value={formData.email} onChange={handleChange} label="Địa chỉ email" type="email" placeholder="Tự động điền từ lịch hẹn" readOnly className="bg-slate-50 cursor-not-allowed" />
+            <Input name="idCard" value={formData.idCard} onChange={handleChange} label="CMND / CCCD / Hộ chiếu" placeholder="Sẽ bổ sung sau" readOnly className="bg-slate-50 cursor-not-allowed" />
           </div>
         </div>
 
@@ -190,8 +200,8 @@ export default function CreateTransaction() {
             <div className="col-span-1 md:col-span-2">
                <Input name="propertyTitle" value={formData.propertyTitle} onChange={handleChange} label="Tên Bất động sản" readOnly placeholder="Sẽ tự động điền khi chọn lịch hẹn" className="bg-slate-50 cursor-not-allowed" />
             </div>
-            <Input name="price" value={formData.price} onChange={handleChange} label="Giá thỏa thuận (VNĐ)" type="number" required placeholder="VD: 2500000000" />
-            <Input name="completionDate" value={formData.completionDate} onChange={handleChange} label="Ngày dự kiến hoàn tất" type="date" required />
+            <Input name="price" value={formData.price} onChange={handleChange} label="Giá thỏa thuận (VNĐ)" type="number" required placeholder="VD: 2500000000" readOnly className="bg-slate-50 cursor-not-allowed" />
+            <Input name="completionDate" value={formData.completionDate} onChange={handleChange} label="Ngày dự kiến hoàn tất" type="date" required readOnly className="bg-slate-50 cursor-not-allowed" />
           </div>
         </div>
 
@@ -199,15 +209,14 @@ export default function CreateTransaction() {
         <div>
           <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Thông tin Tài chính</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input name="depositAmount" value={formData.depositAmount} onChange={handleChange} label="Số tiền thanh toán/cọc (VNĐ)" type="number" required placeholder="VD: 100000000" />
+            <Input name="depositAmount" value={formData.depositAmount} onChange={handleChange} label="Số tiền thanh toán/cọc (VNĐ)" type="number" required placeholder="VD: 100000000" readOnly className="bg-slate-50 cursor-not-allowed" />
             <p className="col-span-1 md:col-span-2 text-xs font-semibold text-slate-500">
-              Nếu số tiền bằng toàn bộ giá trị giao dịch, hệ thống sẽ tự động hoàn tất và chuyển BĐS sang đã bán.
+              Mặc định cọc 10%. Nếu số tiền bằng toàn bộ giá trị giao dịch, hệ thống sẽ tự động hoàn tất và chuyển BĐS sang đã bán.
             </p>
             <div className="col-span-1 md:col-span-2">
               <label className="mb-1 block text-sm font-medium text-slate-700">Hình thức thanh toán</label>
-              <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <select name="paymentMethod" value={formData.paymentMethod} disabled className="w-full px-3 py-2 border border-gray-300 rounded-md bg-slate-50 cursor-not-allowed text-slate-500">
                 <option value="transfer">Chuyển khoản ngân hàng</option>
-                <option value="cash">Tiền mặt</option>
               </select>
             </div>
             <div className="col-span-1 md:col-span-2">

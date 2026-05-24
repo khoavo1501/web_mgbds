@@ -167,8 +167,10 @@ export default function PropertyUpload() {
 
   const [formData, setFormData] = useState({
     title: '', type: 'Nhà ở', price: '', area: '', address: '', ward: 'Phường Hải Châu',
-    description: '', amenities: [], images: [], legalFiles: [],
-    commitment: false, status: 'Nháp'
+    description: '', amenities: [], images: [], 
+    redBookFile: null, householdRegistrationFile: null, ownerIdFile: null,
+    commitment: false, status: 'Nháp',
+    isExclusive: false, ownerName: '', ownerPhone: '', brokerageContractFile: null
   });
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -192,9 +194,15 @@ export default function PropertyUpload() {
       description: prop.description || '',
       amenities: prop.amenities || [],
       images: (prop.images || []).map(i => ({ id: i.imageId || Math.random().toString(), url: i.url, preview: i.url, isPrimary: i.isPrimary })),
-      legalFiles: [],
+      redBookFile: prop.redBookUrl ? { name: 'Sổ đỏ.pdf', url: prop.redBookUrl } : null,
+      householdRegistrationFile: prop.householdRegistrationUrl ? { name: 'Sổ hộ khẩu.pdf', url: prop.householdRegistrationUrl } : null,
+      ownerIdFile: prop.ownerIdUrl ? { name: 'Căn cước công dân.pdf', url: prop.ownerIdUrl } : null,
       commitment: true,
-      status: prop.status || 'Nháp'
+      status: prop.status || 'Nháp',
+      isExclusive: prop.isExclusive || false,
+      ownerName: prop.ownerName || '',
+      ownerPhone: prop.ownerPhone || '',
+      brokerageContractFile: prop.brokerageContractUrl ? { name: 'Hợp đồng môi giới.pdf', url: prop.brokerageContractUrl } : null
     });
     setEditingId(prop.propertyId);
     setActiveTab('new');
@@ -205,8 +213,10 @@ export default function PropertyUpload() {
     setEditingId(null);
     setFormData({
       title: '', type: 'Nhà ở', price: '', area: '', address: '', ward: 'Phường Hải Châu',
-      description: '', amenities: [], images: [], legalFiles: [],
-      commitment: false, status: 'Nháp'
+      description: '', amenities: [], images: [], 
+      redBookFile: null, householdRegistrationFile: null, ownerIdFile: null,
+      commitment: false, status: 'Nháp',
+      isExclusive: false, ownerName: '', ownerPhone: '', brokerageContractFile: null
     });
     setActiveTab('new');
   }, []);
@@ -241,17 +251,12 @@ export default function PropertyUpload() {
     setFormData(p => ({ ...p, images: p.images.filter(i => i.id !== id) }));
   }, []);
 
-  const handleLegalFiles = useCallback((e) => {
-    const files = Array.from(e.target.files).map(f => ({
-      file: f, id: Math.random().toString(36).substr(2, 9),
-      name: f.name, size: (f.size / 1024 / 1024).toFixed(2)
-    }));
-    setFormData(p => ({ ...p, legalFiles: [...p.legalFiles, ...files] }));
-    e.target.value = '';
-  }, []);
-
-  const removeLegal = useCallback((id) => {
-    setFormData(p => ({ ...p, legalFiles: p.legalFiles.filter(f => f.id !== id) }));
+  const handleSingleFileChange = useCallback((name, file) => {
+    if (file) {
+      setFormData(p => ({ ...p, [name]: { file, name: file.name, size: (file.size / 1024 / 1024).toFixed(2) } }));
+    } else {
+      setFormData(p => ({ ...p, [name]: null }));
+    }
   }, []);
 
   const showToast = useCallback((type, message) => {
@@ -282,6 +287,11 @@ export default function PropertyUpload() {
     if (!formData.price) return showToast('error', 'Vui lòng nhập mức giá.');
     if (!formData.area) return showToast('error', 'Vui lòng nhập diện tích.');
     if (!formData.ward) return showToast('error', 'Vui lòng chọn phường.');
+    if (formData.isExclusive) {
+      if (!formData.ownerName.trim()) return showToast('error', 'Vui lòng nhập tên chủ nhà.');
+      if (!formData.ownerPhone.trim()) return showToast('error', 'Vui lòng nhập SĐT chủ nhà.');
+      if (!formData.brokerageContractFile) return showToast('error', 'Vui lòng upload Hợp đồng môi giới độc quyền.');
+    }
     if (!formData.commitment) return showToast('error', 'Vui lòng xác nhận cam kết thông tin.');
 
     // Map loại BĐS tiếng Việt → giá trị backend
@@ -298,6 +308,40 @@ export default function PropertyUpload() {
         }
       }
 
+      let brokerageContractUrl = '';
+      if (formData.isExclusive && formData.brokerageContractFile) {
+        if (formData.brokerageContractFile.file) {
+          const contractData = new FormData();
+          contractData.append('file', formData.brokerageContractFile.file);
+          const contractRes = await api.post('/uploads/documents', contractData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            params: { type: 'contracts' }
+          });
+          if (contractRes.data.success) {
+            brokerageContractUrl = contractRes.data.data.url;
+          }
+        } else {
+          brokerageContractUrl = formData.brokerageContractFile.url;
+        }
+      }
+
+      // Helper function to upload document
+      const uploadDoc = async (docFile, type) => {
+        if (!docFile) return '';
+        if (!docFile.file) return docFile.url; // Already uploaded
+        const formData = new FormData();
+        formData.append('file', docFile.file);
+        const res = await api.post('/uploads/documents', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          params: { type }
+        });
+        return res.data.success ? res.data.data.url : '';
+      };
+
+      const redBookUrl = await uploadDoc(formData.redBookFile, 'legal');
+      const householdRegistrationUrl = await uploadDoc(formData.householdRegistrationFile, 'legal');
+      const ownerIdUrl = await uploadDoc(formData.ownerIdFile, 'legal');
+
       const payload = {
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -306,7 +350,14 @@ export default function PropertyUpload() {
         district: formData.address.trim() ? `${formData.address.trim()}, ${formData.ward}` : formData.ward,
         area: Number(formData.area),
         price: Number(formData.price),
-        images: uploadedImages
+        images: uploadedImages,
+        isExclusive: formData.isExclusive,
+        ownerName: formData.ownerName,
+        ownerPhone: formData.ownerPhone,
+        brokerageContractUrl: brokerageContractUrl,
+        redBookUrl,
+        householdRegistrationUrl,
+        ownerIdUrl
       };
 
       const res = editingId 
@@ -319,8 +370,10 @@ export default function PropertyUpload() {
         setEditingId(null);
         setFormData({
           title: '', type: 'Nhà ở', price: '', area: '', address: '', ward: 'Phường Hải Châu',
-          description: '', amenities: [], images: [], legalFiles: [],
-          commitment: false, status: 'Nháp'
+          description: '', amenities: [], images: [], 
+          redBookFile: null, householdRegistrationFile: null, ownerIdFile: null,
+          commitment: false, status: 'Nháp',
+          isExclusive: false, ownerName: '', ownerPhone: '', brokerageContractFile: null
         });
         // Chuyển sang tab danh sách để thấy ngay
         setTimeout(() => setActiveTab('list'), 800);
@@ -501,46 +554,169 @@ export default function PropertyUpload() {
 
               {/* Section 4 - Legal */}
               <SectionCard num={4} icon={Shield} title="Thông tin pháp lý">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                  <button type="button" onClick={() => legalInputRef.current?.click()}
-                    className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-zinc-200 hover:border-blue-300 hover:bg-blue-50/30 transition-all group">
-                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                      <FileText className="w-5 h-5 text-blue-600" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  {/* Sổ đỏ */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-semibold text-zinc-700">Sổ đỏ / Sổ hồng</label>
+                    <div className="relative">
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                        onChange={(e) => handleSingleFileChange('redBookFile', e.target.files[0])} />
+                      <div className={`flex items-center gap-3 p-3 rounded-xl border-2 border-dashed transition-all ${formData.redBookFile ? 'border-emerald-300 bg-emerald-50' : 'border-zinc-200 hover:border-blue-300 hover:bg-blue-50/30'}`}>
+                        {formData.redBookFile ? (
+                          <>
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-emerald-700 truncate">{formData.redBookFile.name}</p>
+                            </div>
+                            <button type="button" onClick={(e) => { e.preventDefault(); handleSingleFileChange('redBookFile', null); }} className="relative z-20 text-zinc-400 hover:text-red-500">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                              <FileText className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <p className="text-sm text-zinc-500">Tải lên sổ đỏ...</p>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <p className="text-sm font-semibold text-zinc-700">Tải giấy tờ pháp lý</p>
-                      <p className="text-[11px] text-zinc-400">Sổ đỏ, giấy phép XD, ...</p>
+                  </div>
+
+                  {/* Sổ hộ khẩu */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-semibold text-zinc-700">Sổ hộ khẩu chủ BĐS</label>
+                    <div className="relative">
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                        onChange={(e) => handleSingleFileChange('householdRegistrationFile', e.target.files[0])} />
+                      <div className={`flex items-center gap-3 p-3 rounded-xl border-2 border-dashed transition-all ${formData.householdRegistrationFile ? 'border-emerald-300 bg-emerald-50' : 'border-zinc-200 hover:border-blue-300 hover:bg-blue-50/30'}`}>
+                        {formData.householdRegistrationFile ? (
+                          <>
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-emerald-700 truncate">{formData.householdRegistrationFile.name}</p>
+                            </div>
+                            <button type="button" onClick={(e) => { e.preventDefault(); handleSingleFileChange('householdRegistrationFile', null); }} className="relative z-20 text-zinc-400 hover:text-red-500">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                              <FileText className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <p className="text-sm text-zinc-500">Tải lên hộ khẩu...</p>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <Plus className="w-5 h-5 text-zinc-300 ml-auto group-hover:text-blue-400" />
-                  </button>
-                  <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" className="hidden" ref={legalInputRef} onChange={handleLegalFiles} />
-                  <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50/50 border border-emerald-100">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                      <Shield className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-semibold text-emerald-700">Bảo mật</p>
-                      <p className="text-[11px] text-emerald-500">Giấy tờ được mã hóa an toàn</p>
+                  </div>
+
+                  {/* CCCD */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-semibold text-zinc-700">CCCD chủ BĐS</label>
+                    <div className="relative">
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                        onChange={(e) => handleSingleFileChange('ownerIdFile', e.target.files[0])} />
+                      <div className={`flex items-center gap-3 p-3 rounded-xl border-2 border-dashed transition-all ${formData.ownerIdFile ? 'border-emerald-300 bg-emerald-50' : 'border-zinc-200 hover:border-blue-300 hover:bg-blue-50/30'}`}>
+                        {formData.ownerIdFile ? (
+                          <>
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-emerald-700 truncate">{formData.ownerIdFile.name}</p>
+                            </div>
+                            <button type="button" onClick={(e) => { e.preventDefault(); handleSingleFileChange('ownerIdFile', null); }} className="relative z-20 text-zinc-400 hover:text-red-500">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                              <FileText className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <p className="text-sm text-zinc-500">Tải lên CCCD...</p>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-                {formData.legalFiles.length > 0 && (
-                  <div className="space-y-2 mb-5">
-                    {formData.legalFiles.map(f => (
-                      <div key={f.id} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-xl border border-zinc-100">
-                        <File className="w-5 h-5 text-red-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-zinc-700 truncate">{f.name}</p>
-                          <p className="text-[11px] text-zinc-400">{f.size} MB</p>
-                        </div>
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <button type="button" onClick={() => removeLegal(f.id)} className="text-zinc-400 hover:text-red-500 transition-colors shrink-0">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+                
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50/50 border border-emerald-100 mb-5">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-emerald-600" />
                   </div>
-                )}
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-emerald-700">Bảo mật</p>
+                    <p className="text-[11px] text-emerald-500">Tất cả giấy tờ của khách hàng được mã hóa và bảo vệ an toàn tuyệt đối</p>
+                  </div>
+                </div>
+
+                {/* BĐS Độc quyền checkbox & fields */}
+                <div className="mb-6 p-4 rounded-xl border border-blue-100 bg-blue-50/30">
+                  <label className="flex items-start gap-3 cursor-pointer group mb-4">
+                    <div className="relative flex items-center mt-0.5">
+                      <input type="checkbox" name="isExclusive" checked={formData.isExclusive} onChange={handleChange} className="peer sr-only" />
+                      <div className="w-5 h-5 border-2 border-zinc-300 rounded-md peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all flex items-center justify-center group-hover:border-blue-400">
+                        {formData.isExclusive && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-sm font-semibold text-zinc-800">Đây là Bất động sản độc quyền</span>
+                      <p className="text-xs text-zinc-500 mt-0.5">Yêu cầu cung cấp thông tin chủ nhà và hợp đồng môi giới</p>
+                    </div>
+                  </label>
+
+                  {formData.isExclusive && (
+                    <div className="space-y-4 pt-4 border-t border-blue-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <InputField label="Tên chủ nhà" name="ownerName" value={formData.ownerName} onChange={handleChange} placeholder="Nguyễn Văn A" required />
+                        <InputField label="Số điện thoại chủ nhà" name="ownerPhone" value={formData.ownerPhone} onChange={handleChange} placeholder="0901234567" required />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-700 mb-1.5">
+                          Hợp đồng môi giới độc quyền <span className="text-red-500">*</span>
+                        </label>
+                        {formData.brokerageContractFile ? (
+                          <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-zinc-200">
+                            <FileText className="w-5 h-5 text-blue-500 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-zinc-700 truncate">{formData.brokerageContractFile.name}</p>
+                              <p className="text-[11px] text-zinc-400">Đã chọn</p>
+                            </div>
+                            <button type="button" onClick={() => setFormData(p => ({ ...p, brokerageContractFile: null }))} className="text-zinc-400 hover:text-red-500 transition-colors shrink-0">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <input 
+                              type="file" 
+                              accept=".pdf,.jpg,.jpeg,.png" 
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  setFormData(p => ({ ...p, brokerageContractFile: { file: e.target.files[0], name: e.target.files[0].name } }));
+                                }
+                              }} 
+                            />
+                            <div className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-zinc-200 rounded-xl bg-white hover:bg-zinc-50 transition-colors">
+                              <UploadCloud className="w-5 h-5 text-zinc-400" />
+                              <span className="text-sm text-zinc-500 font-medium">Tải lên hợp đồng</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
                 <div className="pt-5 border-t border-zinc-100">
                   <label className="flex items-start gap-3 cursor-pointer group">
                     <div className="relative flex items-center mt-0.5">

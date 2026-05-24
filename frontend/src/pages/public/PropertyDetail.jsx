@@ -286,9 +286,17 @@ export default function PropertyDetail() {
           <div>
             <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-slate-950">
-                  {property.title}
-                </h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-slate-950">
+                    {property.title}
+                  </h1>
+                  {(property.status === 'locked' || property.status === 'in_transaction' || property.isLocked) && (
+                    <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-yellow-200">Đang giao dịch</span>
+                  )}
+                  {property.status === 'sold' && (
+                    <span className="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-red-200">Đã bán</span>
+                  )}
+                </div>
                 {location && (
                   <p className="mt-3 flex items-start gap-2 text-sm font-medium text-slate-600">
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0" />

@@ -10,8 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 /**
- * Entity AuditLog - Nhật ký hệ thống
- * Action Type: 'UPDATE_PROPERTY', 'CREATE_TRANSACTION', etc.
+ * Entity AuditLog - Nhật ký hệ thống (Immutable)
  */
 @Entity
 @Table(name = "audit_log")
@@ -22,25 +21,31 @@ public class AuditLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "audit_id")
+    @Column(name = "audit_id", updatable = false)
     private Long auditId;
 
-    @Column(name = "action_type", length = 50)
-    private String actionType; // 'UPDATE_PROPERTY', 'CREATE_TRANSACTION'
+    @Column(name = "before_status", length = 50, updatable = false)
+    private String beforeStatus;
 
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
+    @Column(name = "after_status", length = 50, updatable = false)
+    private String afterStatus;
+
+    @Column(name = "action", nullable = false, length = 100, updatable = false)
+    private String action;
+
+    @Column(name = "actor_id", updatable = false)
+    private Long actorId;
+
+    @Column(name = "actor_role", length = 50, updatable = false)
+    private String actorRole;
+
+    @Column(name = "entity_type", nullable = false, length = 50, updatable = false)
+    private String entityType; // Transaction, Property, Document
+
+    @Column(name = "entity_id", nullable = false, updatable = false)
+    private Long entityId;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    // ===================================================================
-    // Relationships
-    // ===================================================================
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    @JsonIgnore
-    private User user;
+    @Column(name = "timestamp", updatable = false)
+    private LocalDateTime timestamp;
 }

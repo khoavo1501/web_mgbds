@@ -29,6 +29,8 @@ public class TransactionDTO {
     private String status;
     private LocalDate transactionDate;
     private LocalDateTime dealScheduleAt;
+    private LocalDateTime expiredAt;
+    private LocalDateTime lockedAt;
 
     // Property info
     private Long propertyId;
@@ -67,6 +69,11 @@ public class TransactionDTO {
         private String documentType;
         private String fileName;
         private String url;
+        private String status;
+        private String rejectReason;
+        private LocalDateTime uploadedAt;
+        private LocalDateTime reviewedAt;
+        private String reviewedByName;
     }
 
     @Data

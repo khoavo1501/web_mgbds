@@ -28,6 +28,23 @@ public class PropertyDTO {
     private BigDecimal price;
     private LocalDateTime createdAt;
     
+    // Exclusive Contract Fields
+    private Boolean isExclusive;
+    private String contractStatus;
+    private String ownerName;
+    private String ownerPhone;
+    private String exclusiveDuration;
+    private BigDecimal brokerageFee;
+    private BigDecimal ownerDesiredPrice;
+    private String commissionTerms;
+    private String brokerageContractUrl;
+    private Boolean isLocked;
+    
+    // Legal Documents
+    private String redBookUrl;
+    private String householdRegistrationUrl;
+    private String ownerIdUrl;
+    
     // Thông tin người tạo và người phụ trách
     private UserSimpleDTO createdBy;
     private UserSimpleDTO assignedTo;

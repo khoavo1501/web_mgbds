@@ -21,6 +21,7 @@ import LeadManagement from "./pages/broker/LeadManagement";
 import BrokerFinance from "./pages/broker/BrokerFinance";
 import PropertyUpload from "./pages/broker/PropertyUpload";
 import BrokerTransactionHistory from "./pages/broker/BrokerTransactionHistory";
+import CreateTransaction from "./pages/broker/CreateTransaction";
 import BrokerLayout from "./layouts/BrokerLayout";
 
 // Admin Pages
@@ -60,6 +61,7 @@ function App() {
                 <Route path="/broker/leads" element={<LeadManagement />} />
                 <Route path="/broker/transaction" element={<Navigate to="/broker/transactions/history" replace />} />
                 <Route path="/broker/transactions/history" element={<BrokerTransactionHistory />} />
+                <Route path="/broker/transactions/create" element={<CreateTransaction />} />
                 <Route path="/broker/upload" element={<PropertyUpload />} />
               </Route>
             </Route>

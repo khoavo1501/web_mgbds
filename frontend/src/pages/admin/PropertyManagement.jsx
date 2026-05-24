@@ -423,9 +423,6 @@ export default function PropertyManagement() {
                     <IconButton title="Xem nhanh" onClick={() => setPreviewProperty(property)}>
                       <Eye className="h-4 w-4" />
                     </IconButton>
-                    <IconButton title="Chỉnh sửa" onClick={() => openEditModal(property)}>
-                      <Pencil className="h-4 w-4" />
-                    </IconButton>
                     <IconButton title="Xóa" tone="danger" onClick={() => setDeleteTarget(property)}>
                       <Trash2 className="h-4 w-4" />
                     </IconButton>

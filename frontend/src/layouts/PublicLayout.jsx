@@ -11,6 +11,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import NotificationDropdown from "../components/NotificationDropdown";
 
 export default function PublicLayout() {
   const { user, logout } = useAuth();
@@ -69,8 +70,10 @@ export default function PublicLayout() {
                 Đăng nhập
               </Link>
             ) : (
-              <div className="relative">
-                <button
+              <div className="flex items-center gap-4">
+                <NotificationDropdown />
+                <div className="relative">
+                  <button
                   type="button"
                   onClick={() => setShowDropdown((value) => !value)}
                   className="flex items-center gap-2 text-sm font-semibold text-slate-900"
@@ -122,6 +125,7 @@ export default function PublicLayout() {
                     </button>
                   </div>
                 )}
+              </div>
               </div>
             )}
           </div>

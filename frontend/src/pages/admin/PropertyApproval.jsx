@@ -236,6 +236,58 @@ export default function PropertyApproval() {
               </p>
             </div>
 
+            <div className="px-6 pb-6">
+              <div className="rounded-lg border border-stone-200 bg-stone-50/50 p-5">
+                <h3 className="mb-4 text-sm font-black text-stone-900 flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-stone-500" /> Giấy tờ pháp lý
+                </h3>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="rounded-lg border border-stone-200 p-4 bg-white">
+                    <p className="text-xs font-black uppercase tracking-wider text-stone-400">Sổ hồng/Sổ đỏ</p>
+                    {selectedProperty.redBookUrl ? (
+                      <a href={selectedProperty.redBookUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
+                    ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
+                  </div>
+                  <div className="rounded-lg border border-stone-200 p-4 bg-white">
+                    <p className="text-xs font-black uppercase tracking-wider text-stone-400">Sổ hộ khẩu</p>
+                    {selectedProperty.householdRegistrationUrl ? (
+                      <a href={selectedProperty.householdRegistrationUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
+                    ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
+                  </div>
+                  <div className="rounded-lg border border-stone-200 p-4 bg-white">
+                    <p className="text-xs font-black uppercase tracking-wider text-stone-400">CCCD Chủ nhà</p>
+                    {selectedProperty.ownerIdUrl ? (
+                      <a href={selectedProperty.ownerIdUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
+                    ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {selectedProperty.isExclusive && (
+              <div className="px-6 pb-6">
+                <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-5">
+                  <h3 className="mb-4 text-sm font-black text-blue-900 flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4" /> Bất động sản độc quyền
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <Detail label="Chủ nhà" value={selectedProperty.ownerName || "N/A"} />
+                    <Detail label="SĐT" value={selectedProperty.ownerPhone || "N/A"} />
+                    <div className="rounded-lg border border-stone-200 p-4 bg-white">
+                      <p className="text-xs font-black uppercase tracking-wider text-stone-400">Hợp đồng môi giới</p>
+                      {selectedProperty.brokerageContractUrl ? (
+                        <a href={selectedProperty.brokerageContractUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">
+                          Xem hợp đồng
+                        </a>
+                      ) : (
+                        <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end gap-3 border-t border-stone-200 p-6">
               <button
                 onClick={() => handleStatus(selectedProperty, "rejected")}

@@ -53,6 +53,7 @@ public class AppointmentController {
         try {
             return ResponseEntity.ok(ApiResponse.success("Cập nhật lịch thành công", appointmentService.updateAppointment(id, request)));
         } catch (RuntimeException e) {
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
