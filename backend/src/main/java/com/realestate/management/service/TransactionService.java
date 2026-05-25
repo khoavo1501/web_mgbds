@@ -199,10 +199,6 @@ public class TransactionService {
         transaction.setAppointment(appointment);
         transaction.setTotalPrice(property.getPrice());
         transaction.setDepositAmount(depositAmount);
-        transaction.setDepositAmount(depositAmount);
-        transaction.setStatus("pending"); // Changed from payment_submitted to pending, because customer needs to agree first. Wait, what was the initial status? 
-        // Ah, currently `createCustomerDepositFromAppointment` sets `payment_submitted`. But the new flow says they start at `pending` when creating it?
-        // Let's check the user requirement. "Khi khách hàng tạo transaction -> chưa lock, status = pending." 
         transaction.setStatus("pending");
         transaction.setTransactionDate(LocalDate.now());
         transaction.setExpiredAt(java.time.LocalDateTime.now().plusHours(12));
@@ -235,7 +231,7 @@ public class TransactionService {
     /** Cập nhật trạng thái giao dịch */
     @Transactional
     public TransactionDTO updateStatus(Long id, String status) {
-        if (!status.matches("customer_confirmed|contract_agreed|documents_submitted|documents_verified|payment_submitted|deposit_confirmed|commitment_signed|notarizing|final_payment_submitted|completed|cancelled|rejected|refund_requested|refunded|broker_confirmed|deal_scheduled")) {
+        if (!status.matches("customer_confirmed|contract_agreed|documents_submitted|documents_verified|payment_submitted|deposit_confirmed|commitment_signed|notarizing|completed|cancelled|rejected|refund_requested|refunded|broker_confirmed|deal_scheduled")) {
             throw new RuntimeException("Trạng thái không hợp lệ: " + status);
         }
         Transaction t = transactionRepository.findById(id)
@@ -246,12 +242,16 @@ public class TransactionService {
         boolean isCustomer = t.getCustomer() != null && t.getCustomer().getUserId().equals(currentUser.getUserId());
         boolean isBroker = t.getBroker() != null && t.getBroker().getUserId().equals(currentUser.getUserId());
 
-        if (List.of("documents_verified", "deposit_confirmed", "rejected", "refunded", "completed").contains(status) && !isAdmin) {
+        if (List.of("documents_verified", "deposit_confirmed", "refunded", "completed").contains(status) && !isAdmin) {
             throw new RuntimeException("Chỉ admin mới được xác nhận hồ sơ, thanh toán, hoặc hoàn tất giao dịch");
         }
 
-        if (List.of("customer_confirmed", "contract_agreed", "payment_submitted", "commitment_signed", "final_payment_submitted").contains(status) && !isCustomer) {
+        if (List.of("customer_confirmed", "contract_agreed", "payment_submitted", "commitment_signed", "refund_requested").contains(status) && !isCustomer) {
             throw new RuntimeException("Chỉ khách hàng của giao dịch mới được cập nhật bước này");
+        }
+
+        if ("broker_confirmed".equals(status) && !isBroker) {
+            throw new RuntimeException("Chi moi gioi phu trach moi duoc xac nhan giao dich truc tiep");
         }
 
         String beforeStatus = t.getStatus();
@@ -261,7 +261,22 @@ public class TransactionService {
             markDepositPaymentSubmitted(t);
         }
 
+        if ("refund_requested".equals(status)
+                && !"broker_confirmed".equals(beforeStatus)
+                && !"completed".equals(beforeStatus)
+                && !("cancelled".equals(beforeStatus) && hasConfirmedDeposit(t))) {
+            throw new RuntimeException("Chi duoc yeu cau hoan coc sau khi moi gioi xac nhan giao dich thanh cong");
+        }
+
         t.setStatus(status);
+
+        if ("customer_confirmed".equals(status) || "documents_verified".equals(status)) {
+            t.setExpiredAt(java.time.LocalDateTime.now().plusHours(12));
+        }
+
+        if ("documents_submitted".equals(status) || "payment_submitted".equals(status)) {
+            t.setExpiredAt(null);
+        }
 
         if ("deposit_confirmed".equals(status)) {
             transactionPaymentRepository.findByTransaction(t).forEach(payment -> {
@@ -275,8 +290,43 @@ public class TransactionService {
                 t.getProperty().setStatus("locked");
                 t.getProperty().setIsLocked(true);
                 propertyRepository.save(t.getProperty());
+                markPropertyAppointmentsCompleted(t.getProperty());
             }
             t.setLockedAt(java.time.LocalDateTime.now());
+        }
+
+        if ("broker_confirmed".equals(status)) {
+            if (!"deal_scheduled".equals(beforeStatus)) {
+                throw new RuntimeException("Chi xac nhan giao dich sau khi khach hang da dat lich giao dich truc tiep");
+            }
+            if (t.getProperty() != null) {
+                t.getProperty().setStatus("sold");
+                t.getProperty().setIsLocked(false);
+                propertyRepository.save(t.getProperty());
+            }
+            commissionRepository.findByTransaction(t).forEach(c -> {
+                c.setStatus("paid");
+                commissionRepository.save(c);
+            });
+        }
+
+        if ("refund_requested".equals(status)) {
+            transactionPaymentRepository.findByTransaction(t).forEach(payment -> {
+                if ("confirmed".equalsIgnoreCase(payment.getPaymentStatus())) {
+                    payment.setPaymentStatus("refund_requested");
+                    transactionPaymentRepository.save(payment);
+                }
+            });
+        }
+
+        if ("refunded".equals(status)) {
+            transactionPaymentRepository.findByTransaction(t).forEach(payment -> {
+                if ("refund_requested".equalsIgnoreCase(payment.getPaymentStatus())
+                        || "confirmed".equalsIgnoreCase(payment.getPaymentStatus())) {
+                    payment.setPaymentStatus("refunded");
+                    transactionPaymentRepository.save(payment);
+                }
+            });
         }
 
         if ("completed".equals(status)) {
@@ -361,6 +411,7 @@ public class TransactionService {
         transactionDocumentRepository.saveAll(documents);
 
         transaction.setStatus("documents_submitted");
+        transaction.setExpiredAt(null);
         return convertToDTO(transactionRepository.save(transaction));
     }
 
@@ -431,6 +482,7 @@ public class TransactionService {
 
         if (allVerified && !hasPendingOrRejected) {
             tx.setStatus("documents_verified");
+            tx.setExpiredAt(java.time.LocalDateTime.now().plusHours(12));
             transactionRepository.save(tx);
         }
     }
@@ -443,8 +495,8 @@ public class TransactionService {
         if (transaction.getCustomer() == null || !transaction.getCustomer().getUserId().equals(currentUser.getUserId())) {
             throw new RuntimeException("Chi khach hang cua giao dich moi duoc dat lich giao dich");
         }
-        if (!"commitment_signed".equals(transaction.getStatus())) {
-            throw new RuntimeException("Can hoan thanh cam ket mua bat dong san truoc khi dat lich giao dich");
+        if (!"deposit_confirmed".equals(transaction.getStatus())) {
+            throw new RuntimeException("Can duoc xac nhan coc truoc khi dat lich giao dich truc tiep");
         }
         if (scheduledAt == null || scheduledAt.isBefore(java.time.LocalDateTime.now())) {
             throw new RuntimeException("Thoi gian giao dich phai nam trong tuong lai");
@@ -453,6 +505,35 @@ public class TransactionService {
         transaction.setDealScheduleAt(scheduledAt);
         transaction.setStatus("deal_scheduled");
         return convertToDTO(transactionRepository.save(transaction));
+    }
+
+    @Transactional
+    public TransactionDTO rejectBrokerDeal(Long id) {
+        Transaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Khong tim thay giao dich ID: " + id));
+        User currentUser = getCurrentUser();
+        if (transaction.getBroker() == null || !transaction.getBroker().getUserId().equals(currentUser.getUserId())) {
+            throw new RuntimeException("Chi moi gioi phu trach moi duoc xac nhan giao dich that bai");
+        }
+        if (!"deal_scheduled".equals(transaction.getStatus())) {
+            throw new RuntimeException("Chi duoc xac nhan that bai sau khi khach hang da dat lich giao dich truc tiep");
+        }
+
+        String beforeStatus = transaction.getStatus();
+        transaction.setStatus("cancelled");
+        if (transaction.getProperty() != null) {
+            transaction.getProperty().setStatus("published");
+            transaction.getProperty().setIsLocked(false);
+            propertyRepository.save(transaction.getProperty());
+        }
+        commissionRepository.findByTransaction(transaction).forEach(c -> {
+            c.setStatus("cancelled");
+            commissionRepository.save(c);
+        });
+
+        Transaction saved = transactionRepository.save(transaction);
+        auditLogService.log(beforeStatus, saved.getStatus(), "BROKER_REJECT_DEAL", "Transaction", saved.getTransactionId());
+        return convertToDTO(saved);
     }
 
     private synchronized String generateTransactionCode() {
@@ -625,25 +706,19 @@ public class TransactionService {
         transactionPaymentRepository.save(payment);
     }
 
-    private void markSellerPaymentConfirmed(Transaction transaction, User broker) {
-        List<TransactionPayment> payments = transactionPaymentRepository.findByTransaction(transaction);
-        java.math.BigDecimal paidAmount = payments.stream()
-                .filter(payment -> !"refunded".equalsIgnoreCase(payment.getPaymentStatus()))
-                .map(TransactionPayment::getAmount)
-                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
-        java.math.BigDecimal remainingAmount = transaction.getTotalPrice().subtract(paidAmount);
-        if (remainingAmount.signum() <= 0) {
-            return;
-        }
+    private void markPropertyAppointmentsCompleted(Property property) {
+        appointmentRepository.findByProperty(property).stream()
+                .filter(appointment -> !"cancelled".equalsIgnoreCase(appointment.getStatus()))
+                .forEach(appointment -> {
+                    appointment.setStatus("completed");
+                    appointmentRepository.save(appointment);
+                });
+    }
 
-        TransactionPayment sellerPayment = new TransactionPayment();
-        sellerPayment.setTransaction(transaction);
-        sellerPayment.setAmount(remainingAmount);
-        sellerPayment.setPaymentMethod("transfer");
-        sellerPayment.setPaymentStatus("confirmed");
-        sellerPayment.setPaymentDate(LocalDate.now());
-        sellerPayment.setConfirmedBy(broker);
-        transactionPaymentRepository.save(sellerPayment);
+    private boolean hasConfirmedDeposit(Transaction transaction) {
+        return transactionPaymentRepository.findByTransaction(transaction).stream()
+                .anyMatch(payment -> "confirmed".equalsIgnoreCase(payment.getPaymentStatus())
+                        || payment.getConfirmedBy() != null);
     }
 
     private void validateRequiredFile(MultipartFile file, String label) {

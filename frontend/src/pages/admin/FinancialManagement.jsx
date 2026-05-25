@@ -36,7 +36,6 @@ const statusLabels = {
   payment_submitted: "Đang xác minh thanh toán",
   deposit_confirmed: "Đã xác nhận cọc",
   commitment_signed: "Đã ký cam kết",
-  final_payment_submitted: "Chờ xác minh 90%",
   deal_scheduled: "Đã đặt lịch giao dịch",
   broker_confirmed: "Broker đã xác nhận",
   refund_requested: "Yêu cầu hoàn cọc",
@@ -54,7 +53,6 @@ const statusStyles = {
   payment_submitted: "bg-indigo-50 text-indigo-700 ring-indigo-200",
   deposit_confirmed: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   commitment_signed: "bg-teal-50 text-teal-700 ring-teal-200",
-  final_payment_submitted: "bg-violet-50 text-violet-700 ring-violet-200",
   deal_scheduled: "bg-sky-50 text-sky-700 ring-sky-200",
   broker_confirmed: "bg-cyan-50 text-cyan-700 ring-cyan-200",
   refund_requested: "bg-orange-50 text-orange-700 ring-orange-200",
@@ -580,7 +578,7 @@ function TransactionTable({ loading, rows, processingId, onStatusChange }) {
                         {processingId === item.transactionId ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                       </ActionButton>
                     </>
-                  ) : item.status === "broker_confirmed" || item.status === "final_payment_submitted" ? (
+                  ) : item.status === "broker_confirmed" ? (
                     <>
                       <ActionButton
                         title="Đánh dấu hoàn tất giao dịch"

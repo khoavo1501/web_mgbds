@@ -104,6 +104,21 @@ export default function BrokerTransactionHistory() {
     }
   };
 
+  const rejectBroker = async (transaction) => {
+    if (!window.confirm("Xác nhận giao dịch trực tiếp thất bại?")) return;
+    try {
+      const response = await api.patch(`/transactions/${transaction.transactionId}/broker-reject`);
+      if (response.data.success) {
+        setTransactions((current) =>
+          current.map((item) => (item.transactionId === transaction.transactionId ? response.data.data : item))
+        );
+        showToast("Đã xác nhận giao dịch trực tiếp thất bại");
+      }
+    } catch (error) {
+      showToast(error.response?.data?.message || "Không thể xác nhận giao dịch thất bại");
+    }
+  };
+
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-8">
       {toast && (
@@ -181,6 +196,14 @@ export default function BrokerTransactionHistory() {
 
               <div className="mt-5 flex flex-wrap justify-end gap-3">
                 {item.status === "deal_scheduled" && (
+                  <div className="flex flex-wrap justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => rejectBroker(item)}
+                      className="inline-flex h-10 items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 text-sm font-black text-rose-700 hover:bg-rose-100"
+                    >
+                      Giao dịch thất bại
+                    </button>
                   <button
                     type="button"
                     onClick={() => confirmBroker(item)}
@@ -189,6 +212,7 @@ export default function BrokerTransactionHistory() {
                     <CheckCircle2 className="h-4 w-4" />
                     Xác nhận đã thanh toán cho người bán
                   </button>
+                  </div>
                 )}
               </div>
             </article>

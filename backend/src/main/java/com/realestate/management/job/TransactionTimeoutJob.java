@@ -25,15 +25,15 @@ public class TransactionTimeoutJob {
     public void cancelExpiredTransactions() {
         LocalDateTime now = LocalDateTime.now();
         List<Transaction> pendingTransactions = transactionRepository.findByStatusIn(
-                List.of("pending", "contract_agreed", "documents_submitted", "documents_verified", "payment_submitted")
+                List.of("pending", "customer_confirmed", "documents_verified")
         );
 
         for (Transaction tx : pendingTransactions) {
             LocalDateTime expiredAt = tx.getExpiredAt();
             
-            // Nếu không có expired_at, fallback dùng transaction_date cộng thêm 12h (hoặc thời điểm hiện tại coi như hết hạn nếu quá lâu)
+            // Only transactions with an explicit deadline should be auto-cancelled.
             if (expiredAt == null) {
-                expiredAt = tx.getTransactionDate().atStartOfDay().plusHours(12);
+                continue;
             }
 
             if (now.isAfter(expiredAt)) {

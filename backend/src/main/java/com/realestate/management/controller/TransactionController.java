@@ -158,20 +158,6 @@ public class TransactionController {
         }
     }
 
-    @PatchMapping("/{id}/final-payment-submitted")
-    @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<ApiResponse<TransactionDTO>> submitFinalPayment(
-            @PathVariable Long id,
-            @RequestParam("receiptUrl") String receiptUrl) {
-        try {
-            TransactionDTO updated = transactionService.updateStatus(id, "final_payment_submitted");
-            transactionService.addPaymentReceipt(id, receiptUrl); 
-            return ResponseEntity.ok(ApiResponse.success("Đã ghi nhận yêu cầu xác minh thanh toán đợt cuối", updated));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
-        }
-    }
-
     @PatchMapping("/{id}/refund-request")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<TransactionDTO>> requestRefund(@PathVariable Long id) {
@@ -202,6 +188,17 @@ public class TransactionController {
         try {
             return ResponseEntity.ok(ApiResponse.success("Da xac nhan nguoi mua thanh toan cho nguoi ban",
                     transactionService.updateStatus(id, "broker_confirmed")));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{id}/broker-reject")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<ApiResponse<TransactionDTO>> brokerReject(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Da xac nhan giao dich truc tiep that bai",
+                    transactionService.rejectBrokerDeal(id)));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
