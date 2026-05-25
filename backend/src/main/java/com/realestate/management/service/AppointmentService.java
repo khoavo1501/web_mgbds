@@ -56,7 +56,7 @@ public class AppointmentService {
 
         // Check permission: only customer, broker of this appointment, or admin can view
         if (!appointment.getCustomer().getUserId().equals(currentUser.getUserId()) &&
-            !appointment.getBroker().getUserId().equals(currentUser.getUserId()) &&
+            (appointment.getBroker() == null || !appointment.getBroker().getUserId().equals(currentUser.getUserId())) &&
             !"admin".equalsIgnoreCase(currentUser.getRole())) {
             throw new RuntimeException("Không có quyền xem lịch hẹn này");
         }
@@ -84,9 +84,7 @@ public class AppointmentService {
                 .orElseThrow(() -> new RuntimeException("Property not found"));
 
         User broker = property.getAssignedTo();
-        if (broker == null) {
-            throw new RuntimeException("Bất động sản này hiện chưa có broker phụ trách.");
-        }
+        // If broker is null, it's fine. Admin can manage it or assign later.
 
         boolean alreadyBooked = appointmentRepository.findByProperty(property).stream()
                 .anyMatch(appointment ->
@@ -120,7 +118,7 @@ public class AppointmentService {
 
         // Only customer or broker of this appointment or admin can update
         if (!appointment.getCustomer().getUserId().equals(currentUser.getUserId()) &&
-            !appointment.getBroker().getUserId().equals(currentUser.getUserId()) &&
+            (appointment.getBroker() == null || !appointment.getBroker().getUserId().equals(currentUser.getUserId())) &&
             !"admin".equalsIgnoreCase(currentUser.getRole())) {
             throw new RuntimeException("Không có quyền thay đổi lịch hẹn này");
         }
@@ -152,7 +150,7 @@ public class AppointmentService {
 
         // Only customer or broker of this appointment or admin can cancel
         if (!appointment.getCustomer().getUserId().equals(currentUser.getUserId()) &&
-            !appointment.getBroker().getUserId().equals(currentUser.getUserId()) &&
+            (appointment.getBroker() == null || !appointment.getBroker().getUserId().equals(currentUser.getUserId())) &&
             !"admin".equalsIgnoreCase(currentUser.getRole())) {
             throw new RuntimeException("Không có quyền hủy lịch hẹn này");
         }
@@ -189,9 +187,11 @@ public class AppointmentService {
         dto.setCustomerEmail(appointment.getCustomer().getEmail());
         
         // Broker info
-        dto.setBrokerId(appointment.getBroker().getUserId());
-        dto.setBrokerName(appointment.getBroker().getFullName());
-        dto.setBrokerEmail(appointment.getBroker().getEmail());
+        if (appointment.getBroker() != null) {
+            dto.setBrokerId(appointment.getBroker().getUserId());
+            dto.setBrokerName(appointment.getBroker().getFullName());
+            dto.setBrokerEmail(appointment.getBroker().getEmail());
+        }
         
         // Contact info (nếu có, nếu không dùng customer info)
         dto.setContactName(appointment.getCustomer().getFullName());

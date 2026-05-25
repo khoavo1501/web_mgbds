@@ -36,6 +36,7 @@ const statusLabels = {
   payment_submitted: "Đang xác minh thanh toán",
   deposit_confirmed: "Đã xác nhận cọc",
   commitment_signed: "Đã ký cam kết",
+  final_payment_submitted: "Chờ xác minh 90%",
   deal_scheduled: "Đã đặt lịch giao dịch",
   broker_confirmed: "Broker đã xác nhận",
   refund_requested: "Yêu cầu hoàn cọc",
@@ -51,8 +52,9 @@ const statusStyles = {
   documents_submitted: "bg-amber-50 text-amber-800 ring-amber-200",
   documents_verified: "bg-sky-50 text-sky-700 ring-sky-200",
   payment_submitted: "bg-indigo-50 text-indigo-700 ring-indigo-200",
-  deposit_confirmed: "bg-sky-50 text-sky-700 ring-sky-200",
+  deposit_confirmed: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   commitment_signed: "bg-teal-50 text-teal-700 ring-teal-200",
+  final_payment_submitted: "bg-violet-50 text-violet-700 ring-violet-200",
   deal_scheduled: "bg-sky-50 text-sky-700 ring-sky-200",
   broker_confirmed: "bg-cyan-50 text-cyan-700 ring-cyan-200",
   refund_requested: "bg-orange-50 text-orange-700 ring-orange-200",
@@ -126,11 +128,22 @@ export default function FinancialManagement() {
   }, [fetchFinanceData]);
 
   const handleTransactionStatus = async (transaction, status) => {
+    const actionMessages = {
+      documents_verified: "xác minh hồ sơ",
+      deposit_confirmed: "xác nhận cọc",
+      refunded: "hoàn cọc",
+      cancelled: "hủy giao dịch",
+    };
+    const actionName = actionMessages[status] || status;
+    if (!window.confirm(`Bạn có chắc chắn muốn ${actionName} cho giao dịch ${transaction.transactionCode} không?`)) {
+      return;
+    }
+
     setProcessingId(transaction.transactionId);
     try {
       const response = await api.patch(`/transactions/${transaction.transactionId}/status?status=${status}`);
       if (response.data.success) {
-        const actionMessages = {
+        const messages = {
           documents_verified: `Đã xác minh hồ sơ ${transaction.transactionCode}.`,
           deposit_confirmed: `Đã xác nhận cọc ${transaction.transactionCode}.`,
           refunded: `Đã ghi nhận hoàn cọc ${transaction.transactionCode}.`,
@@ -138,7 +151,7 @@ export default function FinancialManagement() {
         };
         showToast(
           status === "cancelled" ? "error" : "success",
-          actionMessages[status] || `Đã cập nhật ${transaction.transactionCode}.`
+          messages[status] || `Đã cập nhật ${transaction.transactionCode}.`
         );
         await fetchFinanceData();
       } else {
@@ -567,10 +580,10 @@ function TransactionTable({ loading, rows, processingId, onStatusChange }) {
                         {processingId === item.transactionId ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                       </ActionButton>
                     </>
-                  ) : item.status === "broker_confirmed" ? (
+                  ) : item.status === "broker_confirmed" || item.status === "final_payment_submitted" ? (
                     <>
                       <ActionButton
-                        title="Hoàn tất giao dịch (Đã nhận đủ tiền)"
+                        title="Đánh dấu hoàn tất giao dịch"
                         disabled={processingId === item.transactionId}
                         onClick={() => onStatusChange(item, "completed")}
                         tone="success"

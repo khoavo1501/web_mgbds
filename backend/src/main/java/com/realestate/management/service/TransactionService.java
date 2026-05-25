@@ -37,6 +37,7 @@ public class TransactionService {
     @Autowired private TransactionPaymentRepository transactionPaymentRepository;
     @Autowired private TransactionDocumentRepository transactionDocumentRepository;
     @Autowired private AuditLogService auditLogService;
+    @Autowired private NotificationService notificationService;
 
     @Value("${app.upload.document-dir:documents}")
     private String documentDir;
@@ -234,7 +235,7 @@ public class TransactionService {
     /** Cập nhật trạng thái giao dịch */
     @Transactional
     public TransactionDTO updateStatus(Long id, String status) {
-        if (!status.matches("customer_confirmed|contract_agreed|documents_submitted|documents_verified|payment_submitted|deposit_confirmed|notarizing|completed|cancelled|rejected|refund_requested|refunded|broker_confirmed|deal_scheduled")) {
+        if (!status.matches("customer_confirmed|contract_agreed|documents_submitted|documents_verified|payment_submitted|deposit_confirmed|commitment_signed|notarizing|final_payment_submitted|completed|cancelled|rejected|refund_requested|refunded|broker_confirmed|deal_scheduled")) {
             throw new RuntimeException("Trạng thái không hợp lệ: " + status);
         }
         Transaction t = transactionRepository.findById(id)
@@ -245,11 +246,11 @@ public class TransactionService {
         boolean isCustomer = t.getCustomer() != null && t.getCustomer().getUserId().equals(currentUser.getUserId());
         boolean isBroker = t.getBroker() != null && t.getBroker().getUserId().equals(currentUser.getUserId());
 
-        if (List.of("documents_verified", "deposit_confirmed", "rejected", "refunded").contains(status) && !isAdmin) {
-            throw new RuntimeException("Chỉ admin mới được xác minh hồ sơ hoặc xác nhận cọc");
+        if (List.of("documents_verified", "deposit_confirmed", "rejected", "refunded", "completed").contains(status) && !isAdmin) {
+            throw new RuntimeException("Chỉ admin mới được xác nhận hồ sơ, thanh toán, hoặc hoàn tất giao dịch");
         }
 
-        if (List.of("customer_confirmed", "contract_agreed", "payment_submitted").contains(status) && !isCustomer) {
+        if (List.of("customer_confirmed", "contract_agreed", "payment_submitted", "commitment_signed", "final_payment_submitted").contains(status) && !isCustomer) {
             throw new RuntimeException("Chỉ khách hàng của giao dịch mới được cập nhật bước này");
         }
 
@@ -281,12 +282,33 @@ public class TransactionService {
         if ("completed".equals(status)) {
             if (t.getProperty() != null) {
                 t.getProperty().setStatus("sold");
+                t.getProperty().setIsLocked(false);
                 propertyRepository.save(t.getProperty());
             }
             commissionRepository.findByTransaction(t).forEach(c -> {
                 c.setStatus("paid");
                 commissionRepository.save(c);
             });
+            
+            // Notify customer and broker
+            if (t.getCustomer() != null) {
+                notificationService.createNotification(
+                    t.getCustomer(), 
+                    "transaction_completed", 
+                    "Giao dịch hoàn tất", 
+                    "Giao dịch " + t.getTransactionCode() + " đã được xác nhận hoàn tất thành công. Chúc mừng bạn đã sở hữu bất động sản " + (t.getProperty() != null ? t.getProperty().getTitle() : "") + "!", 
+                    "CUSTOMER"
+                );
+            }
+            if (t.getBroker() != null) {
+                notificationService.createNotification(
+                    t.getBroker(), 
+                    "transaction_completed", 
+                    "Giao dịch hoàn tất", 
+                    "Giao dịch " + t.getTransactionCode() + " đã được xác nhận hoàn tất. Hoa hồng của bạn đã được chuyển vào trạng thái 'Đã thanh toán'.", 
+                    "BROKER"
+                );
+            }
         }
 
         if ("cancelled".equals(status) || "rejected".equals(status)) {

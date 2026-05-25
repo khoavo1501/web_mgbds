@@ -28,6 +28,8 @@ const statusLabels = {
   documents_verified: "Hồ sơ hợp lệ",
   payment_submitted: "Đang xác minh thanh toán",
   deposit_confirmed: "Đã xác nhận cọc",
+  commitment_signed: "Đã ký cam kết",
+  final_payment_submitted: "Chờ xác nhận thanh toán",
   completed: "Hoàn tất",
   cancelled: "Đã hủy",
 };
@@ -39,6 +41,8 @@ const statusStyles = {
   documents_verified: "bg-sky-50 text-sky-700 ring-sky-200",
   payment_submitted: "bg-indigo-50 text-indigo-700 ring-indigo-200",
   deposit_confirmed: "bg-sky-50 text-sky-700 ring-sky-200",
+  commitment_signed: "bg-teal-50 text-teal-700 ring-teal-200",
+  final_payment_submitted: "bg-indigo-50 text-indigo-700 ring-indigo-200",
   completed: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   cancelled: "bg-rose-50 text-rose-700 ring-rose-200",
 };

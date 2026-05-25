@@ -151,8 +151,22 @@ public class TransactionController {
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<TransactionDTO>> signCommitment(@PathVariable Long id) {
         try {
-            return ResponseEntity.ok(ApiResponse.success("Da hoan thanh cam ket mua bat dong san",
+            return ResponseEntity.ok(ApiResponse.success("Đã ký cam kết",
                     transactionService.updateStatus(id, "commitment_signed")));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/{id}/final-payment-submitted")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<TransactionDTO>> submitFinalPayment(
+            @PathVariable Long id,
+            @RequestParam("receiptUrl") String receiptUrl) {
+        try {
+            TransactionDTO updated = transactionService.updateStatus(id, "final_payment_submitted");
+            transactionService.addPaymentReceipt(id, receiptUrl); 
+            return ResponseEntity.ok(ApiResponse.success("Đã ghi nhận yêu cầu xác minh thanh toán đợt cuối", updated));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }

@@ -48,7 +48,7 @@ public class Appointment {
     private User customer;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "broker_id", nullable = false)
+    @JoinColumn(name = "broker_id", nullable = true)
     @JsonIgnore
     private User broker;
 }

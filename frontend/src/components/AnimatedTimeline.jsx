@@ -2,21 +2,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, Circle, X } from 'lucide-react';
 
-const AnimatedTimeline = ({ steps, currentStatus }) => {
+const AnimatedTimeline = ({ steps, currentStatus, activeStepId }) => {
   
-  // Define status sequence
-  const statusSequence = [
-    'customer_confirmed',
-    'contract_agreed',
-    'documents_submitted',
-    'documents_verified',
-    'payment_submitted',
-    'deposit_paid',
-    'notarizing',
-    'completed'
-  ];
-
-  const currentStepIndex = statusSequence.indexOf(currentStatus);
+  const effectiveStatus = activeStepId || currentStatus;
+  const currentStepIndex = steps.findIndex(s => s.id === effectiveStatus);
 
   const getStatusColor = (stepStatus, index) => {
     if (currentStatus === 'rejected' || currentStatus === 'cancelled') {
