@@ -28,6 +28,7 @@ export const AuthProvider = ({ children }) => {
           userId: data.userId,
           email: data.email,
           fullName: data.fullName,
+          phone: data.phone,
           role: data.role,
         };
         setUser(newUser);
@@ -72,8 +73,51 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("user");
   };
 
+  const updateProfile = async ({ fullName, phone }) => {
+    try {
+      const response = await api.put("/auth/me", {
+        fullName: fullName.trim(),
+        phone: phone?.trim() || "",
+      });
+
+      if (response.data.success) {
+        const data = response.data.data;
+        const nextUser = {
+          ...user,
+          userId: data.userId,
+          email: data.email,
+          fullName: data.fullName,
+          phone: data.phone,
+          role: data.role,
+        };
+        setUser(nextUser);
+        localStorage.setItem("user", JSON.stringify(nextUser));
+        return { success: true, user: nextUser };
+      }
+
+      return { success: false, message: response.data.message || "Cập nhật thất bại" };
+    } catch (error) {
+      if (error.response?.data?.message) {
+        if (error.response.status === 404) {
+          return {
+            success: false,
+            message: "Backend chưa load API cập nhật thông tin. Hãy restart backend rồi thử lại.",
+          };
+        }
+        return { success: false, message: error.response.data.message };
+      }
+      if (error.response?.status === 404) {
+        return {
+          success: false,
+          message: "Backend chưa load API cập nhật thông tin. Hãy restart backend rồi thử lại.",
+        };
+      }
+      return { success: false, message: "Không thể kết nối đến máy chủ" };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateProfile, loading }}>
       {children}
     </AuthContext.Provider>
   );

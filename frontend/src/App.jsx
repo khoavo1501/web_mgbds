@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import PublicLayout from "./layouts/PublicLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
+import CustomerLayout from "./layouts/CustomerLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { FavoritesProvider } from "./context/FavoritesContext";
@@ -51,13 +52,19 @@ function App() {
               <Route path="/properties/:id" element={<PropertyDetail />} />
               <Route path="/auth" element={<Auth />} />
 
-              {/* Customer */}
-              <Route element={<ProtectedRoute allowedRoles={['customer']} />}>
+            </Route>
+
+            {/* Customer Routes - Sidebar Layout */}
+            <Route element={<ProtectedRoute allowedRoles={['customer']} />}>
+              <Route element={<CustomerLayout />}>
                 <Route path="/customer" element={<CustomerDashboard />} />
+                <Route path="/customer/profile" element={<CustomerDashboard mode="profile" />} />
+                <Route path="/customer/appointments" element={<CustomerDashboard mode="appointments" />} />
+                <Route path="/customer/favorites" element={<CustomerDashboard mode="favorites" />} />
                 <Route path="/customer/transactions" element={<CustomerTransactions />} />
-                <Route path="/customer/transactions/active" element={<CustomerTransactions activeOnly />} />
+                <Route path="/customer/transactions/active" element={<Navigate to="/customer/transactions" replace />} />
                 <Route path="/customer/transactions/:transactionId" element={<CustomerTransactions detail />} />
-                <Route path="/customer/appointments" element={<MyAppointments />} />
+                <Route path="/customer/appointments/legacy" element={<MyAppointments />} />
                 <Route path="/customer/appointments/:id" element={<AppointmentDetail />} />
                 <Route path="/customer/appointments/:id/reschedule" element={<RescheduleAppointment />} />
                 <Route path="/customer/appointments/:id/cancel" element={<CancelAppointment />} />

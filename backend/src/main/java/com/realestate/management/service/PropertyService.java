@@ -11,6 +11,7 @@ import com.realestate.management.repository.PropertyRepository;
 import com.realestate.management.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -19,9 +20,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -29,6 +32,10 @@ import java.util.stream.Collectors;
  */
 @Service
 public class PropertyService {
+    private static final String VIETNAMESE_ACCENT_CHARS =
+        "áàảãạăắằẳẵặâấầẩẫậđéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵ";
+    private static final String VIETNAMESE_ASCII_CHARS =
+        "aaaaaaaaaaaaaaaaadeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyy";
 
     @Autowired
     private PropertyRepository propertyRepository;
@@ -64,7 +71,7 @@ public class PropertyService {
         if (hasSearchCriteria(searchRequest)) {
             String keyword = normalizeKeyword(searchRequest.getKeyword());
             if (keyword != null) {
-                propertyPage = propertyRepository.searchProperties(
+                List<Property> matchedProperties = propertyRepository.filterPropertiesForKeyword(
                     searchRequest.getStatus(),
                     searchRequest.getPropertyType(),
                     searchRequest.getProvince(),
@@ -73,9 +80,17 @@ public class PropertyService {
                     searchRequest.getMaxPrice(),
                     searchRequest.getMinArea(),
                     searchRequest.getMaxArea(),
-                    keyword,
-                    pageable
-                );
+                    sort
+                ).stream()
+                    .filter(property -> matchesKeyword(property, keyword))
+                    .collect(Collectors.toList());
+
+                int start = (int) pageable.getOffset();
+                int end = Math.min(start + pageable.getPageSize(), matchedProperties.size());
+                List<Property> pageContent = start >= matchedProperties.size()
+                    ? List.of()
+                    : matchedProperties.subList(start, end);
+                propertyPage = new PageImpl<>(pageContent, pageable, matchedProperties.size());
             } else {
                 propertyPage = propertyRepository.filterProperties(
                     searchRequest.getStatus(),
@@ -130,7 +145,50 @@ public class PropertyService {
         if (keyword == null || keyword.trim().isEmpty()) {
             return null;
         }
-        return keyword.trim();
+        String normalized = Normalizer.normalize(keyword.trim().toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replace('đ', 'd');
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private boolean matchesKeyword(Property property, String normalizedKeyword) {
+        String searchableText = String.join(" ",
+            safeText(property.getPropertyCode()),
+            safeText(property.getTitle()),
+            safeText(property.getDescription()),
+            safeText(property.getProvince()),
+            safeText(property.getDistrict()),
+            safeText(property.getPropertyType()),
+            safeText(getPropertyTypeLabel(property.getPropertyType()))
+        );
+        return normalizeText(searchableText).contains(normalizedKeyword);
+    }
+
+    private String normalizeText(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return "";
+        }
+        return Normalizer.normalize(value.trim().toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replace('đ', 'd');
+    }
+
+    private String safeText(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String getPropertyTypeLabel(String propertyType) {
+        if (propertyType == null) {
+            return "";
+        }
+        return switch (propertyType.toLowerCase(Locale.ROOT)) {
+            case "apartment" -> "Căn hộ";
+            case "house" -> "Nhà phố";
+            case "land" -> "Đất nền";
+            case "villa" -> "Biệt thự";
+            case "shophouse" -> "Shophouse";
+            default -> propertyType;
+        };
     }
 
     private boolean canViewAllProperties() {
