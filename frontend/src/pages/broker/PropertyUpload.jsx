@@ -3,6 +3,9 @@ import { UploadCloud, CheckCircle2, Map, Loader2, X, FileText, Plus, Trash2, Fil
 import PropertyPreview from '../../components/broker/PropertyPreview';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import page1 from '../../assets/images/contracts/page1.png';
+import page2 from '../../assets/images/contracts/page2.png';
+import page3 from '../../assets/images/contracts/page3.png';
 
 const amenitiesList = ['Hồ bơi','Phòng gym','Sân vườn','Ban công','Gara ô tô','An ninh 24/7','Thang máy','Gần trường học','Gần bệnh viện','Gần chợ/siêu thị','Sân thượng','Khu BBQ'];
 
@@ -287,11 +290,6 @@ export default function PropertyUpload() {
     if (!formData.price) return showToast('error', 'Vui lòng nhập mức giá.');
     if (!formData.area) return showToast('error', 'Vui lòng nhập diện tích.');
     if (!formData.ward) return showToast('error', 'Vui lòng chọn phường.');
-    if (formData.isExclusive) {
-      if (!formData.ownerName.trim()) return showToast('error', 'Vui lòng nhập tên chủ nhà.');
-      if (!formData.ownerPhone.trim()) return showToast('error', 'Vui lòng nhập SĐT chủ nhà.');
-      if (!formData.brokerageContractFile) return showToast('error', 'Vui lòng upload Hợp đồng môi giới độc quyền.');
-    }
     if (!formData.commitment) return showToast('error', 'Vui lòng xác nhận cam kết thông tin.');
 
     // Map loại BĐS tiếng Việt → giá trị backend
@@ -674,45 +672,25 @@ export default function PropertyUpload() {
 
                   {formData.isExclusive && (
                     <div className="space-y-4 pt-4 border-t border-blue-100 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <InputField label="Tên chủ nhà" name="ownerName" value={formData.ownerName} onChange={handleChange} placeholder="Nguyễn Văn A" required />
-                        <InputField label="Số điện thoại chủ nhà" name="ownerPhone" value={formData.ownerPhone} onChange={handleChange} placeholder="0901234567" required />
+                      <div className="text-sm text-zinc-600 mb-2">
+                        Bất động sản độc quyền (Exclusive Real Estate) là hình thức mà bạn (Broker) là người đại diện duy nhất được quyền phân phối và bán bất động sản này trong một thời gian nhất định, đảm bảo quyền lợi và hoa hồng cao nhất.
                       </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-zinc-700 mb-1.5">
-                          Hợp đồng môi giới độc quyền <span className="text-red-500">*</span>
-                        </label>
-                        {formData.brokerageContractFile ? (
-                          <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-zinc-200">
-                            <FileText className="w-5 h-5 text-blue-500 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-zinc-700 truncate">{formData.brokerageContractFile.name}</p>
-                              <p className="text-[11px] text-zinc-400">Đã chọn</p>
-                            </div>
-                            <button type="button" onClick={() => setFormData(p => ({ ...p, brokerageContractFile: null }))} className="text-zinc-400 hover:text-red-500 transition-colors shrink-0">
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="relative">
-                            <input 
-                              type="file" 
-                              accept=".pdf,.jpg,.jpeg,.png" 
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                              onChange={(e) => {
-                                if (e.target.files && e.target.files[0]) {
-                                  setFormData(p => ({ ...p, brokerageContractFile: { file: e.target.files[0], name: e.target.files[0].name } }));
-                                }
-                              }} 
-                            />
-                            <div className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-zinc-200 rounded-xl bg-white hover:bg-zinc-50 transition-colors">
-                              <UploadCloud className="w-5 h-5 text-zinc-400" />
-                              <span className="text-sm text-zinc-500 font-medium">Tải lên hợp đồng</span>
-                            </div>
-                          </div>
-                        )}
+                      <div className="font-semibold text-zinc-800 mb-2">Mẫu Hợp đồng môi giới độc quyền:</div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="rounded-xl overflow-hidden border border-zinc-200 shadow-sm cursor-zoom-in group relative">
+                          <img src={page1} alt="Hợp đồng trang 1" className="w-full h-auto" onClick={() => window.open(page1, '_blank')} />
+                          <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors pointer-events-none"></div>
+                        </div>
+                        <div className="rounded-xl overflow-hidden border border-zinc-200 shadow-sm cursor-zoom-in group relative">
+                          <img src={page2} alt="Hợp đồng trang 2" className="w-full h-auto" onClick={() => window.open(page2, '_blank')} />
+                          <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors pointer-events-none"></div>
+                        </div>
+                        <div className="rounded-xl overflow-hidden border border-zinc-200 shadow-sm cursor-zoom-in group relative">
+                          <img src={page3} alt="Hợp đồng trang 3" className="w-full h-auto" onClick={() => window.open(page3, '_blank')} />
+                          <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors pointer-events-none"></div>
+                        </div>
                       </div>
+                      <p className="text-xs text-zinc-400 mt-2 text-center">Click vào ảnh để xem chi tiết</p>
                     </div>
                   )}
                 </div>

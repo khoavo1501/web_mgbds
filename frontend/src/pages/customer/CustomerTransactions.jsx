@@ -102,9 +102,9 @@ const propertyTypeLabels = {
 const getStep = (status) => {
   if (status === "pending") return 1;
   if (status === "customer_confirmed") return 2;
-  if (status === "documents_submitted") return 3;
-  if (status === "documents_verified" || status === "payment_submitted") return 4;
-  if (status === "deposit_confirmed" || status === "deal_scheduled" || status === "broker_confirmed" || status === "completed") return 5;
+  if (status === "documents_submitted") return 2; // Step 2 is active, but we show payment
+  if (status === "payment_submitted") return 3;
+  if (status === "deposit_confirmed" || status === "completed") return 4;
   return 1;
 };
 
@@ -310,10 +310,6 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
   const [submitting, setSubmitting] = useState(false);
   const step = getStep(transaction.status);
   const allFilesReady = !!files.cccd && !!files.household;
-  const canRequestRefund =
-    transaction.status === "broker_confirmed" ||
-    transaction.status === "completed" ||
-    (transaction.status === "cancelled" && transaction.depositConfirmed);
 
   const runAction = async (action, successMessage) => {
     setSubmitting(true);
@@ -374,25 +370,6 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
       return response.data.data;
     }, "Đã ghi nhận thanh toán, chờ admin xác nhận");
 
-  const requestRefund = () => {
-    if (!window.confirm("Bạn muốn yêu cầu hoàn cọc sau khi trừ phí môi giới?")) return;
-    runAction(async () => {
-      const response = await api.patch(`/transactions/${transaction.transactionId}/refund-request`);
-      return response.data.data;
-    }, "Đã gửi yêu cầu hoàn cọc");
-  };
-
-  const scheduleDeal = () =>
-    runAction(async () => {
-      if (!dealDate || !dealTime) {
-        throw new Error("Vui lòng chọn ngày giờ giao dịch");
-      }
-      const response = await api.patch(`/transactions/${transaction.transactionId}/schedule-deal`, {
-        scheduledAt: `${dealDate}T${dealTime}:00`,
-      });
-      return response.data.data;
-    }, "Đã đặt lịch giao dịch bất động sản");
-
   const copyValue = async (value, label) => {
     try {
       await navigator.clipboard.writeText(value);
@@ -432,13 +409,12 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
           steps={[
             { id: 'customer_confirmed', label: 'Xác nhận' },
             { id: 'documents_submitted', label: 'Hồ sơ' },
-            { id: 'documents_verified', label: 'Kiểm tra' },
             { id: 'payment_submitted', label: 'Cọc 10%' },
             { id: 'completed', label: 'Hoàn tất' }
           ]} 
           currentStatus={transaction.status} 
           activeStepId={
-            ['deposit_confirmed', 'deal_scheduled', 'broker_confirmed', 'completed'].includes(transaction.status)
+            ['deposit_confirmed', 'completed'].includes(transaction.status)
               ? 'completed'
               : transaction.status
           }
@@ -450,7 +426,7 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
           <PropertySnapshot transaction={transaction} />
 
           {/* Countdown timer if pending, confirmed or submitted */}
-          {["pending", "customer_confirmed", "documents_submitted", "documents_verified"].includes(transaction.status) && transaction.expiredAt && (
+          {["pending", "customer_confirmed", "documents_submitted", "payment_submitted"].includes(transaction.status) && transaction.expiredAt && (
             <CountdownTimer expiredAt={transaction.expiredAt} />
           )}
 
@@ -523,16 +499,7 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
             </Panel>
           )}
 
-          {transaction.status === "documents_submitted" && (
-            <Notice
-              icon={FileClock}
-              title="Hồ sơ đã gửi, đang chờ admin kiểm tra"
-              description="Khi admin xác minh hồ sơ hợp lệ, giao dịch sẽ mở bước thanh toán."
-              tone="amber"
-            />
-          )}
-
-          {(transaction.status === "documents_verified" || transaction.status === "payment_submitted") && (
+          {(transaction.status === "documents_submitted" || transaction.status === "payment_submitted") && (
             <PaymentPanel
               transaction={transaction}
               submitting={submitting}
@@ -543,89 +510,11 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
             />
           )}
 
-          {transaction.status === "deposit_confirmed" && (
-            <Panel icon={Clock3} title="Đặt lịch giao dịch trực tiếp">
-              <p className="text-sm font-medium text-slate-500">
-                Khoản cọc 10% đã được xác nhận. Hãy chọn thời gian gặp trực tiếp để thanh toán phần còn lại cho người bán qua môi giới.
-              </p>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <label className="block text-sm font-bold text-slate-700">
-                  Ngày giao dịch
-                  <input
-                    type="date"
-                    value={dealDate}
-                    onChange={(event) => setDealDate(event.target.value)}
-                    className="mt-2 h-11 w-full rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-800 outline-none focus:border-slate-400"
-                  />
-                </label>
-                <label className="block text-sm font-bold text-slate-700">
-                  Giờ giao dịch
-                  <input
-                    type="time"
-                    value={dealTime}
-                    onChange={(event) => setDealTime(event.target.value)}
-                    className="mt-2 h-11 w-full rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-800 outline-none focus:border-slate-400"
-                  />
-                </label>
-              </div>
-              <button
-                type="button"
-                onClick={scheduleDeal}
-                disabled={submitting}
-                className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-slate-950 px-5 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-60"
-              >
-                Đặt lịch giao dịch
-              </button>
-            </Panel>
-          )}
-
-          {transaction.status === "deal_scheduled" && (
-            <Notice
-              icon={Clock3}
-              title="Đã đặt lịch giao dịch"
-              description={`Lịch giao dịch: ${transaction.dealScheduleAt ? new Date(transaction.dealScheduleAt).toLocaleString("vi-VN") : "Đang cập nhật"}. Môi giới sẽ xác nhận sau khi người mua thanh toán cho người bán.`}
-              tone="amber"
-            />
-          )}
-
-          {(transaction.status === "broker_confirmed" || transaction.status === "completed") && (
+          {(transaction.status === "deposit_confirmed" || transaction.status === "completed") && (
             <Notice
               icon={CheckCircle2}
-              title={transaction.status === "completed" ? "Giao dịch đã hoàn tất" : "Giao dịch thành công"}
-              description={
-                transaction.status === "completed"
-                  ? "Bất động sản đã chuyển sang trạng thái đã bán."
-                  : "Môi giới đã xác nhận người mua thanh toán cho người bán. Bạn có thể gửi yêu cầu hoàn cọc sau khi trừ hoa hồng."
-              }
-              tone="green"
-            />
-          )}
-
-          {canRequestRefund && (
-            <button
-              type="button"
-              onClick={requestRefund}
-              disabled={submitting}
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-orange-200 bg-orange-50 px-5 text-sm font-black text-orange-800 hover:bg-orange-100 disabled:opacity-60"
-            >
-              Yêu cầu hoàn cọc sau khi trừ phí môi giới
-            </button>
-          )}
-
-          {transaction.status === "refund_requested" && (
-            <Notice
-              icon={FileClock}
-              title="Đang chờ hoàn cọc"
-              description={`Số tiền dự kiến hoàn: ${formatVnd(transaction.refundableDeposit)} sau khi trừ phí môi giới ${formatVnd(transaction.commissionDeduction)}.`}
-              tone="amber"
-            />
-          )}
-
-          {transaction.status === "refunded" && (
-            <Notice
-              icon={CheckCircle2}
-              title="Đã hoàn cọc"
-              description={`Hệ thống đã ghi nhận hoàn cọc ${formatVnd(transaction.refundableDeposit)}.`}
+              title="Giao dịch đã hoàn tất"
+              description="Hồ sơ pháp lý và tiền cọc của bạn đã được admin xác nhận thành công. Bất động sản đã chuyển sang trạng thái đã bán."
               tone="green"
             />
           )}
@@ -634,12 +523,8 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
             <Notice
               icon={FileClock}
               title="Giao dịch đã hủy"
-              description={
-                transaction.depositConfirmed
-                  ? `Giao dịch trực tiếp không thành công. Bạn có thể gửi yêu cầu hoàn cọc dự kiến ${formatVnd(transaction.refundableDeposit)} sau khi trừ phí môi giới ${formatVnd(transaction.commissionDeduction)}.`
-                  : "Giao dịch này chưa có cọc được xác nhận nên đã được đóng."
-              }
-              tone={transaction.depositConfirmed ? "amber" : "rose"}
+              description="Giao dịch này không thành công và đã được đóng."
+              tone="rose"
             />
           )}
         </section>

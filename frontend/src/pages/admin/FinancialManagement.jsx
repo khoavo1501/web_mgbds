@@ -627,7 +627,7 @@ function TransactionTable({ loading, rows, processingId, onStatusChange }) {
           onClose={() => setSelectedPaymentTx(null)} 
           onVerified={() => {
             setSelectedPaymentTx(null);
-            onStatusChange(selectedPaymentTx, "deposit_confirmed");
+            onStatusChange(selectedPaymentTx, "completed");
           }} 
           onReject={() => {
             setSelectedPaymentTx(null);
@@ -658,21 +658,34 @@ function PaymentVerificationModal({ transaction, onClose, onVerified, onReject }
         
         <div className="p-6 space-y-4">
           <div className="rounded-lg border border-stone-200 p-4">
-            <h3 className="font-bold text-stone-900 mb-2">Biên lai chuyển khoản</h3>
-            {receiptDoc ? (
-              <div 
-                className="block max-w-full overflow-hidden rounded-lg border border-stone-200 cursor-pointer hover:opacity-90"
-                onClick={() => setViewDoc({ url: receiptDoc.url, name: receiptDoc.fileName, type: receiptDoc.url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image' })}
-              >
-                {receiptDoc.url.toLowerCase().endsWith('.pdf') ? (
-                  <div className="w-full h-32 bg-stone-100 flex items-center justify-center text-stone-500 font-bold">PDF Document</div>
-                ) : (
-                  <img src={receiptDoc.url} alt="Biên lai" className="w-full h-auto object-contain max-h-64" />
-                )}
-              </div>
-            ) : (
-              <p className="text-sm text-stone-500">Chưa có biên lai.</p>
-            )}
+            <h3 className="font-bold text-stone-900 mb-4">Hồ sơ và Chứng từ</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { doc: (transaction.documents || []).find(d => d.documentType === 'CCCD'), label: 'CCCD' },
+                { doc: (transaction.documents || []).find(d => d.documentType === 'Sổ hộ khẩu' || d.documentType === 'household'), label: 'Hộ khẩu' },
+                { doc: (transaction.documents || []).find(d => d.documentType === 'receipt'), label: 'Biên lai cọc' }
+              ].map(({ doc, label }, idx) => (
+                <div key={idx}>
+                  <p className="text-xs font-bold text-stone-600 mb-2">{label}</p>
+                  {doc ? (
+                    <div 
+                      className="block w-full overflow-hidden rounded-lg border border-stone-200 cursor-pointer hover:opacity-90"
+                      onClick={() => setViewDoc({ url: doc.url, name: doc.fileName, type: doc.url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image' })}
+                    >
+                      {doc.url.toLowerCase().endsWith('.pdf') ? (
+                        <div className="w-full h-24 bg-stone-100 flex items-center justify-center text-stone-500 font-bold text-xs">PDF</div>
+                      ) : (
+                        <img src={doc.url} alt={label} className="w-full h-24 object-cover" />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-full h-24 bg-stone-50 rounded-lg border border-stone-200 flex items-center justify-center">
+                      <span className="text-xs text-stone-400">Trống</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
           <div className="flex justify-between items-center bg-stone-50 p-4 rounded-lg border border-stone-200">
             <span className="font-bold text-stone-700">Số tiền cần cọc:</span>
