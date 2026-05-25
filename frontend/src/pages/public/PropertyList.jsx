@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bath,
   BedDouble,
@@ -8,16 +8,21 @@ import {
   ChevronRight,
   Filter,
   Heart,
+  Home,
   MapPin,
   Search,
   SlidersHorizontal,
+  Sparkles,
   Square,
   UserCircle,
   X,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { Link, useSearchParams } from "react-router-dom";
 import api from "../../services/api";
 
+const HERO_IMAGE =
+  "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=2200&q=85";
 const PLACEHOLDER_IMAGE =
   "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80";
 const PAGE_SIZE = 6;
@@ -51,6 +56,19 @@ const sortOptions = [
   { label: "Giá thấp đến cao", value: "price-ASC", sortBy: "price", sortDirection: "ASC" },
   { label: "Giá cao đến thấp", value: "price-DESC", sortBy: "price", sortDirection: "DESC" },
   { label: "Diện tích lớn nhất", value: "area-DESC", sortBy: "area", sortDirection: "DESC" },
+];
+
+const quickFilters = [
+  { label: "Căn hộ", values: { propertyType: "apartment" } },
+  { label: "Nhà phố", values: { propertyType: "house" } },
+  { label: "Dưới 3 tỷ", values: { priceRange: "0-3000000000" } },
+  { label: "Gần trung tâm", values: { keyword: "trung tâm" } },
+];
+
+const heroStats = [
+  { value: "10K+", label: "tin đăng" },
+  { value: "63", label: "tỉnh thành" },
+  { value: "5K+", label: "khách hàng" },
 ];
 
 const formatPrice = (price) => {
@@ -153,6 +171,23 @@ const getPaginationItems = (currentPage, totalPages) => {
   }, []);
 };
 
+function ListingSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="shimmer h-60 bg-slate-200" />
+      <div className="space-y-4 p-4">
+        <div className="shimmer h-5 w-4/5 rounded bg-slate-200" />
+        <div className="shimmer h-4 w-2/3 rounded bg-slate-200" />
+        <div className="flex justify-between gap-4">
+          <div className="shimmer h-5 w-24 rounded bg-slate-200" />
+          <div className="shimmer h-5 w-32 rounded bg-slate-200" />
+        </div>
+        <div className="shimmer h-10 rounded bg-slate-200" />
+      </div>
+    </div>
+  );
+}
+
 export default function PropertyList() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [properties, setProperties] = useState([]);
@@ -160,6 +195,7 @@ export default function PropertyList() {
   const [filters, setFilters] = useState(() => buildFilterState(searchParams));
   const [loading, setLoading] = useState(true);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const previousFiltersKeyRef = useRef(JSON.stringify(filters));
   const [pageInfo, setPageInfo] = useState({
     totalElements: 0,
     totalPages: 0,
@@ -240,8 +276,12 @@ export default function PropertyList() {
   };
 
   useEffect(() => {
+    const filtersKey = JSON.stringify(filters);
+    if (filtersKey === previousFiltersKeyRef.current) return undefined;
+
     const handler = setTimeout(() => {
       setSearchParams(buildSearchParams(filters));
+      previousFiltersKeyRef.current = filtersKey;
     }, 350);
 
     return () => clearTimeout(handler);
@@ -251,6 +291,15 @@ export default function PropertyList() {
     setFilters(buildFilterState(new URLSearchParams()));
     setSearchParams(new URLSearchParams());
     setShowAdvancedFilters(false);
+  };
+
+  const applyQuickFilter = (values) => {
+    setFilters((current) => ({
+      ...current,
+      ...values,
+      minPrice: values.priceRange ? "" : current.minPrice,
+      maxPrice: values.priceRange ? "" : current.maxPrice,
+    }));
   };
 
   const goToPage = (page) => {
@@ -285,46 +334,62 @@ export default function PropertyList() {
   const paginationItems = getPaginationItems(currentPage, pageInfo.totalPages);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
-      <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-500">
-                <Link to="/" className="hover:text-slate-950">Trang chủ</Link>
-                <span>/</span>
-                <span>Nhà đất bán</span>
-                <span>/</span>
-                <span className="text-slate-950">{activeLocation}</span>
-              </div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-5xl">
-                Danh sách bất động sản
-              </h1>
-              <p className="mt-3 max-w-2xl text-base font-medium leading-7 text-slate-600">
-                Tìm thấy {pageInfo.totalElements.toLocaleString("vi-VN")} tin đăng phù hợp, được
-                cập nhật liên tục theo khu vực, giá và diện tích bạn quan tâm.
-              </p>
-            </div>
-            <Link
-              to="/"
-              className="inline-flex w-fit items-center gap-2 rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-bold transition hover:bg-slate-50"
-            >
-              <Building2 className="h-4 w-4" />
+    <div className="min-h-screen bg-[#f7f4ef] text-slate-950">
+      <section className="relative isolate min-h-[320px] overflow-hidden bg-slate-950">
+        <img src={HERO_IMAGE} alt="Thành phố hiện đại" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(2,6,23,0.9)_0%,rgba(15,23,42,0.64)_48%,rgba(15,23,42,0.34)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(215,181,109,0.34),transparent_28%)]" />
+
+        <div className="relative mx-auto max-w-7xl px-4 pb-24 pt-10 text-white sm:px-6 lg:px-8">
+          <div className="mb-7 flex flex-wrap items-center gap-2 text-sm font-bold text-white/70">
+            <Link to="/" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 transition hover:bg-white hover:text-slate-950">
+              <Home className="h-4 w-4" />
               Trang chủ
             </Link>
+            <span className="text-white/35">/</span>
+            <span>Nhà đất bán</span>
+            <span className="text-white/35">/</span>
+            <span className="text-[#f7d794]">{activeLocation}</span>
           </div>
+
+          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#f7d794] backdrop-blur-md">
+              <Sparkles className="h-4 w-4" />
+              Cập nhật mới nhất hôm nay
+            </div>
+            <h1 className="mt-5 max-w-4xl text-4xl font-black tracking-tight sm:text-6xl">
+              Tìm kiếm bất động sản phù hợp
+            </h1>
+            <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-white/74">
+              Lọc nhanh theo khu vực, loại hình, ngân sách và diện tích để tìm đúng lựa chọn bạn cần.
+            </p>
+
+            <div className="mt-7 grid max-w-2xl grid-cols-3 overflow-hidden rounded-lg border border-white/15 bg-white/[0.08] backdrop-blur-md">
+              {heroStats.map((stat) => (
+                <div key={stat.label} className="border-r border-white/10 px-4 py-3 last:border-r-0 sm:px-6">
+                  <p className="text-2xl font-black text-white">{stat.value}</p>
+                  <p className="mt-1 text-xs font-bold text-white/60">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
         </div>
       </section>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
+      <main className="mx-auto -mt-14 max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 22 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.1 }}
+          className="relative z-10 mb-8 rounded-2xl border border-white/50 bg-white/82 p-4 shadow-2xl shadow-slate-950/12 backdrop-blur-xl"
+        >
           <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr_0.8fr_0.8fr_auto]">
             <label className="relative block">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 value={filters.keyword}
                 onChange={(event) => updateFilter("keyword", event.target.value)}
-                className="h-12 w-full rounded-md border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium text-slate-800 outline-none transition focus:border-slate-400"
+                className="h-12 w-full rounded-lg border border-white/80 bg-white/90 pl-11 pr-4 text-sm font-bold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
                 placeholder="Tìm kiếm theo tên, địa chỉ hoặc mã BĐS..."
               />
             </label>
@@ -334,7 +399,7 @@ export default function PropertyList() {
               <select
                 value={filters.province}
                 onChange={(event) => updateFilter("province", event.target.value)}
-                className="h-12 w-full appearance-none rounded-md border border-slate-200 bg-white pl-11 pr-9 text-sm font-medium text-slate-800 outline-none transition focus:border-slate-400"
+                className="h-12 w-full appearance-none rounded-lg border border-white/80 bg-white/90 pl-11 pr-9 text-sm font-bold text-slate-800 outline-none transition focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
               >
                 <option value="">Tất cả khu vực</option>
                 {provinces.map((province) => (
@@ -351,7 +416,7 @@ export default function PropertyList() {
               <select
                 value={filters.propertyType}
                 onChange={(event) => updateFilter("propertyType", event.target.value)}
-                className="h-12 w-full appearance-none rounded-md border border-slate-200 bg-white pl-11 pr-9 text-sm font-medium text-slate-800 outline-none transition focus:border-slate-400"
+                className="h-12 w-full appearance-none rounded-lg border border-white/80 bg-white/90 pl-11 pr-9 text-sm font-bold text-slate-800 outline-none transition focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
               >
                 <option value="">Tất cả loại hình</option>
                 {propertyTypes.map((type) => (
@@ -366,7 +431,7 @@ export default function PropertyList() {
             <select
               value={filters.priceRange}
               onChange={(event) => updateFilter("priceRange", event.target.value)}
-              className="h-12 rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-slate-400"
+              className="h-12 rounded-lg border border-white/80 bg-white/90 px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
             >
               {priceRanges.map((range) => (
                 <option key={range.value || "price"} value={range.value}>
@@ -378,7 +443,7 @@ export default function PropertyList() {
             <select
               value={filters.sort}
               onChange={(event) => updateFilter("sort", event.target.value)}
-              className="h-12 rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-slate-400"
+              className="h-12 rounded-lg border border-white/80 bg-white/90 px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
             >
               {sortOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -391,8 +456,8 @@ export default function PropertyList() {
               <button
                 type="button"
                 onClick={() => setShowAdvancedFilters((value) => !value)}
-                className={`grid h-12 w-12 place-items-center rounded-md border transition ${
-                  showAdvancedFilters ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
+                className={`grid h-12 w-12 place-items-center rounded-lg border transition hover:-translate-y-0.5 ${
+                  showAdvancedFilters ? "border-slate-950 bg-slate-950 text-white" : "border-white/80 bg-white/90 text-slate-800 hover:bg-white"
                 }`}
                 title="Bộ lọc nâng cao"
               >
@@ -402,7 +467,7 @@ export default function PropertyList() {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="grid h-12 w-12 place-items-center rounded-md border border-slate-200 bg-white text-slate-800 transition hover:bg-slate-50"
+                  className="grid h-12 w-12 place-items-center rounded-lg border border-white/80 bg-white/90 text-slate-800 transition hover:-translate-y-0.5 hover:bg-white"
                   title="Xóa bộ lọc"
                 >
                   <X className="h-5 w-5" />
@@ -412,11 +477,15 @@ export default function PropertyList() {
           </div>
 
           {showAdvancedFilters && (
-            <div className="mt-3 grid gap-3 border-t border-slate-200 pt-3 sm:grid-cols-2 lg:grid-cols-5">
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="mt-3 grid gap-3 border-t border-slate-200/70 pt-3 sm:grid-cols-2 lg:grid-cols-5"
+            >
               <select
                 value={filters.areaRange}
                 onChange={(event) => updateFilter("areaRange", event.target.value)}
-                className="h-12 rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-800 outline-none transition focus:border-slate-400"
+                className="h-12 rounded-lg border border-white/80 bg-white/90 px-4 text-sm font-bold text-slate-800 outline-none transition focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
               >
                 {areaRanges.map((range) => (
                   <option key={range.value || "area"} value={range.value}>
@@ -429,7 +498,7 @@ export default function PropertyList() {
                 min="0"
                 value={filters.minPrice}
                 onChange={(event) => updateFilter("minPrice", event.target.value)}
-                className="h-12 rounded-md border border-slate-200 bg-white px-4 text-sm font-medium outline-none transition focus:border-slate-400"
+                className="h-12 rounded-lg border border-white/80 bg-white/90 px-4 text-sm font-bold outline-none transition focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
                 placeholder="Giá từ (VNĐ)"
               />
               <input
@@ -437,7 +506,7 @@ export default function PropertyList() {
                 min="0"
                 value={filters.maxPrice}
                 onChange={(event) => updateFilter("maxPrice", event.target.value)}
-                className="h-12 rounded-md border border-slate-200 bg-white px-4 text-sm font-medium outline-none transition focus:border-slate-400"
+                className="h-12 rounded-lg border border-white/80 bg-white/90 px-4 text-sm font-bold outline-none transition focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
                 placeholder="Giá đến (VNĐ)"
               />
               <input
@@ -445,7 +514,7 @@ export default function PropertyList() {
                 min="0"
                 value={filters.minArea}
                 onChange={(event) => updateFilter("minArea", event.target.value)}
-                className="h-12 rounded-md border border-slate-200 bg-white px-4 text-sm font-medium outline-none transition focus:border-slate-400"
+                className="h-12 rounded-lg border border-white/80 bg-white/90 px-4 text-sm font-bold outline-none transition focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
                 placeholder="Diện tích từ"
               />
               <input
@@ -453,105 +522,128 @@ export default function PropertyList() {
                 min="0"
                 value={filters.maxArea}
                 onChange={(event) => updateFilter("maxArea", event.target.value)}
-                className="h-12 rounded-md border border-slate-200 bg-white px-4 text-sm font-medium outline-none transition focus:border-slate-400"
+                className="h-12 rounded-lg border border-white/80 bg-white/90 px-4 text-sm font-bold outline-none transition focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
                 placeholder="Diện tích đến"
               />
-            </div>
+            </motion.div>
           )}
-        </div>
 
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-            <Filter className="h-4 w-4 text-slate-400" />
-            <span>
-              {pageInfo.totalElements.toLocaleString("vi-VN")} bất động sản
-            </span>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {quickFilters.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => applyQuickFilter(item.values)}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-[#d7b56d] hover:bg-[#d7b56d] hover:text-slate-950"
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
-          <span className="rounded-sm border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500">
-            Cập nhật mới nhất
+        </motion.div>
+
+        <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-black text-[#9b7932]">
+              <Filter className="h-4 w-4" />
+              Cập nhật mới nhất hôm nay
+            </div>
+            <h2 className="mt-2 text-2xl font-black text-slate-950">
+              {pageInfo.totalElements.toLocaleString("vi-VN")} bất động sản phù hợp tại {activeLocation}
+            </h2>
+          </div>
+          <span className="w-fit rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-500 shadow-sm">
+            Sắp xếp theo {sortOptions.find((option) => option.value === filters.sort)?.label || "Mới nhất"}
           </span>
         </div>
 
         {loading ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((item) => (
-              <div key={item} className="h-96 animate-pulse rounded-md bg-slate-200" />
+              <ListingSkeleton key={item} />
             ))}
           </div>
         ) : properties.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {properties.map((property) => (
-              <Link
+            {properties.map((property, index) => (
+              <motion.div
                 key={property.propertyId}
-                to={`/properties/${property.propertyId}`}
-                className="group overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: index * 0.04 }}
               >
-                <div className="relative h-60 overflow-hidden">
-                  <img
-                    src={getPropertyImage(property)}
-                    alt={property.title}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
-                  <span className="absolute left-3 top-3 rounded-sm bg-white/90 px-3 py-1 text-xs font-bold text-slate-900">
-                    {getPropertyTypeLabel(property.propertyType)}
-                  </span>
-                  <span className="absolute bottom-3 left-3 rounded-sm bg-white px-2.5 py-1 text-xs font-semibold text-slate-900">
-                    {property.province || "Hồ Chí Minh"}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(event) => toggleLike(property.propertyId, event)}
-                    className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/95 text-slate-700 transition hover:bg-slate-950 hover:text-white"
-                    aria-label="Lưu bất động sản"
-                  >
-                    <Heart
-                      className={`h-4 w-4 ${
-                        likedProperties.has(property.propertyId) ? "fill-slate-950 text-slate-950" : ""
-                      }`}
+                <Link
+                  to={`/properties/${property.propertyId}`}
+                  className="group block overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                >
+                  <div className="relative h-60 overflow-hidden">
+                    <img
+                      src={getPropertyImage(property)}
+                      alt={property.title}
+                      className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                     />
-                  </button>
-                </div>
-
-                <div className="p-4">
-                  <h2 className="line-clamp-2 min-h-11 text-base font-extrabold leading-snug text-slate-950">
-                    {property.title}
-                  </h2>
-                  <p className="mt-3 flex items-center gap-1.5 text-sm font-medium text-slate-600">
-                    <MapPin className="h-4 w-4" />
-                    {property.address || `${property.district || ""}, ${property.province || ""}`}
-                  </p>
-
-                  <div className="mt-5 flex items-center justify-between">
-                    <p className="text-lg font-extrabold text-slate-950">{formatPrice(property.price)}</p>
-                    <div className="flex items-center gap-3 text-xs font-semibold text-slate-700">
-                      <span className="flex items-center gap-1"><Square className="h-3.5 w-3.5" />{formatArea(property.area)}</span>
-                      <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" />{property.bedrooms || "-"}</span>
-                      <span className="flex items-center gap-1"><Bath className="h-3.5 w-3.5" />{property.bathrooms || "-"}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
-                    <div className="flex items-center gap-2">
-                      <div className="grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-slate-600">
-                        <UserCircle className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-900">
-                          {property.assignedTo?.fullName || "Tư vấn viên"}
-                        </p>
-                        <p className="text-xs font-medium text-slate-500">Phụ trách chính</p>
-                      </div>
-                    </div>
-                    <span className="rounded-sm bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
-                      Xem chi tiết
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent" />
+                    <span className="absolute left-3 top-3 rounded-sm bg-white/92 px-3 py-1 text-xs font-bold text-slate-900">
+                      {getPropertyTypeLabel(property.propertyType)}
                     </span>
+                    <span className="absolute bottom-3 left-3 rounded-sm bg-white px-2.5 py-1 text-xs font-semibold text-slate-900">
+                      {property.province || "Hồ Chí Minh"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(event) => toggleLike(property.propertyId, event)}
+                      className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/95 text-slate-700 transition hover:bg-slate-950 hover:text-white"
+                      aria-label="Lưu bất động sản"
+                    >
+                      <Heart
+                        className={`h-4 w-4 ${
+                          likedProperties.has(property.propertyId) ? "fill-slate-950 text-slate-950" : ""
+                        }`}
+                      />
+                    </button>
                   </div>
-                </div>
-              </Link>
+
+                  <div className="p-4">
+                    <h2 className="line-clamp-2 min-h-11 text-base font-extrabold leading-snug text-slate-950">
+                      {property.title}
+                    </h2>
+                    <p className="mt-3 flex items-center gap-1.5 text-sm font-medium text-slate-600">
+                      <MapPin className="h-4 w-4 shrink-0" />
+                      <span className="line-clamp-1">{property.address || `${property.district || ""}, ${property.province || ""}`}</span>
+                    </p>
+
+                    <div className="mt-5 flex items-center justify-between gap-3">
+                      <p className="text-lg font-extrabold text-slate-950">{formatPrice(property.price)}</p>
+                      <div className="flex items-center gap-3 text-xs font-semibold text-slate-700">
+                        <span className="flex items-center gap-1"><Square className="h-3.5 w-3.5" />{formatArea(property.area)}</span>
+                        <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" />{property.bedrooms || "-"}</span>
+                        <span className="flex items-center gap-1"><Bath className="h-3.5 w-3.5" />{property.bathrooms || "-"}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+                      <div className="flex items-center gap-2">
+                        <div className="grid h-8 w-8 place-items-center rounded-full bg-[#f4e7c8] text-[#8b6824]">
+                          <UserCircle className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">
+                            {property.assignedTo?.fullName || "Tư vấn viên"}
+                          </p>
+                          <p className="text-xs font-medium text-slate-500">Phụ trách chính</p>
+                        </div>
+                      </div>
+                      <span className="rounded-sm bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                        Xem chi tiết
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
             ))}
           </div>
         ) : (
-          <div className="rounded-md border border-dashed border-slate-300 bg-white p-14 text-center">
+          <div className="rounded-lg border border-dashed border-slate-300 bg-white p-14 text-center shadow-sm">
             <Building2 className="mx-auto h-12 w-12 text-slate-400" />
             <h2 className="mt-4 text-2xl font-extrabold text-slate-950">
               Không tìm thấy bất động sản phù hợp

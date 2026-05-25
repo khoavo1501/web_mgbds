@@ -4,6 +4,7 @@ import com.realestate.management.entity.Property;
 import com.realestate.management.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -87,8 +88,10 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
            "(:minArea IS NULL OR p.area >= :minArea) AND " +
            "(:maxArea IS NULL OR p.area <= :maxArea) AND " +
            "(:keyword IS NULL OR " +
-           "LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+           "FUNCTION('translate', LOWER(COALESCE(p.title, '')), :accentChars, :asciiChars) LIKE CONCAT('%', :keyword, '%') OR " +
+           "FUNCTION('translate', LOWER(COALESCE(p.description, '')), :accentChars, :asciiChars) LIKE CONCAT('%', :keyword, '%') OR " +
+           "FUNCTION('translate', LOWER(COALESCE(p.province, '')), :accentChars, :asciiChars) LIKE CONCAT('%', :keyword, '%') OR " +
+           "FUNCTION('translate', LOWER(COALESCE(p.district, '')), :accentChars, :asciiChars) LIKE CONCAT('%', :keyword, '%'))")
     Page<Property> searchProperties(
         @Param("status") String status,
         @Param("propertyType") String propertyType,
@@ -99,6 +102,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
         @Param("minArea") BigDecimal minArea,
         @Param("maxArea") BigDecimal maxArea,
         @Param("keyword") String keyword,
+        @Param("accentChars") String accentChars,
+        @Param("asciiChars") String asciiChars,
         Pageable pageable
     );
 
@@ -127,7 +132,35 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
      * Tìm kiếm property theo title hoặc description
      */
     @Query("SELECT p FROM Property p WHERE " +
-           "LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
-    Page<Property> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+           "FUNCTION('translate', LOWER(COALESCE(p.title, '')), :accentChars, :asciiChars) LIKE CONCAT('%', :keyword, '%') OR " +
+           "FUNCTION('translate', LOWER(COALESCE(p.description, '')), :accentChars, :asciiChars) LIKE CONCAT('%', :keyword, '%') OR " +
+           "FUNCTION('translate', LOWER(COALESCE(p.province, '')), :accentChars, :asciiChars) LIKE CONCAT('%', :keyword, '%') OR " +
+           "FUNCTION('translate', LOWER(COALESCE(p.district, '')), :accentChars, :asciiChars) LIKE CONCAT('%', :keyword, '%')")
+    Page<Property> searchByKeyword(
+        @Param("keyword") String keyword,
+        @Param("accentChars") String accentChars,
+        @Param("asciiChars") String asciiChars,
+        Pageable pageable
+    );
+
+    @Query("SELECT p FROM Property p WHERE " +
+           "(:status IS NULL OR p.status = :status) AND " +
+           "(:propertyType IS NULL OR p.propertyType = :propertyType) AND " +
+           "(:province IS NULL OR p.province = :province) AND " +
+           "(:district IS NULL OR p.district = :district) AND " +
+           "(:minPrice IS NULL OR p.price >= :minPrice) AND " +
+           "(:maxPrice IS NULL OR p.price <= :maxPrice) AND " +
+           "(:minArea IS NULL OR p.area >= :minArea) AND " +
+           "(:maxArea IS NULL OR p.area <= :maxArea)")
+    List<Property> filterPropertiesForKeyword(
+        @Param("status") String status,
+        @Param("propertyType") String propertyType,
+        @Param("province") String province,
+        @Param("district") String district,
+        @Param("minPrice") BigDecimal minPrice,
+        @Param("maxPrice") BigDecimal maxPrice,
+        @Param("minArea") BigDecimal minArea,
+        @Param("maxArea") BigDecimal maxArea,
+        Sort sort
+    );
 }

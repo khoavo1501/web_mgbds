@@ -61,6 +61,38 @@ public class AuthController {
     }
 
     /**
+     * GET /api/auth/me
+     * Lấy thông tin tài khoản hiện tại
+     */
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserDTO>> me() {
+        try {
+            return ResponseEntity.ok(
+                ApiResponse.success("Lấy thông tin tài khoản thành công", authService.getCurrentUser())
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * PUT /api/auth/me
+     * Cập nhật thông tin cá nhân
+     */
+    @PutMapping("/me")
+    public ResponseEntity<ApiResponse<UserDTO>> updateMe(@Valid @RequestBody ProfileUpdateRequest request) {
+        try {
+            return ResponseEntity.ok(
+                ApiResponse.success("Cập nhật thông tin thành công", authService.updateCurrentUser(request))
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
      * GET /api/auth/test
      * Test endpoint
      */
