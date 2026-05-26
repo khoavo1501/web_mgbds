@@ -53,14 +53,17 @@ public class TransactionService {
             default         -> list = transactionRepository.findAll(); // admin
         }
 
-        return list.stream().map(this::convertToDTO).collect(Collectors.toList());
+        return list.stream()
+                .map(this::syncCustomerIdentityVerification)
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     /** Lấy chi tiết 1 giao dịch */
     public TransactionDTO getTransactionById(Long id) {
         Transaction t = transactionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giao dịch ID: " + id));
-        return convertToDTO(t);
+        return convertToDTO(syncCustomerIdentityVerification(t));
     }
 
     /** Tạo giao dịch mới (Broker) */
@@ -102,6 +105,19 @@ public class TransactionService {
             throw new RuntimeException("Người mua phải là tài khoản customer");
         }
 
+        Appointment appointment = null;
+        if (request.getAppointmentId() != null) {
+            appointment = appointmentRepository.findById(request.getAppointmentId())
+                    .orElseThrow(() -> new RuntimeException("Khong tim thay lich hen ID: " + request.getAppointmentId()));
+            if (!appointment.getProperty().getPropertyId().equals(property.getPropertyId())
+                    || !appointment.getCustomer().getUserId().equals(customer.getUserId())) {
+                throw new RuntimeException("Lich hen khong khop voi khach hang hoac BDS");
+            }
+            if (!"viewed".equalsIgnoreCase(appointment.getStatus())) {
+                throw new RuntimeException("Chi duoc tao giao dich sau khi moi gioi xac nhan khach da xem nha");
+            }
+        }
+
         if (request.getDepositAmount() != null && request.getDepositAmount().compareTo(request.getTotalPrice()) > 0) {
             throw new RuntimeException("Tiền cọc không được lớn hơn tổng giá trị giao dịch");
         }
@@ -114,6 +130,7 @@ public class TransactionService {
         transaction.setProperty(property);
         transaction.setCustomer(customer);
         transaction.setBroker(broker);
+        transaction.setAppointment(appointment);
         transaction.setTotalPrice(request.getTotalPrice());
         java.math.BigDecimal depositAmount = request.getDepositAmount();
         if (depositAmount == null || depositAmount.signum() == 0) {
@@ -257,6 +274,10 @@ public class TransactionService {
         String beforeStatus = t.getStatus();
 
         // Specific status transitions validation could be added here if needed.
+        if ("payment_submitted".equals(status) && !"documents_verified".equals(beforeStatus)) {
+            throw new RuntimeException("Can duoc admin xac thuc ho so truoc khi thanh toan coc");
+        }
+
         if ("payment_submitted".equals(status)) {
             markDepositPaymentSubmitted(t);
         }
@@ -269,6 +290,12 @@ public class TransactionService {
         }
 
         t.setStatus(status);
+
+        if ("customer_confirmed".equals(status) && t.getCustomer() != null
+                && "verified".equalsIgnoreCase(t.getCustomer().getIdentityVerificationStatus())) {
+            t.setStatus("documents_verified");
+            status = "documents_verified";
+        }
 
         if ("customer_confirmed".equals(status) || "documents_verified".equals(status)) {
             t.setExpiredAt(java.time.LocalDateTime.now().plusHours(12));
@@ -287,7 +314,7 @@ public class TransactionService {
                 transactionPaymentRepository.save(payment);
             });
             if (t.getProperty() != null) {
-                t.getProperty().setStatus("locked");
+                t.getProperty().setStatus("deposit_paid");
                 t.getProperty().setIsLocked(true);
                 propertyRepository.save(t.getProperty());
                 markPropertyAppointmentsCompleted(t.getProperty());
@@ -300,8 +327,8 @@ public class TransactionService {
                 throw new RuntimeException("Chi xac nhan giao dich sau khi khach hang da dat lich giao dich truc tiep");
             }
             if (t.getProperty() != null) {
-                t.getProperty().setStatus("sold");
-                t.getProperty().setIsLocked(false);
+                t.getProperty().setStatus("deposit_paid");
+                t.getProperty().setIsLocked(true);
                 propertyRepository.save(t.getProperty());
             }
             commissionRepository.findByTransaction(t).forEach(c -> {
@@ -327,6 +354,11 @@ public class TransactionService {
                     transactionPaymentRepository.save(payment);
                 }
             });
+            if (t.getProperty() != null && "deposit_paid".equalsIgnoreCase(t.getProperty().getStatus())) {
+                t.getProperty().setStatus("sold");
+                t.getProperty().setIsLocked(false);
+                propertyRepository.save(t.getProperty());
+            }
         }
 
         if ("completed".equals(status)) {
@@ -381,7 +413,7 @@ public class TransactionService {
     }
 
     @Transactional
-    public TransactionDTO submitDocuments(Long id, String cccdUrl, String householdUrl, String marriageUrl) {
+    public TransactionDTO submitDocuments(Long id, String cccdFrontUrl, String cccdBackUrl, String residenceUrl, String marriageUrl) {
         Transaction transaction = transactionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giao dịch ID: " + id));
         User currentUser = getCurrentUser();
@@ -391,7 +423,7 @@ public class TransactionService {
         if (!"customer_confirmed".equals(transaction.getStatus()) && !"documents_submitted".equals(transaction.getStatus())) {
             throw new RuntimeException("Cần xác nhận giao dịch trước khi gửi hồ sơ");
         }
-        if (cccdUrl == null || householdUrl == null) {
+        if (cccdFrontUrl == null || cccdBackUrl == null || residenceUrl == null) {
              throw new RuntimeException("Thiếu các file bắt buộc");
         }
 
@@ -403,8 +435,9 @@ public class TransactionService {
         transactionDocumentRepository.saveAll(oldDocs);
 
         List<TransactionDocument> documents = new ArrayList<>();
-        documents.add(createDocument(transaction, "cccd", cccdUrl));
-        documents.add(createDocument(transaction, "household", householdUrl));
+        documents.add(createDocument(transaction, "cccd_front", cccdFrontUrl));
+        documents.add(createDocument(transaction, "cccd_back", cccdBackUrl));
+        documents.add(createDocument(transaction, "residence", residenceUrl));
         if (marriageUrl != null && !marriageUrl.isEmpty()) {
             documents.add(createDocument(transaction, "marriage", marriageUrl));
         }
@@ -429,6 +462,7 @@ public class TransactionService {
         }
         
         doc.setUrl(url); // Populate legacy url column to avoid NOT NULL constraint
+        doc.setUploadedBy(getCurrentUser());
         
         doc.setStatus("pending_review");
         return doc;
@@ -640,6 +674,14 @@ public class TransactionService {
             dto.setCustomerName(t.getCustomer().getFullName());
             dto.setCustomerEmail(t.getCustomer().getEmail());
             dto.setCustomerPhone(t.getCustomer().getPhone());
+            dto.setCustomerBankName(t.getCustomer().getBankName());
+            dto.setCustomerBankAccountNumber(t.getCustomer().getBankAccountNumber());
+            dto.setCustomerBankAccountHolder(t.getCustomer().getBankAccountHolder());
+            dto.setCustomerIdentityStatus(t.getCustomer().getIdentityVerificationStatus());
+            dto.setCustomerCccdFrontUrl(t.getCustomer().getCccdFrontUrl());
+            dto.setCustomerCccdBackUrl(t.getCustomer().getCccdBackUrl());
+            dto.setCustomerResidenceUrl(t.getCustomer().getResidenceUrl());
+            dto.setCustomerIdentityRejectReason(t.getCustomer().getIdentityRejectReason());
         }
         if (t.getBroker() != null) {
             dto.setBrokerId(t.getBroker().getUserId());
@@ -653,6 +695,17 @@ public class TransactionService {
             dto.setAppointmentNote(t.getAppointment().getNote());
         }
         return dto;
+    }
+
+    private Transaction syncCustomerIdentityVerification(Transaction transaction) {
+        if ("customer_confirmed".equalsIgnoreCase(transaction.getStatus())
+                && transaction.getCustomer() != null
+                && "verified".equalsIgnoreCase(transaction.getCustomer().getIdentityVerificationStatus())) {
+            transaction.setStatus("documents_verified");
+            transaction.setExpiredAt(java.time.LocalDateTime.now().plusHours(12));
+            return transactionRepository.save(transaction);
+        }
+        return transaction;
     }
 
     private String normalizePaymentMethod(String paymentMethod) {

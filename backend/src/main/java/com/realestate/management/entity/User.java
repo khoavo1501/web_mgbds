@@ -42,6 +42,30 @@ public class User {
     @Column(name = "phone", length = 20)
     private String phone;
 
+    @Column(name = "bank_name", length = 100)
+    private String bankName;
+
+    @Column(name = "bank_account_number", length = 50)
+    private String bankAccountNumber;
+
+    @Column(name = "bank_account_holder", length = 255)
+    private String bankAccountHolder;
+
+    @Column(name = "identity_verification_status", length = 30)
+    private String identityVerificationStatus = "not_submitted";
+
+    @Column(name = "cccd_front_url", length = 500)
+    private String cccdFrontUrl;
+
+    @Column(name = "cccd_back_url", length = 500)
+    private String cccdBackUrl;
+
+    @Column(name = "residence_url", length = 500)
+    private String residenceUrl;
+
+    @Column(name = "identity_reject_reason", columnDefinition = "TEXT")
+    private String identityRejectReason;
+
     @Column(name = "is_active")
     private Boolean isActive = true;
 

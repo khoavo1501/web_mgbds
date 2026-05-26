@@ -26,6 +26,7 @@ public class TransactionDTO {
     private Boolean depositConfirmed;
     private Boolean documentsSubmitted;
     private Boolean documentsVerified;
+    private String customerIdentityStatus;
     private String status;
     private LocalDate transactionDate;
     private LocalDateTime dealScheduleAt;
@@ -47,6 +48,13 @@ public class TransactionDTO {
     private String customerName;
     private String customerEmail;
     private String customerPhone;
+    private String customerBankName;
+    private String customerBankAccountNumber;
+    private String customerBankAccountHolder;
+    private String customerCccdFrontUrl;
+    private String customerCccdBackUrl;
+    private String customerResidenceUrl;
+    private String customerIdentityRejectReason;
 
     // Broker info
     private Long brokerId;

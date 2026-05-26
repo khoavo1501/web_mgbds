@@ -64,4 +64,18 @@ public class AdminUserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }
     }
+
+    @PatchMapping("/{userId}/identity-status")
+    public ResponseEntity<ApiResponse<UserDTO>> updateIdentityStatus(
+            @PathVariable Long userId,
+            @RequestParam String status,
+            @RequestParam(required = false) String reason
+    ) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái xác thực hồ sơ thành công",
+                    userService.updateIdentityStatus(userId, status, reason)));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
 }

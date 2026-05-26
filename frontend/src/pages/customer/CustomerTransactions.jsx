@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Banknote,
   Building2,
+  CalendarDays,
   CheckCircle2,
   ClipboardCopy,
   Clock3,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import AnimatedTimeline from "../../components/AnimatedTimeline";
+import { useAuth } from "../../context/AuthContext";
 
 const activeStatuses = new Set([
   "pending",
@@ -103,8 +105,8 @@ const getStep = (status) => {
   if (status === "pending") return 1;
   if (status === "customer_confirmed") return 2;
   if (status === "documents_submitted") return 2; // Step 2 is active, but we show payment
-  if (status === "payment_submitted") return 3;
-  if (status === "deposit_confirmed" || status === "completed") return 4;
+  if (status === "documents_verified" || status === "payment_submitted") return 3;
+  if (["deposit_confirmed", "deal_scheduled", "broker_confirmed", "refund_requested", "refunded", "completed"].includes(status)) return 4;
   return 1;
 };
 
@@ -304,12 +306,15 @@ function MiniMoney({ label, value }) {
 }
 
 function TransactionWorkspace({ transaction, onUpdated, showToast }) {
-  const [files, setFiles] = useState({ cccd: null, household: null });
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [files, setFiles] = useState({ cccdFront: null, cccdBack: null, residence: null });
   const [dealDate, setDealDate] = useState("");
   const [dealTime, setDealTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const step = getStep(transaction.status);
-  const allFilesReady = !!files.cccd && !!files.household;
+  const allFilesReady = !!files.cccdFront && !!files.cccdBack && !!files.residence;
+  const hasRefundBankInfo = !!user?.bankName && !!user?.bankAccountNumber && !!user?.bankAccountHolder;
 
   const runAction = async (action, successMessage) => {
     setSubmitting(true);
@@ -327,13 +332,21 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
   const confirmPurchase = () =>
     runAction(async () => {
       const response = await api.patch(`/transactions/${transaction.transactionId}/confirm-purchase`);
+      if (response.data.data?.status !== "documents_verified") {
+        navigate("/customer/profile", {
+          state: {
+            returnTo: `/customer/transactions/${transaction.transactionId}`,
+            message: "Vui lòng cập nhật hồ sơ xác thực để admin duyệt trước khi thanh toán.",
+          },
+        });
+      }
       return response.data.data;
     }, "Đã xác nhận giao dịch");
 
   const submitDocuments = () =>
     runAction(async () => {
-      if (!files.cccd || !files.household) {
-        throw new Error("Vui lòng tải lên CCCD và Sổ hộ khẩu");
+      if (!files.cccdFront || !files.cccdBack || !files.residence) {
+        throw new Error("Vui lòng tải lên 2 mặt CCCD và xác nhận cư trú");
       }
       
       const upload = async (file) => {
@@ -346,11 +359,12 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
         return res.data.data.url;
       };
 
-      const cccdUrl = await upload(files.cccd);
-      const householdUrl = await upload(files.household);
+      const cccdFrontUrl = await upload(files.cccdFront);
+      const cccdBackUrl = await upload(files.cccdBack);
+      const residenceUrl = await upload(files.residence);
 
       const response = await api.post(`/transactions/${transaction.transactionId}/documents`, null, {
-        params: { cccdUrl, householdUrl }
+        params: { cccdFrontUrl, cccdBackUrl, residenceUrl }
       });
       return response.data.data;
     }, "Đã gửi hồ sơ");
@@ -369,6 +383,26 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
       const response = await api.patch(`/transactions/${transaction.transactionId}/payment-submitted?receiptUrl=${encodeURIComponent(receiptUrl)}`);
       return response.data.data;
     }, "Đã ghi nhận thanh toán, chờ admin xác nhận");
+
+  const scheduleDeal = () =>
+    runAction(async () => {
+      if (!dealDate || !dealTime) {
+        throw new Error("Vui lòng chọn thời gian giao dịch trực tiếp");
+      }
+      const response = await api.patch(`/transactions/${transaction.transactionId}/schedule-deal`, {
+        scheduledAt: `${dealDate}T${dealTime}:00`,
+      });
+      return response.data.data;
+    }, "Đã đặt lịch giao dịch trực tiếp");
+
+  const requestRefund = () =>
+    runAction(async () => {
+      if (!hasRefundBankInfo) {
+        throw new Error("Vui lòng cập nhật thông tin tài khoản ngân hàng trong trang cá nhân trước khi yêu cầu hoàn cọc");
+      }
+      const response = await api.patch(`/transactions/${transaction.transactionId}/refund-request`);
+      return response.data.data;
+    }, "Đã gửi yêu cầu hoàn cọc");
 
   const copyValue = async (value, label) => {
     try {
@@ -410,11 +444,13 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
             { id: 'customer_confirmed', label: 'Xác nhận' },
             { id: 'documents_submitted', label: 'Hồ sơ' },
             { id: 'payment_submitted', label: 'Cọc 10%' },
+            { id: 'deposit_confirmed', label: 'Lịch giao dịch' },
+            { id: 'deal_scheduled', label: 'Trực tiếp' },
             { id: 'completed', label: 'Hoàn tất' }
           ]} 
           currentStatus={transaction.status} 
           activeStepId={
-            ['deposit_confirmed', 'completed'].includes(transaction.status)
+            ['broker_confirmed', 'refund_requested', 'refunded', 'completed'].includes(transaction.status)
               ? 'completed'
               : transaction.status
           }
@@ -463,7 +499,7 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
             </Panel>
           )}
 
-          {["customer_confirmed", "documents_submitted"].includes(transaction.status) && (
+          {transaction.status === "documents_submitted" && (
             <Panel icon={Upload} title="Chuẩn bị hồ sơ">
               <p className="text-sm font-medium text-slate-500">
                 Upload đầy đủ CCCD và Sổ hộ khẩu của bạn để hệ thống tạo thông tin trên hợp đồng điện tử.
@@ -484,8 +520,9 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
                 </div>
               )}
               <div className="mt-5 grid gap-4 md:grid-cols-2 max-w-lg">
-                <UploadBox label="Căn cước công dân (Bản gốc)" file={files.cccd} onChange={(file) => setFiles((current) => ({ ...current, cccd: file }))} />
-                <UploadBox label="Sổ hộ khẩu (Hoặc Xác nhận cư trú)" file={files.household} onChange={(file) => setFiles((current) => ({ ...current, household: file }))} />
+                <UploadBox label="CCCD mặt trước" file={files.cccdFront} onChange={(file) => setFiles((current) => ({ ...current, cccdFront: file }))} />
+                <UploadBox label="CCCD mặt sau" file={files.cccdBack} onChange={(file) => setFiles((current) => ({ ...current, cccdBack: file }))} />
+                <UploadBox label="Sổ hộ khẩu hoặc xác nhận cư trú" file={files.residence} onChange={(file) => setFiles((current) => ({ ...current, residence: file }))} />
               </div>
               <button
                 type="button"
@@ -499,7 +536,16 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
             </Panel>
           )}
 
-          {(transaction.status === "documents_submitted" || transaction.status === "payment_submitted") && (
+          {transaction.status === "customer_confirmed" && (
+            <Notice
+              icon={FileClock}
+              title="Hồ sơ khách hàng chưa được duyệt"
+              description="Vui lòng cập nhật hồ sơ cá nhân gồm CCCD hai mặt và xác nhận cư trú. Admin sẽ duyệt hồ sơ trước khi bạn thanh toán đặt cọc."
+              tone="amber"
+            />
+          )}
+
+          {(transaction.status === "documents_verified" || transaction.status === "payment_submitted") && (
             <PaymentPanel
               transaction={transaction}
               submitting={submitting}
@@ -510,7 +556,61 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
             />
           )}
 
-          {(transaction.status === "deposit_confirmed" || transaction.status === "completed") && (
+          {transaction.status === "deposit_confirmed" && (
+            <Panel icon={CalendarDays} title="Đặt lịch giao dịch trực tiếp">
+              <p className="text-sm font-medium text-slate-500">
+                Tiền cọc đã được admin xác nhận. Chọn thời gian gặp môi giới để thanh toán phần còn lại trực tiếp với người bán.
+              </p>
+              <div className="mt-5 grid max-w-lg gap-4 md:grid-cols-2">
+                <input type="date" value={dealDate} onChange={(event) => setDealDate(event.target.value)} className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-bold outline-none focus:border-slate-400" />
+                <input type="time" value={dealTime} onChange={(event) => setDealTime(event.target.value)} className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-bold outline-none focus:border-slate-400" />
+              </div>
+              <button
+                type="button"
+                onClick={scheduleDeal}
+                disabled={submitting || !dealDate || !dealTime}
+                className="mt-5 inline-flex h-11 items-center gap-2 rounded-lg bg-slate-950 px-5 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <CalendarDays className="h-4 w-4" />
+                Đặt lịch giao dịch
+              </button>
+            </Panel>
+          )}
+
+          {transaction.status === "deal_scheduled" && (
+            <Notice
+              icon={Clock3}
+              title="Đang chờ môi giới xác nhận"
+              description="Sau buổi giao dịch trực tiếp, môi giới sẽ xác nhận người mua đã thanh toán phần còn lại và hoàn tất ủy quyền với người bán."
+              tone="amber"
+            />
+          )}
+
+          {transaction.status === "broker_confirmed" && (
+            <Panel icon={Banknote} title="Yêu cầu hoàn cọc">
+              <p className="text-sm font-medium text-slate-500">
+                Môi giới đã xác nhận giao dịch trực tiếp thành công. Bạn có thể yêu cầu hoàn phần tiền cọc sau khi trừ hoa hồng.
+              </p>
+              <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-700">
+                Số tiền hoàn dự kiến: {formatVnd(transaction.refundableDeposit)}
+              </div>
+              {!hasRefundBankInfo && (
+                <Link to="/customer/profile" className="mt-4 inline-flex text-sm font-black text-rose-700 hover:text-rose-800">
+                  Cập nhật tài khoản ngân hàng để nhận hoàn cọc
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={requestRefund}
+                disabled={submitting || !hasRefundBankInfo}
+                className="mt-5 inline-flex h-11 items-center gap-2 rounded-lg bg-slate-950 px-5 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Yêu cầu hoàn cọc
+              </button>
+            </Panel>
+          )}
+
+          {(transaction.status === "refund_requested" || transaction.status === "refunded" || transaction.status === "completed") && (
             <Notice
               icon={CheckCircle2}
               title="Giao dịch đã hoàn tất"
@@ -867,7 +967,10 @@ function PaymentHistory({ payments }) {
 function getDocumentTypeName(type) {
   switch (type) {
     case 'cccd': return 'Căn cước công dân';
+    case 'cccd_front': return 'CCCD mặt trước';
+    case 'cccd_back': return 'CCCD mặt sau';
     case 'household': return 'Sổ hộ khẩu / Xác nhận cư trú';
+    case 'residence': return 'Sổ hộ khẩu / Xác nhận cư trú';
     case 'marriage': return 'Giấy xác nhận tình trạng hôn nhân';
     case 'receipt': return 'Biên lai chuyển khoản';
     case 'contract': return 'Hợp đồng giao dịch';

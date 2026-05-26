@@ -3,6 +3,7 @@ package com.realestate.management.service;
 import com.realestate.management.dto.AdminCreateBrokerRequest;
 import com.realestate.management.dto.UserDTO;
 import com.realestate.management.entity.User;
+import com.realestate.management.repository.TransactionRepository;
 import com.realestate.management.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +18,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -61,15 +65,54 @@ public class UserService {
         return convertToDTO(userRepository.save(user));
     }
 
+    @Transactional
+    public UserDTO updateIdentityStatus(Long userId, String status, String reason) {
+        if (!status.matches("verified|rejected|pending_review")) {
+            throw new RuntimeException("Trạng thái xác thực hồ sơ không hợp lệ");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng ID: " + userId));
+        if (!"customer".equalsIgnoreCase(user.getRole())) {
+            throw new RuntimeException("Chỉ xác thực hồ sơ cho khách hàng");
+        }
+        if ("verified".equals(status)
+                && (user.getCccdFrontUrl() == null || user.getCccdBackUrl() == null || user.getResidenceUrl() == null)) {
+            throw new RuntimeException("Khách hàng chưa gửi đủ hồ sơ bắt buộc");
+        }
+        user.setIdentityVerificationStatus(status);
+        user.setIdentityRejectReason("rejected".equals(status) ? reason : null);
+        User savedUser = userRepository.save(user);
+
+        if ("verified".equals(status)) {
+            transactionRepository.findByCustomer(savedUser).stream()
+                    .filter(transaction -> "customer_confirmed".equalsIgnoreCase(transaction.getStatus()))
+                    .forEach(transaction -> {
+                        transaction.setStatus("documents_verified");
+                        transaction.setExpiredAt(java.time.LocalDateTime.now().plusHours(12));
+                        transactionRepository.save(transaction);
+                    });
+        }
+
+        return convertToDTO(savedUser);
+    }
+
     private UserDTO convertToDTO(User user) {
-        return new UserDTO(
-                user.getUserId(),
-                user.getEmail(),
-                user.getRole(),
-                user.getFullName(),
-                user.getPhone(),
-                user.getIsActive(),
-                user.getCreatedAt()
-        );
+        UserDTO dto = new UserDTO();
+        dto.setUserId(user.getUserId());
+        dto.setEmail(user.getEmail());
+        dto.setRole(user.getRole());
+        dto.setFullName(user.getFullName());
+        dto.setPhone(user.getPhone());
+        dto.setBankName(user.getBankName());
+        dto.setBankAccountNumber(user.getBankAccountNumber());
+        dto.setBankAccountHolder(user.getBankAccountHolder());
+        dto.setIdentityVerificationStatus(user.getIdentityVerificationStatus());
+        dto.setCccdFrontUrl(user.getCccdFrontUrl());
+        dto.setCccdBackUrl(user.getCccdBackUrl());
+        dto.setResidenceUrl(user.getResidenceUrl());
+        dto.setIdentityRejectReason(user.getIdentityRejectReason());
+        dto.setIsActive(user.getIsActive());
+        dto.setCreatedAt(user.getCreatedAt());
+        return dto;
     }
 }

@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Bath,
   BedDouble,
   BriefcaseBusiness,
   Calendar,
   CalendarDays,
-  CheckCircle2,
   Clock3,
   Heart,
+  Landmark,
   Mail,
   MapPin,
   MessageSquare,
@@ -56,6 +56,8 @@ const activeTransactionStatuses = new Set([
   "deposit_confirmed",
   "commitment_signed",
   "deal_scheduled",
+  "broker_confirmed",
+  "refund_requested",
 ]);
 
 const appointmentFallbackImages = [
@@ -135,6 +137,8 @@ const getTransactionStatusClass = (status) => {
   return "bg-slate-100 text-slate-700";
 };
 
+const BANKS_API_URL = "https://api.vietqr.io/v2/banks";
+
 export default function CustomerDashboard({ mode = "overview" }) {
   const [appointments, setAppointments] = useState([]);
   const [transactions, setTransactions] = useState([]);
@@ -147,6 +151,7 @@ export default function CustomerDashboard({ mode = "overview" }) {
   const { favorites } = useFavorites();
   const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const fetchAppointments = useCallback(async () => {
     setLoadingAppointments(true);
@@ -262,19 +267,6 @@ export default function CustomerDashboard({ mode = "overview" }) {
       alert(`Lỗi khi hủy lịch hẹn: ${err.response?.data?.message || err.message}`);
     }
   };
-
-  const handleCreateDeposit = async (appointment) => {
-    if (!window.confirm("Bạn xác nhận đặt cọc 10% giá trị bất động sản này?")) return;
-    try {
-      const res = await api.post(`/transactions/appointment/${appointment.appointmentId}/deposit`);
-      if (res.data.success) {
-        navigate(`/customer/transactions/${res.data.data.transactionId}`);
-      }
-    } catch (err) {
-      alert(err.response?.data?.message || "Không thể đặt cọc bất động sản này.");
-    }
-  };
-
   return (
     <div className="mx-auto max-w-7xl">
       {mode === "overview" && (
@@ -287,7 +279,7 @@ export default function CustomerDashboard({ mode = "overview" }) {
         />
       )}
 
-      {mode === "profile" && <Profile user={user} onUpdateProfile={updateProfile} />}
+      {mode === "profile" && <Profile user={user} onUpdateProfile={updateProfile} returnTo={location.state?.returnTo} initialMessage={location.state?.message} />}
 
       {mode === "appointments" && (
         <Appointments
@@ -295,7 +287,6 @@ export default function CustomerDashboard({ mode = "overview" }) {
           loading={loadingAppointments}
           onReschedule={openRescheduleModal}
           onCancel={handleCancel}
-          onDeposit={handleCreateDeposit}
         />
       )}
 
@@ -403,32 +394,86 @@ function Overview({ appointments, transactions, activeTransactions, favorites, l
   );
 }
 
-function Profile({ user, onUpdateProfile }) {
+function Profile({ user, onUpdateProfile, returnTo, initialMessage }) {
   const [form, setForm] = useState({
     fullName: user?.fullName || "",
     phone: user?.phone || "",
+    bankName: user?.bankName || "",
+    bankAccountNumber: user?.bankAccountNumber || "",
+    bankAccountHolder: user?.bankAccountHolder || "",
+    cccdFrontUrl: user?.cccdFrontUrl || "",
+    cccdBackUrl: user?.cccdBackUrl || "",
+    residenceUrl: user?.residenceUrl || "",
   });
+  const [files, setFiles] = useState({ cccdFront: null, cccdBack: null, residence: null });
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState(null);
+  const [message, setMessage] = useState(initialMessage ? { type: "error", text: initialMessage } : null);
+  const [banks, setBanks] = useState([]);
+  const [loadingBanks, setLoadingBanks] = useState(false);
 
   useEffect(() => {
     setForm({
       fullName: user?.fullName || "",
       phone: user?.phone || "",
+      bankName: user?.bankName || "",
+      bankAccountNumber: user?.bankAccountNumber || "",
+      bankAccountHolder: user?.bankAccountHolder || "",
+      cccdFrontUrl: user?.cccdFrontUrl || "",
+      cccdBackUrl: user?.cccdBackUrl || "",
+      residenceUrl: user?.residenceUrl || "",
     });
-  }, [user?.fullName, user?.phone]);
+  }, [user?.fullName, user?.phone, user?.bankName, user?.bankAccountNumber, user?.bankAccountHolder, user?.cccdFrontUrl, user?.cccdBackUrl, user?.residenceUrl]);
+
+  useEffect(() => {
+    let ignore = false;
+    setLoadingBanks(true);
+    fetch(BANKS_API_URL)
+      .then((response) => response.json())
+      .then((payload) => {
+        if (ignore) return;
+        setBanks(Array.isArray(payload?.data) ? payload.data : []);
+      })
+      .catch(() => {
+        if (!ignore) setBanks([]);
+      })
+      .finally(() => {
+        if (!ignore) setLoadingBanks(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSaving(true);
     setMessage(null);
 
-    const result = await onUpdateProfile(form);
-    setSaving(false);
-    setMessage({
-      type: result.success ? "success" : "error",
-      text: result.success ? "Đã cập nhật thông tin cá nhân." : result.message,
-    });
+    try {
+      const upload = async (file) => {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await api.post("/uploads/documents", fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+          params: { type: "customer-profile" },
+        });
+        return res.data.data.url;
+      };
+      const nextForm = { ...form };
+      if (files.cccdFront) nextForm.cccdFrontUrl = await upload(files.cccdFront);
+      if (files.cccdBack) nextForm.cccdBackUrl = await upload(files.cccdBack);
+      if (files.residence) nextForm.residenceUrl = await upload(files.residence);
+      const result = await onUpdateProfile(nextForm);
+      setFiles({ cccdFront: null, cccdBack: null, residence: null });
+      setMessage({
+        type: result.success ? "success" : "error",
+        text: result.success ? "Đã cập nhật hồ sơ. Admin sẽ duyệt thông tin xác thực của bạn." : result.message,
+      });
+    } catch (error) {
+      setMessage({ type: "error", text: error.response?.data?.message || "Không thể tải hồ sơ lên." });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -461,8 +506,49 @@ function Profile({ user, onUpdateProfile }) {
             onChange={(value) => setForm((current) => ({ ...current, phone: value }))}
             placeholder="Nhập số điện thoại"
           />
-          <ProfileReadonly icon={BriefcaseBusiness} label="Vai trò" value="Khách hàng" />
+          <BankSelect
+            icon={Landmark}
+            label="Ngân hàng hoàn cọc"
+            banks={banks}
+            loading={loadingBanks}
+            value={form.bankName}
+            onChange={(value) => setForm((current) => ({ ...current, bankName: value }))}
+          />
+          <ProfileField
+            icon={Landmark}
+            label="Số tài khoản"
+            value={form.bankAccountNumber}
+            onChange={(value) => setForm((current) => ({ ...current, bankAccountNumber: value }))}
+            placeholder="Nhập số tài khoản"
+          />
+          <ProfileField
+            icon={UserRound}
+            label="Chủ tài khoản"
+            value={form.bankAccountHolder}
+            onChange={(value) => setForm((current) => ({ ...current, bankAccountHolder: value }))}
+            placeholder="Tên trên tài khoản"
+          />
         </div>
+
+        <section className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-base font-black text-slate-950">Hồ sơ xác thực khách hàng</h3>
+              <p className="mt-1 text-sm font-bold text-slate-500">Cập nhật CCCD hai mặt và xác nhận cư trú để admin duyệt trước khi thanh toán.</p>
+            </div>
+            <IdentityStatus status={user?.identityVerificationStatus} />
+          </div>
+          {user?.identityRejectReason && (
+            <div className="mt-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">
+              Lý do từ chối: {user.identityRejectReason}
+            </div>
+          )}
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            <ProfileUpload label="CCCD mặt trước" file={files.cccdFront} currentUrl={form.cccdFrontUrl} onChange={(file) => setFiles((current) => ({ ...current, cccdFront: file }))} />
+            <ProfileUpload label="CCCD mặt sau" file={files.cccdBack} currentUrl={form.cccdBackUrl} onChange={(file) => setFiles((current) => ({ ...current, cccdBack: file }))} />
+            <ProfileUpload label="Sổ hộ khẩu / Xác nhận cư trú" file={files.residence} currentUrl={form.residenceUrl} onChange={(file) => setFiles((current) => ({ ...current, residence: file }))} />
+          </div>
+        </section>
 
         {message && (
           <div
@@ -477,6 +563,11 @@ function Profile({ user, onUpdateProfile }) {
         )}
 
         <div className="mt-6 flex justify-end">
+          {returnTo && user?.identityVerificationStatus === "verified" && (
+            <Link to={returnTo} className="mr-3 inline-flex h-11 items-center justify-center rounded-md border border-slate-200 px-5 text-sm font-black text-slate-700 hover:bg-slate-50">
+              Quay lại giao dịch
+            </Link>
+          )}
           <button
             type="submit"
             disabled={saving || !form.fullName.trim()}
@@ -490,7 +581,7 @@ function Profile({ user, onUpdateProfile }) {
   );
 }
 
-function Appointments({ appointments, loading, onReschedule, onCancel, onDeposit }) {
+function Appointments({ appointments, loading, onReschedule, onCancel }) {
   return (
     <div>
       <PageTitle title="Lịch hẹn xem nhà" description="Theo dõi các lịch hẹn xem nhà bạn đã đặt với môi giới." />
@@ -503,8 +594,6 @@ function Appointments({ appointments, loading, onReschedule, onCancel, onDeposit
         <div className="space-y-4">
           {appointments.map((appointment, index) => {
             const canEdit = appointment.status === "pending" || appointment.status === "scheduled" || appointment.status === "confirmed";
-            const canDeposit = appointment.status === "viewed";
-
             return (
               <article
                 key={appointment.appointmentId}
@@ -577,17 +666,6 @@ function Appointments({ appointments, loading, onReschedule, onCancel, onDeposit
                         Hủy lịch
                       </button>
                     </>
-                  )}
-
-                  {canDeposit && (
-                    <button
-                      type="button"
-                      onClick={() => onDeposit(appointment)}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-black text-slate-950 hover:bg-slate-50"
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      Tiến hành giao dịch
-                    </button>
                   )}
                 </div>
               </article>
@@ -781,6 +859,66 @@ function EmptyText({ children }) {
     <div className="rounded-md border border-dashed border-slate-300 p-8 text-center text-sm font-semibold text-slate-500">
       {children}
     </div>
+  );
+}
+
+function BankSelect({ icon: Icon, label, banks, loading, value, onChange }) {
+  const hasCurrentValue = value && !banks.some((bank) => bank.shortName === value || bank.name === value);
+
+  return (
+    <label className="block rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <span className="flex items-center gap-2 text-sm font-bold text-slate-500">
+        <Icon className="h-4 w-4" />
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-3 h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-950 outline-none transition focus:border-slate-400"
+      >
+        <option value="">{loading ? "Đang tải danh sách ngân hàng..." : "Chọn ngân hàng"}</option>
+        {hasCurrentValue && <option value={value}>{value}</option>}
+        {banks.map((bank) => (
+          <option key={bank.id || bank.code || bank.shortName} value={bank.shortName || bank.name}>
+            {[bank.shortName, bank.name].filter(Boolean).join(" - ")}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function IdentityStatus({ status }) {
+  const meta = {
+    verified: "Đã duyệt",
+    pending_review: "Chờ admin duyệt",
+    rejected: "Bị từ chối",
+    not_submitted: "Chưa gửi",
+  };
+  const styles = {
+    verified: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    pending_review: "bg-amber-50 text-amber-700 ring-amber-200",
+    rejected: "bg-rose-50 text-rose-700 ring-rose-200",
+    not_submitted: "bg-slate-100 text-slate-600 ring-slate-200",
+  };
+  const key = status || "not_submitted";
+  return <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[key] || styles.not_submitted}`}>{meta[key] || key}</span>;
+}
+
+function ProfileUpload({ label, file, currentUrl, onChange }) {
+  return (
+    <label className="block rounded-lg border border-dashed border-slate-300 bg-white p-4">
+      <span className="text-sm font-black text-slate-800">{label}</span>
+      <span className="mt-2 block truncate text-xs font-bold text-slate-500">
+        {file?.name || (currentUrl ? "Đã có hồ sơ" : "Chọn file")}
+      </span>
+      <input type="file" className="mt-3 block w-full text-xs font-bold text-slate-600" onChange={(event) => onChange(event.target.files?.[0] || null)} />
+      {currentUrl && (
+        <a href={currentUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-black text-slate-950 hover:text-slate-700">
+          Xem hồ sơ hiện tại
+        </a>
+      )}
+    </label>
   );
 }
 

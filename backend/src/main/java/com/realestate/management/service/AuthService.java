@@ -82,6 +82,14 @@ public class AuthService {
                 user.getEmail(),
                 user.getFullName(),
                 user.getPhone(),
+                user.getBankName(),
+                user.getBankAccountNumber(),
+                user.getBankAccountHolder(),
+                user.getIdentityVerificationStatus(),
+                user.getCccdFrontUrl(),
+                user.getCccdBackUrl(),
+                user.getResidenceUrl(),
+                user.getIdentityRejectReason(),
                 user.getRole()
         );
     }
@@ -96,7 +104,36 @@ public class AuthService {
         User user = getAuthenticatedUser();
         user.setFullName(request.getFullName().trim());
         user.setPhone(request.getPhone() == null ? null : request.getPhone().trim());
+        user.setBankName(blankToNull(request.getBankName()));
+        user.setBankAccountNumber(blankToNull(request.getBankAccountNumber()));
+        user.setBankAccountHolder(blankToNull(request.getBankAccountHolder()));
+        boolean identityChanged = hasChanged(user.getCccdFrontUrl(), request.getCccdFrontUrl())
+                || hasChanged(user.getCccdBackUrl(), request.getCccdBackUrl())
+                || hasChanged(user.getResidenceUrl(), request.getResidenceUrl());
+        user.setCccdFrontUrl(blankToNull(request.getCccdFrontUrl()));
+        user.setCccdBackUrl(blankToNull(request.getCccdBackUrl()));
+        user.setResidenceUrl(blankToNull(request.getResidenceUrl()));
+        if (user.getCccdFrontUrl() != null && user.getCccdBackUrl() != null && user.getResidenceUrl() != null
+                && (identityChanged || user.getIdentityVerificationStatus() == null || "not_submitted".equals(user.getIdentityVerificationStatus()) || "rejected".equals(user.getIdentityVerificationStatus()))) {
+            user.setIdentityVerificationStatus("pending_review");
+            user.setIdentityRejectReason(null);
+        }
         return toUserDTO(userRepository.save(user));
+    }
+
+    private boolean hasChanged(String oldValue, String newValue) {
+        String normalizedNew = blankToNull(newValue);
+        if (oldValue == null) {
+            return normalizedNew != null;
+        }
+        return !oldValue.equals(normalizedNew);
+    }
+
+    private String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private User getAuthenticatedUser() {
@@ -116,6 +153,14 @@ public class AuthService {
         dto.setRole(user.getRole());
         dto.setFullName(user.getFullName());
         dto.setPhone(user.getPhone());
+        dto.setBankName(user.getBankName());
+        dto.setBankAccountNumber(user.getBankAccountNumber());
+        dto.setBankAccountHolder(user.getBankAccountHolder());
+        dto.setIdentityVerificationStatus(user.getIdentityVerificationStatus());
+        dto.setCccdFrontUrl(user.getCccdFrontUrl());
+        dto.setCccdBackUrl(user.getCccdBackUrl());
+        dto.setResidenceUrl(user.getResidenceUrl());
+        dto.setIdentityRejectReason(user.getIdentityRejectReason());
         dto.setIsActive(user.getIsActive());
         dto.setCreatedAt(user.getCreatedAt());
         return dto;

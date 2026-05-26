@@ -29,6 +29,14 @@ export const AuthProvider = ({ children }) => {
           email: data.email,
           fullName: data.fullName,
           phone: data.phone,
+          bankName: data.bankName,
+          bankAccountNumber: data.bankAccountNumber,
+          bankAccountHolder: data.bankAccountHolder,
+          identityVerificationStatus: data.identityVerificationStatus,
+          cccdFrontUrl: data.cccdFrontUrl,
+          cccdBackUrl: data.cccdBackUrl,
+          residenceUrl: data.residenceUrl,
+          identityRejectReason: data.identityRejectReason,
           role: data.role,
         };
         setUser(newUser);
@@ -73,11 +81,17 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("user");
   };
 
-  const updateProfile = async ({ fullName, phone }) => {
+  const updateProfile = async ({ fullName, phone, bankName, bankAccountNumber, bankAccountHolder, cccdFrontUrl, cccdBackUrl, residenceUrl }) => {
     try {
       const response = await api.put("/auth/me", {
         fullName: fullName.trim(),
         phone: phone?.trim() || "",
+        bankName: bankName?.trim() || "",
+        bankAccountNumber: bankAccountNumber?.trim() || "",
+        bankAccountHolder: bankAccountHolder?.trim() || "",
+        cccdFrontUrl: cccdFrontUrl?.trim() || "",
+        cccdBackUrl: cccdBackUrl?.trim() || "",
+        residenceUrl: residenceUrl?.trim() || "",
       });
 
       if (response.data.success) {
@@ -88,6 +102,14 @@ export const AuthProvider = ({ children }) => {
           email: data.email,
           fullName: data.fullName,
           phone: data.phone,
+          bankName: data.bankName,
+          bankAccountNumber: data.bankAccountNumber,
+          bankAccountHolder: data.bankAccountHolder,
+          identityVerificationStatus: data.identityVerificationStatus,
+          cccdFrontUrl: data.cccdFrontUrl,
+          cccdBackUrl: data.cccdBackUrl,
+          residenceUrl: data.residenceUrl,
+          identityRejectReason: data.identityRejectReason,
           role: data.role,
         };
         setUser(nextUser);

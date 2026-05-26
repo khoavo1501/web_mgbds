@@ -33,6 +33,7 @@ const propertyTypeLabels = {
 const statusLabels = {
   published: "Đang mở bán",
   in_transaction: "Đang giao dịch",
+  deposit_paid: "Đã cọc",
   pending: "Chờ duyệt",
   rejected: "Đã từ chối",
   sold: "Đã bán",
@@ -276,7 +277,10 @@ export default function PropertyDetail() {
                   <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-slate-950">
                     {property.title}
                   </h1>
-                  {(property.status === 'locked' || property.status === 'in_transaction' || property.isLocked) && (
+                  {property.status === 'deposit_paid' && (
+                    <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-yellow-200">Đã cọc</span>
+                  )}
+                  {(property.status === 'locked' || property.status === 'in_transaction' || (property.isLocked && property.status !== 'deposit_paid')) && (
                     <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-yellow-200">Đang giao dịch</span>
                   )}
                   {property.status === 'sold' && (

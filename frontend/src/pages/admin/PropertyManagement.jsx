@@ -64,6 +64,7 @@ const statuses = [
   { value: "all", label: "Tất cả" },
   { value: "pending", label: "Chờ duyệt" },
   { value: "published", label: "Đang đăng" },
+  { value: "deposit_paid", label: "Đã cọc" },
   { value: "rejected", label: "Từ chối" },
   { value: "sold", label: "Đã bán" },
   { value: "rented", label: "Đã thuê" },
@@ -72,6 +73,7 @@ const statuses = [
 const statusMeta = {
   pending: { label: "Chờ duyệt", className: "bg-amber-100 text-amber-800" },
   published: { label: "Đang đăng", className: "bg-emerald-100 text-emerald-800" },
+  deposit_paid: { label: "Đã cọc", className: "bg-amber-100 text-amber-800" },
   in_transaction: { label: "Đang giao dịch", className: "bg-cyan-100 text-cyan-800" },
   rejected: { label: "Từ chối", className: "bg-rose-100 text-rose-800" },
   sold: { label: "Đã bán", className: "bg-blue-100 text-blue-800" },

@@ -24,7 +24,10 @@ export default function PropertyCard({ property }) {
           <Heart className={`h-5 w-5 ${isFavorite(property.propertyId) ? 'text-red-500 fill-current' : 'text-gray-500'}`} />
         </button>
         <div className="absolute top-2 right-2 flex flex-col gap-1">
-          {(property.status === 'locked' || property.status === 'in_transaction' || property.isLocked) && (
+          {property.status === 'deposit_paid' && (
+            <Badge status="warning">Đã cọc</Badge>
+          )}
+          {(property.status === 'locked' || property.status === 'in_transaction' || (property.isLocked && property.status !== 'deposit_paid')) && (
             <Badge status="warning">Đang giao dịch</Badge>
           )}
           {property.status === 'published' && (

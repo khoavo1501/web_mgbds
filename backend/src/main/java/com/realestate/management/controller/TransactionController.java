@@ -119,12 +119,13 @@ public class TransactionController {
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<TransactionDTO>> submitDocuments(
             @PathVariable Long id,
-            @RequestParam("cccdUrl") String cccdUrl,
-            @RequestParam("householdUrl") String householdUrl,
+            @RequestParam("cccdFrontUrl") String cccdFrontUrl,
+            @RequestParam("cccdBackUrl") String cccdBackUrl,
+            @RequestParam("residenceUrl") String residenceUrl,
             @RequestParam(value = "marriageUrl", required = false) String marriageUrl) {
         try {
             return ResponseEntity.ok(ApiResponse.success("Gửi hồ sơ thành công",
-                    transactionService.submitDocuments(id, cccdUrl, householdUrl, marriageUrl)));
+                    transactionService.submitDocuments(id, cccdFrontUrl, cccdBackUrl, residenceUrl, marriageUrl)));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
         }

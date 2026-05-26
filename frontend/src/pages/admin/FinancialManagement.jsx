@@ -516,6 +516,11 @@ function TransactionTable({ loading, rows, processingId, onStatusChange }) {
               <td className="px-5 py-4">
                 <p className="text-sm font-black text-stone-900">{item.customerName || "N/A"}</p>
                 <p className="mt-1 text-xs font-bold text-stone-500">{item.customerPhone || item.customerEmail || ""}</p>
+                {item.status === "refund_requested" && (
+                  <p className="mt-2 max-w-48 text-xs font-bold text-orange-700">
+                    Hoàn cọc: {[item.customerBankName, item.customerBankAccountNumber, item.customerBankAccountHolder].filter(Boolean).join(" - ") || "Chưa có STK"}
+                  </p>
+                )}
               </td>
               <td className="px-5 py-4 text-sm font-bold text-stone-700">{item.brokerName || "N/A"}</td>
               <td className="px-5 py-4 text-right text-sm font-black text-stone-950">{formatVnd(item.totalPrice)}</td>
@@ -627,7 +632,7 @@ function TransactionTable({ loading, rows, processingId, onStatusChange }) {
           onClose={() => setSelectedPaymentTx(null)} 
           onVerified={() => {
             setSelectedPaymentTx(null);
-            onStatusChange(selectedPaymentTx, "completed");
+            onStatusChange(selectedPaymentTx, "deposit_confirmed");
           }} 
           onReject={() => {
             setSelectedPaymentTx(null);
