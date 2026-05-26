@@ -427,4 +427,4 @@ SELECT 'notifications',                COUNT(*) FROM notifications
 UNION ALL
 SELECT 'audit_log',                    COUNT(*) FROM audit_log
 UNION ALL
-SELECT 'sessions',                     COUNT(*) FROM sessions;
+SELECT 'sessions',                     COUNT(*) FROM sessions; 
