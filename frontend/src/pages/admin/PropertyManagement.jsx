@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Eye,
@@ -728,7 +728,12 @@ function Field({ label, children, className = "" }) {
 }
 
 function PreviewModal({ property, onClose }) {
+  const [docStatuses, setDocStatuses] = useState({});
   const primaryImage = property.images?.find((image) => image.isPrimary)?.url || property.images?.[0]?.url;
+
+  const handleDocStatus = (docType, status) => {
+    setDocStatuses((prev) => ({ ...prev, [docType]: status }));
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/55 px-4 backdrop-blur-sm">
@@ -753,11 +758,78 @@ function PreviewModal({ property, onClose }) {
             <Detail label="Trạng thái" value={statusMeta[property.status]?.label || property.status} />
           </div>
           <div className="mt-4 rounded-lg border border-stone-200 bg-stone-50/70 p-4">
-            <p className="mb-3 text-xs font-black uppercase tracking-wider text-stone-400">Thông tin chủ sở hữu</p>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <Detail label="Chủ nhà" value={property.ownerName || "N/A"} />
-              <Detail label="SĐT" value={property.ownerPhone || "N/A"} />
-              <Detail label="Loại hồ sơ" value={property.isExclusive ? "Độc quyền" : "Thông thường"} />
+            <p className="mb-3 text-xs font-black uppercase tracking-wider text-stone-400">Giấy tờ pháp lý</p>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="flex flex-col justify-between rounded-lg border border-stone-200 bg-white p-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-stone-400">Sổ hồng/Sổ đỏ</p>
+                  {property.redBookUrl ? (
+                    <a href={property.redBookUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
+                  ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
+                </div>
+                {property.redBookUrl && (
+                  <div className="mt-2 flex gap-1">
+                    <button 
+                      onClick={() => handleDocStatus('redBook', 'approved')}
+                      className={`flex-1 rounded py-1 text-[10px] font-black transition-colors ${docStatuses.redBook === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-600 hover:bg-emerald-50'}`}>
+                      Duyệt
+                    </button>
+                    <button 
+                      onClick={() => handleDocStatus('redBook', 'rejected')}
+                      className={`flex-1 rounded py-1 text-[10px] font-black transition-colors ${docStatuses.redBook === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-stone-100 text-stone-600 hover:bg-rose-50'}`}>
+                      Từ chối
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col justify-between rounded-lg border border-stone-200 bg-white p-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-stone-400">Sổ hộ khẩu</p>
+                  {property.householdRegistrationUrl ? (
+                    <a href={property.householdRegistrationUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
+                  ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
+                </div>
+                {property.householdRegistrationUrl && (
+                  <div className="mt-2 flex gap-1">
+                    <button 
+                      onClick={() => handleDocStatus('household', 'approved')}
+                      className={`flex-1 rounded py-1 text-[10px] font-black transition-colors ${docStatuses.household === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-600 hover:bg-emerald-50'}`}>
+                      Duyệt
+                    </button>
+                    <button 
+                      onClick={() => handleDocStatus('household', 'rejected')}
+                      className={`flex-1 rounded py-1 text-[10px] font-black transition-colors ${docStatuses.household === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-stone-100 text-stone-600 hover:bg-rose-50'}`}>
+                      Từ chối
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col justify-between rounded-lg border border-stone-200 bg-white p-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-stone-400">CCCD</p>
+                  {property.ownerIdUrl ? (
+                    <a href={property.ownerIdUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
+                  ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
+                </div>
+                {property.ownerIdUrl && (
+                  <div className="mt-2 flex gap-1">
+                    <button 
+                      onClick={() => handleDocStatus('ownerId', 'approved')}
+                      className={`flex-1 rounded py-1 text-[10px] font-black transition-colors ${docStatuses.ownerId === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-600 hover:bg-emerald-50'}`}>
+                      Duyệt
+                    </button>
+                    <button 
+                      onClick={() => handleDocStatus('ownerId', 'rejected')}
+                      className={`flex-1 rounded py-1 text-[10px] font-black transition-colors ${docStatuses.ownerId === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-stone-100 text-stone-600 hover:bg-rose-50'}`}>
+                      Từ chối
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="rounded-lg border border-stone-200 bg-white p-3">
+                <p className="text-[10px] font-black uppercase tracking-wider text-stone-400">Loại hồ sơ</p>
+                <p className="mt-1 text-sm font-bold text-stone-950">{property.isExclusive ? "Độc quyền" : "Thông thường"}</p>
+              </div>
             </div>
           </div>
           <p className="mt-4 rounded-lg bg-stone-50 p-4 text-sm font-medium leading-6 text-stone-700">

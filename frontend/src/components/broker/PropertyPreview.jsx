@@ -1,7 +1,7 @@
-import { MapPin, Square, Sparkles, ImageIcon } from 'lucide-react';
+import { MapPin, Maximize, Sparkles, ImageIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function PropertyPreview({ data }) {
+export default function PropertyPreview({ data, completionPercent }) {
     // Luôn hiển thị số VNĐ đầy đủ, có dấu phân cách
     const formatPrice = (price) => {
         if (!price) return 'Đang cập nhật';
@@ -14,30 +14,33 @@ export default function PropertyPreview({ data }) {
         ? data.images[0].preview
         : null;
 
-    const completionFields = ['title', 'type', 'price', 'area', 'address', 'ward', 'description'];
-    const filled = completionFields.filter(f => data[f] && String(data[f]).trim() !== '').length;
-    const percent = Math.round((filled / completionFields.length) * 100);
+    // Use passed completionPercent, default to 0 if undefined
+    const percent = completionPercent !== undefined ? completionPercent : 0;
 
     return (
         <div className="w-full">
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider pl-1">
-                    Xem trước tin đăng
-                </h3>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${percent === 100 ? 'bg-emerald-50 text-emerald-600' : 'bg-zinc-100 text-zinc-500'}`}>
-                    {percent}% hoàn thành
-                </span>
-            </div>
+            {completionPercent !== undefined && (
+                <>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider pl-1">
+                            Xem trước tin đăng
+                        </h3>
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${percent === 100 ? 'bg-emerald-50 text-emerald-600' : 'bg-zinc-100 text-zinc-500'}`}>
+                            {percent}% hoàn thành
+                        </span>
+                    </div>
 
-            {/* Progress Bar */}
-            <div className="w-full h-1.5 bg-zinc-100 rounded-full mb-5 overflow-hidden">
-                <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${percent}%` }}
-                    transition={{ duration: 0.5, ease: 'easeOut' }}
-                />
-            </div>
+                    {/* Progress Bar */}
+                    <div className="w-full h-1.5 bg-zinc-100 rounded-full mb-5 overflow-hidden">
+                        <motion.div
+                            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${percent}%` }}
+                            transition={{ duration: 0.5, ease: 'easeOut' }}
+                        />
+                    </div>
+                </>
+            )}
 
             <motion.div
                 layout
@@ -94,7 +97,7 @@ export default function PropertyPreview({ data }) {
 
                     <div className="flex items-center gap-3 py-3 border-t border-zinc-100 text-zinc-600 text-sm">
                         <div className="flex items-center gap-1.5 font-medium">
-                            <Square className="w-3.5 h-3.5 text-zinc-400" />
+                            <Maximize className="w-3.5 h-3.5 text-zinc-400" />
                             <span className="text-[13px]">{data.area ? `${data.area} m²` : '--'}</span>
                         </div>
                     </div>
