@@ -32,7 +32,7 @@ public class Category {
 
     /**
      * Self-referencing relationship - Danh mục cha
-     * Ví dụ: Tỉnh (parent) -> Quận/Huyện (child)
+     * Ví dụ: Tỉnh/Thành (parent) -> Phường/Xã/Đặc khu (child)
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")

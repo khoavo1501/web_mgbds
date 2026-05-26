@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
  */
 @Service
 public class PropertyService {
+    private static final String SUPPORTED_PROVINCE = "Đà Nẵng";
     private static final String VIETNAMESE_ACCENT_CHARS =
         "áàảãạăắằẳẵặâấầẩẫậđéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵ";
     private static final String VIETNAMESE_ASCII_CHARS =
@@ -237,7 +238,7 @@ public class PropertyService {
         property.setTitle(request.getTitle());
         property.setDescription(request.getDescription());
         property.setPropertyType(request.getPropertyType());
-        property.setProvince(request.getProvince());
+        property.setProvince(SUPPORTED_PROVINCE);
         property.setDistrict(request.getDistrict());
         property.setArea(request.getArea());
         property.setPrice(request.getPrice());
@@ -327,7 +328,7 @@ public class PropertyService {
         property.setTitle(request.getTitle());
         property.setDescription(request.getDescription());
         property.setPropertyType(request.getPropertyType());
-        property.setProvince(request.getProvince());
+        property.setProvince(SUPPORTED_PROVINCE);
         property.setDistrict(request.getDistrict());
         property.setArea(request.getArea());
         property.setPrice(request.getPrice());

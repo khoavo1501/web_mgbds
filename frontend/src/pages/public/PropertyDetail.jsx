@@ -234,7 +234,7 @@ export default function PropertyDetail() {
     property.status && { label: "Trạng thái", value: statusLabels[property.status] || property.status },
     property.propertyCode && { label: "Mã tin", value: property.propertyCode },
     property.province && { label: "Tỉnh/Thành", value: property.province },
-    property.district && { label: "Quận/Huyện", value: property.district },
+    property.district && { label: "Phường/Xã/Đặc khu", value: property.district },
     property.ward && { label: "Phường/Xã", value: property.ward },
     area && { label: "Diện tích", value: area },
     hasValue(property.bedrooms) && { label: "Phòng ngủ", value: property.bedrooms },

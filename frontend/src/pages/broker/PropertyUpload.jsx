@@ -10,12 +10,28 @@ import page3 from '../../assets/images/contracts/page3.png';
 const amenitiesList = ['Hồ bơi','Phòng gym','Sân vườn','Ban công','Gara ô tô','An ninh 24/7','Thang máy','Gần trường học','Gần bệnh viện','Gần chợ/siêu thị','Sân thượng','Khu BBQ'];
 
 const wardList = [
-  'Phường Hải Châu', 'Phường Hòa Cường', 'Phường Thanh Khê', 'Phường An Khê', 
-  'Phường An Hải', 'Phường Sơn Trà', 'Phường Ngũ Hành Sơn', 'Phường Hòa Khánh', 
-  'Phường Hải Vân', 'Phường Liên Chiểu', 'Phường Cẩm Lệ', 'Phường Hòa Xuân', 
-  'Phường Tam Kỳ', 'Phường Quảng Phú', 'Phường Hương Trà', 'Phường Bàn Thạch', 
-  'Phường Điện Bàn', 'Phường Điện Bàn Đông', 'Phường An Thắng', 'Phường Điện Bàn Bắc', 
-  'Phường Hội An', 'Phường Hội An Đông', 'Phường Hội An Tây'
+  'Phường Hải Châu', 'Phường Hòa Cường', 'Phường Thanh Khê', 'Phường An Khê',
+  'Phường An Hải', 'Phường Sơn Trà', 'Phường Ngũ Hành Sơn', 'Phường Hòa Khánh',
+  'Phường Hải Vân', 'Phường Liên Chiểu', 'Phường Cẩm Lệ', 'Phường Hòa Xuân',
+  'Xã Hòa Vang', 'Xã Hòa Tiến', 'Xã Bà Nà', 'Xã Núi Thành', 'Xã Tam Mỹ',
+  'Xã Tam Anh', 'Xã Đức Phú', 'Xã Tam Xuân', 'Xã Tam Hải',
+  'Phường Tam Kỳ', 'Phường Quảng Phú', 'Phường Hương Trà', 'Phường Bàn Thạch',
+  'Xã Tây Hồ', 'Xã Chiên Đàn', 'Xã Phú Ninh', 'Xã Lãnh Ngọc', 'Xã Tiên Phước',
+  'Xã Thạnh Bình', 'Xã Sơn Cẩm Hà', 'Xã Trà Liên', 'Xã Trà Giáp', 'Xã Trà Tân',
+  'Xã Trà Đốc', 'Xã Trà My', 'Xã Nam Trà My', 'Xã Trà Tập', 'Xã Trà Vân',
+  'Xã Trà Linh', 'Xã Trà Leng', 'Xã Thăng Bình', 'Xã Thăng An', 'Xã Thăng Trường',
+  'Xã Thăng Điền', 'Xã Thăng Phú', 'Xã Đồng Dương', 'Xã Quế Sơn Trung',
+  'Xã Quế Sơn', 'Xã Xuân Phú', 'Xã Nông Sơn', 'Xã Quế Phước', 'Xã Duy Nghĩa',
+  'Xã Nam Phước', 'Xã Duy Xuyên', 'Xã Thu Bồn',
+  'Phường Điện Bàn', 'Phường Điện Bàn Đông', 'Phường An Thắng', 'Phường Điện Bàn Bắc',
+  'Xã Điện Bàn Tây', 'Xã Gò Nổi',
+  'Phường Hội An', 'Phường Hội An Đông', 'Phường Hội An Tây',
+  'Xã Tân Hiệp', 'Xã Đại Lộc', 'Xã Hà Nha', 'Xã Thượng Đức', 'Xã Vu Gia',
+  'Xã Phú Thuận', 'Xã Thạnh Mỹ', 'Xã Bến Giằng', 'Xã Nam Giang', 'Xã Đắc Pring',
+  'Xã La Dêê', 'Xã La Êê', 'Xã Sông Vàng', 'Xã Sông Kôn', 'Xã Đông Giang',
+  'Xã Bến Hiên', 'Xã Avương', 'Xã Tây Giang', 'Xã Hùng Sơn', 'Xã Hiệp Đức',
+  'Xã Việt An', 'Xã Phước Trà', 'Xã Khâm Đức', 'Xã Phước Năng', 'Xã Phước Chánh',
+  'Xã Phước Thành', 'Xã Phước Hiệp', 'Đặc khu Hoàng Sa'
 ];
 
 const InputField = ({ label, required, icon: Icon, className = '', ...props }) => (
@@ -289,7 +305,7 @@ export default function PropertyUpload() {
     if (!formData.title.trim()) return showToast('error', 'Vui lòng nhập tiêu đề BĐS.');
     if (!formData.price) return showToast('error', 'Vui lòng nhập mức giá.');
     if (!formData.area) return showToast('error', 'Vui lòng nhập diện tích.');
-    if (!formData.ward) return showToast('error', 'Vui lòng chọn phường.');
+    if (!formData.ward) return showToast('error', 'Vui lòng chọn phường/xã/đặc khu.');
     if (!formData.commitment) return showToast('error', 'Vui lòng xác nhận cam kết thông tin.');
 
     // Map loại BĐS tiếng Việt → giá trị backend
@@ -461,7 +477,7 @@ export default function PropertyUpload() {
                   <InputField label="Diện tích (m²)" required name="area" value={formData.area} onChange={handleChange} type="number" placeholder="VD: 85" />
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 mb-1.5">
-                      Phường <span className="text-red-500">*</span>
+                      Phường/Xã/Đặc khu <span className="text-red-500">*</span>
                     </label>
                     <select name="ward" value={formData.ward} onChange={handleChange}
                       className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm appearance-none bg-white">

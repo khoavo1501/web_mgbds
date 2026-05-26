@@ -45,30 +45,30 @@ const heroSlides = [
 
 const premiumProjects = [
   {
-    title: "The Riverfront Residence",
+    title: "Han River Residence",
     type: "Căn hộ cao cấp",
-    location: "Thủ Thiêm, TP. Hồ Chí Minh",
+    location: "Phường Hải Châu, Đà Nẵng",
     image:
       "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=85",
   },
   {
-    title: "Serenity Lake Villas",
+    title: "My Khe Beach Villas",
     type: "Biệt thự nghỉ dưỡng",
-    location: "Hồ Tràm, Bà Rịa - Vũng Tàu",
+    location: "Phường Sơn Trà, Đà Nẵng",
     image:
       "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=85",
   },
   {
-    title: "Sky Garden District",
+    title: "Sky Garden Da Nang",
     type: "Dự án hot",
-    location: "Cầu Giấy, Hà Nội",
+    location: "Phường Ngũ Hành Sơn, Đà Nẵng",
     image:
       "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1200&q=85",
   },
   {
-    title: "Marina Bay Homes",
+    title: "Lien Chieu Marina Homes",
     type: "Shophouse",
-    location: "Hạ Long, Quảng Ninh",
+    location: "Phường Liên Chiểu, Đà Nẵng",
     image:
       "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?auto=format&fit=crop&w=1200&q=85",
   },
@@ -229,7 +229,7 @@ function PropertyCard({ property, large = false, badge, postedTime }) {
           </span>
         )}
         <span className="absolute bottom-3 left-3 rounded-sm bg-white px-2.5 py-1 text-xs font-semibold text-slate-900">
-          {property.province || "Hồ Chí Minh"}
+          {property.province || "Đà Nẵng"}
         </span>
       </div>
       <div className={large ? "p-5" : "p-4"}>

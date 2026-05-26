@@ -284,10 +284,10 @@ export default function Auth() {
         <div className="absolute inset-0 bg-slate-950/45" />
         <div className="absolute inset-x-0 bottom-0 p-14 text-white">
           <h2 className="max-w-2xl text-4xl font-extrabold tracking-tight">
-            Nền tảng môi giới số 1 Việt Nam
+            Nền tảng môi giới bất động sản tại Đà Nẵng
           </h2>
           <p className="mt-5 max-w-3xl text-lg font-bold leading-8 text-white/85">
-            Kết nối hàng triệu người mua và người bán mỗi tháng với trải nghiệm an toàn, minh bạch.
+            Kết nối người mua và người bán tại Đà Nẵng với trải nghiệm an toàn, minh bạch.
           </p>
         </div>
       </section>

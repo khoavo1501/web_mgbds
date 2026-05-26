@@ -29,7 +29,7 @@ public class PropertyCreateRequest {
     @NotBlank(message = "Tỉnh/Thành phố không được để trống")
     private String province;
 
-    @NotBlank(message = "Quận/Huyện không được để trống")
+    @NotBlank(message = "Phường/Xã/Đặc khu không được để trống")
     private String district;
 
     @NotNull(message = "Diện tích không được để trống")

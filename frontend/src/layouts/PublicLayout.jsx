@@ -84,7 +84,7 @@ export default function PublicLayout() {
                 <span>NhaDatPro</span>
               </div>
               <p className="max-w-xs text-sm leading-6 text-slate-300">
-                Nền tảng môi giới bất động sản hàng đầu Việt Nam. Cung cấp thông tin chính xác,
+                Nền tảng môi giới bất động sản tại Đà Nẵng. Cung cấp thông tin chính xác,
                 giao dịch an toàn và nhanh chóng.
               </p>
             </div>
@@ -112,7 +112,7 @@ export default function PublicLayout() {
             <div>
               <h3 className="mb-4 text-sm font-bold">Liên hệ</h3>
               <ul className="space-y-3 text-sm text-slate-300">
-                <li className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4" />123 Đường ABC, Quận 1, TP. Hồ Chí Minh</li>
+                <li className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4" />123 Bạch Đằng, phường Hải Châu, Đà Nẵng</li>
                 <li className="flex gap-2"><Phone className="h-4 w-4" />1900 1234</li>
                 <li className="flex gap-2"><Mail className="h-4 w-4" />contact@nhadatpro.vn</li>
               </ul>

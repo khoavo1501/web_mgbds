@@ -219,38 +219,116 @@ INSERT INTO categories (category_type, category_name, parent_id) VALUES
 
 -- Categories — Tỉnh thành
 INSERT INTO categories (category_type, category_name, parent_id) VALUES
-('province', 'Hà Nội',      NULL),
-('province', 'Hồ Chí Minh', NULL),
-('province', 'Đà Nẵng',     NULL),
-('province', 'Hải Phòng',   NULL),
-('province', 'Cần Thơ',     NULL);
+('province', 'Đà Nẵng', NULL);
 
--- Categories — Quận/Huyện Hà Nội (parent_id = 6)
+-- Categories — Đơn vị hành chính cấp xã/phường/đặc khu của Đà Nẵng mới (parent_id = 6)
+-- Theo Nghị quyết 202/2025/QH15 và 1659/NQ-UBTVQH15, hoạt động từ 01/07/2025.
 INSERT INTO categories (category_type, category_name, parent_id) VALUES
-('district', 'Cầu Giấy',      6),
-('district', 'Đống Đa',       6),
-('district', 'Hai Bà Trưng',  6),
-('district', 'Hoàn Kiếm',     6),
-('district', 'Thanh Xuân',    6);
-
--- Categories — Quận/Huyện Hồ Chí Minh (parent_id = 7)
-INSERT INTO categories (category_type, category_name, parent_id) VALUES
-('district', 'Quận 1',  7),
-('district', 'Quận 2',  7),
-('district', 'Quận 3',  7),
-('district', 'Quận 7',  7),
-('district', 'Thủ Đức', 7);
+('district', 'Phường Hải Châu',        6),
+('district', 'Phường Hòa Cường',       6),
+('district', 'Phường Thanh Khê',       6),
+('district', 'Phường An Khê',          6),
+('district', 'Phường An Hải',          6),
+('district', 'Phường Sơn Trà',         6),
+('district', 'Phường Ngũ Hành Sơn',    6),
+('district', 'Phường Hòa Khánh',       6),
+('district', 'Phường Hải Vân',         6),
+('district', 'Phường Liên Chiểu',      6),
+('district', 'Phường Cẩm Lệ',          6),
+('district', 'Phường Hòa Xuân',        6),
+('district', 'Xã Hòa Vang',            6),
+('district', 'Xã Hòa Tiến',            6),
+('district', 'Xã Bà Nà',               6),
+('district', 'Xã Núi Thành',           6),
+('district', 'Xã Tam Mỹ',              6),
+('district', 'Xã Tam Anh',             6),
+('district', 'Xã Đức Phú',             6),
+('district', 'Xã Tam Xuân',            6),
+('district', 'Xã Tam Hải',             6),
+('district', 'Phường Tam Kỳ',          6),
+('district', 'Phường Quảng Phú',       6),
+('district', 'Phường Hương Trà',       6),
+('district', 'Phường Bàn Thạch',       6),
+('district', 'Xã Tây Hồ',              6),
+('district', 'Xã Chiên Đàn',           6),
+('district', 'Xã Phú Ninh',            6),
+('district', 'Xã Lãnh Ngọc',           6),
+('district', 'Xã Tiên Phước',          6),
+('district', 'Xã Thạnh Bình',          6),
+('district', 'Xã Sơn Cẩm Hà',          6),
+('district', 'Xã Trà Liên',            6),
+('district', 'Xã Trà Giáp',            6),
+('district', 'Xã Trà Tân',             6),
+('district', 'Xã Trà Đốc',             6),
+('district', 'Xã Trà My',              6),
+('district', 'Xã Nam Trà My',          6),
+('district', 'Xã Trà Tập',             6),
+('district', 'Xã Trà Vân',             6),
+('district', 'Xã Trà Linh',            6),
+('district', 'Xã Trà Leng',            6),
+('district', 'Xã Thăng Bình',          6),
+('district', 'Xã Thăng An',            6),
+('district', 'Xã Thăng Trường',        6),
+('district', 'Xã Thăng Điền',          6),
+('district', 'Xã Thăng Phú',           6),
+('district', 'Xã Đồng Dương',          6),
+('district', 'Xã Quế Sơn Trung',       6),
+('district', 'Xã Quế Sơn',             6),
+('district', 'Xã Xuân Phú',            6),
+('district', 'Xã Nông Sơn',            6),
+('district', 'Xã Quế Phước',           6),
+('district', 'Xã Duy Nghĩa',           6),
+('district', 'Xã Nam Phước',           6),
+('district', 'Xã Duy Xuyên',           6),
+('district', 'Xã Thu Bồn',             6),
+('district', 'Phường Điện Bàn',        6),
+('district', 'Phường Điện Bàn Đông',   6),
+('district', 'Phường An Thắng',        6),
+('district', 'Phường Điện Bàn Bắc',    6),
+('district', 'Xã Điện Bàn Tây',        6),
+('district', 'Xã Gò Nổi',              6),
+('district', 'Phường Hội An',          6),
+('district', 'Phường Hội An Đông',     6),
+('district', 'Phường Hội An Tây',      6),
+('district', 'Xã Tân Hiệp',            6),
+('district', 'Xã Đại Lộc',             6),
+('district', 'Xã Hà Nha',              6),
+('district', 'Xã Thượng Đức',          6),
+('district', 'Xã Vu Gia',              6),
+('district', 'Xã Phú Thuận',           6),
+('district', 'Xã Thạnh Mỹ',            6),
+('district', 'Xã Bến Giằng',           6),
+('district', 'Xã Nam Giang',           6),
+('district', 'Xã Đắc Pring',           6),
+('district', 'Xã La Dêê',              6),
+('district', 'Xã La Êê',               6),
+('district', 'Xã Sông Vàng',           6),
+('district', 'Xã Sông Kôn',            6),
+('district', 'Xã Đông Giang',          6),
+('district', 'Xã Bến Hiên',            6),
+('district', 'Xã Avương',              6),
+('district', 'Xã Tây Giang',           6),
+('district', 'Xã Hùng Sơn',            6),
+('district', 'Xã Hiệp Đức',            6),
+('district', 'Xã Việt An',             6),
+('district', 'Xã Phước Trà',           6),
+('district', 'Xã Khâm Đức',            6),
+('district', 'Xã Phước Năng',          6),
+('district', 'Xã Phước Chánh',         6),
+('district', 'Xã Phước Thành',         6),
+('district', 'Xã Phước Hiệp',          6),
+('district', 'Đặc khu Hoàng Sa',       6);
 
 -- 3. Properties
 INSERT INTO properties (property_code, title, description, property_type, status, province, district, area, price, created_by, assigned_to, created_at) VALUES
-('BDS-2024-0001', 'Căn hộ cao cấp 2PN tại Cầu Giấy',  'Căn hộ đẹp, view đẹp, nội thất đầy đủ, gần trường học, siêu thị', 'apartment', 'in_transaction', 'Hà Nội',      'Cầu Giấy',     75.5,  3500000000,  1, 2, CURRENT_TIMESTAMP),
-('BDS-2024-0002', 'Nhà riêng 4 tầng Đống Đa',          'Nhà đẹp, ô tô đỗ cửa, kinh doanh tốt',                            'house',     'published',     'Hà Nội',      'Đống Đa',     120.0,  8500000000,  1, 2, CURRENT_TIMESTAMP),
-('BDS-2024-0003', 'Biệt thự Vinhomes Riverside',        'Biệt thự sang trọng, view sông, có hồ bơi riêng',                 'villa',     'published',     'Hà Nội',      'Cầu Giấy',   250.0, 25000000000,  2, 2, CURRENT_TIMESTAMP),
-('BDS-2024-0004', 'Căn hộ 3PN Quận 2',                  'Căn hộ rộng rãi, view thành phố, nội thất cao cấp',               'apartment', 'published',     'Hồ Chí Minh', 'Quận 2',      95.0,  5500000000,  2, 3, CURRENT_TIMESTAMP),
-('BDS-2024-0005', 'Đất nền KDC Thủ Đức',                'Đất nền đẹp, vị trí đắc địa, sổ hồng riêng',                     'land',      'published',     'Hồ Chí Minh', 'Thủ Đức',    100.0,  4000000000,  1, 3, CURRENT_TIMESTAMP),
-('BDS-2024-0006', 'Shophouse Thanh Xuân',                'Shophouse 5 tầng, mặt tiền rộng, kinh doanh sầm uất',            'shophouse', 'published',     'Hà Nội',      'Thanh Xuân',  80.0, 12000000000,  1, 2, CURRENT_TIMESTAMP),
-('BDS-2024-0007', 'Căn hộ Studio Quận 1',                'Căn hộ mini, full nội thất, giá tốt cho sinh viên',              'apartment', 'published',     'Hồ Chí Minh', 'Quận 1',      35.0,  2000000000,  2, 3, CURRENT_TIMESTAMP),
-('BDS-2024-0008', 'Nhà phố Hai Bà Trưng',               'Nhà đẹp, hẻm xe hơi, gần chợ, trường học',                       'house',     'pending',       'Hà Nội',      'Hai Bà Trưng', 90.0, 7000000000,  1, 2, CURRENT_TIMESTAMP);
+('BDS-2024-0001', 'Căn hộ cao cấp 2PN ven sông Hàn',        'Căn hộ đẹp, view sông Hàn, nội thất đầy đủ, gần trường học và siêu thị',    'apartment', 'in_transaction', 'Đà Nẵng', 'Phường Hải Châu',      75.5,  3500000000,  1, 2, CURRENT_TIMESTAMP),
+('BDS-2024-0002', 'Nhà riêng 4 tầng trung tâm Thanh Khê',   'Nhà đẹp, ô tô đỗ cửa, thuận tiện kinh doanh và di chuyển vào trung tâm',     'house',     'published',      'Đà Nẵng', 'Phường Thanh Khê',     120.0,  8500000000,  1, 2, CURRENT_TIMESTAMP),
+('BDS-2024-0003', 'Biệt thự biển Sơn Trà',                  'Biệt thự sang trọng, gần biển, có hồ bơi riêng và không gian sân vườn',      'villa',     'published',      'Đà Nẵng', 'Phường Sơn Trà',       250.0, 25000000000,  2, 2, CURRENT_TIMESTAMP),
+('BDS-2024-0004', 'Căn hộ 3PN Ngũ Hành Sơn',                'Căn hộ rộng rãi, view thành phố, gần biển Mỹ Khê, nội thất cao cấp',         'apartment', 'published',      'Đà Nẵng', 'Phường Ngũ Hành Sơn',  95.0,  5500000000,  2, 3, CURRENT_TIMESTAMP),
+('BDS-2024-0005', 'Đất nền khu đô thị Cẩm Lệ',              'Đất nền đẹp, vị trí kết nối thuận tiện, pháp lý rõ ràng, sổ riêng',          'land',      'published',      'Đà Nẵng', 'Phường Cẩm Lệ',        100.0,  4000000000,  1, 3, CURRENT_TIMESTAMP),
+('BDS-2024-0006', 'Shophouse mặt tiền Liên Chiểu',          'Shophouse 5 tầng, mặt tiền rộng, phù hợp kinh doanh và cho thuê',            'shophouse', 'published',      'Đà Nẵng', 'Phường Liên Chiểu',    80.0, 12000000000,  1, 2, CURRENT_TIMESTAMP),
+('BDS-2024-0007', 'Căn hộ Studio gần đại học Đà Nẵng',      'Căn hộ mini, đầy đủ nội thất, giá tốt cho sinh viên và chuyên gia trẻ',      'apartment', 'published',      'Đà Nẵng', 'Phường Hải Châu',      35.0,  2000000000,  2, 3, CURRENT_TIMESTAMP),
+('BDS-2024-0008', 'Nhà vườn Hòa Vang',                      'Nhà đẹp, khu dân cư yên tĩnh, gần chợ và trường học, không gian thoáng',     'house',     'pending',        'Đà Nẵng', 'Xã Hòa Vang',          90.0, 7000000000,  1, 2, CURRENT_TIMESTAMP);
 
 -- 4. Property Images
 INSERT INTO property_images (property_id, url, is_primary) VALUES
@@ -274,8 +352,8 @@ INSERT INTO property_images (property_id, url, is_primary) VALUES
 
 -- 5. Customers
 INSERT INTO customers (user_id, customer_type, address, budget_max) VALUES
-(4, 'buyer', '123 Đường ABC, Quận 1, TP.HCM',       5000000000),
-(5, 'buyer', '456 Đường XYZ, Cầu Giấy, Hà Nội',    8000000000);
+(4, 'buyer', '123 Đường Bạch Đằng, phường Hải Châu, Đà Nẵng', 5000000000),
+(5, 'buyer', '456 Đường Nguyễn Văn Linh, phường Thanh Khê, Đà Nẵng', 8000000000);
 
 -- 6. Leads
 INSERT INTO leads (customer_name, customer_phone, property_id, assigned_to, status, created_at) VALUES

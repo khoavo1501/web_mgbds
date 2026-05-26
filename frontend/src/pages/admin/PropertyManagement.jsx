@@ -35,6 +35,31 @@ const propertyTypes = [
   { value: "rental", label: "Cho thuê" },
 ];
 
+const daNangAdministrativeUnits = [
+  "Phường Hải Châu", "Phường Hòa Cường", "Phường Thanh Khê", "Phường An Khê",
+  "Phường An Hải", "Phường Sơn Trà", "Phường Ngũ Hành Sơn", "Phường Hòa Khánh",
+  "Phường Hải Vân", "Phường Liên Chiểu", "Phường Cẩm Lệ", "Phường Hòa Xuân",
+  "Xã Hòa Vang", "Xã Hòa Tiến", "Xã Bà Nà", "Xã Núi Thành", "Xã Tam Mỹ",
+  "Xã Tam Anh", "Xã Đức Phú", "Xã Tam Xuân", "Xã Tam Hải",
+  "Phường Tam Kỳ", "Phường Quảng Phú", "Phường Hương Trà", "Phường Bàn Thạch",
+  "Xã Tây Hồ", "Xã Chiên Đàn", "Xã Phú Ninh", "Xã Lãnh Ngọc", "Xã Tiên Phước",
+  "Xã Thạnh Bình", "Xã Sơn Cẩm Hà", "Xã Trà Liên", "Xã Trà Giáp", "Xã Trà Tân",
+  "Xã Trà Đốc", "Xã Trà My", "Xã Nam Trà My", "Xã Trà Tập", "Xã Trà Vân",
+  "Xã Trà Linh", "Xã Trà Leng", "Xã Thăng Bình", "Xã Thăng An", "Xã Thăng Trường",
+  "Xã Thăng Điền", "Xã Thăng Phú", "Xã Đồng Dương", "Xã Quế Sơn Trung",
+  "Xã Quế Sơn", "Xã Xuân Phú", "Xã Nông Sơn", "Xã Quế Phước", "Xã Duy Nghĩa",
+  "Xã Nam Phước", "Xã Duy Xuyên", "Xã Thu Bồn",
+  "Phường Điện Bàn", "Phường Điện Bàn Đông", "Phường An Thắng", "Phường Điện Bàn Bắc",
+  "Xã Điện Bàn Tây", "Xã Gò Nổi",
+  "Phường Hội An", "Phường Hội An Đông", "Phường Hội An Tây",
+  "Xã Tân Hiệp", "Xã Đại Lộc", "Xã Hà Nha", "Xã Thượng Đức", "Xã Vu Gia",
+  "Xã Phú Thuận", "Xã Thạnh Mỹ", "Xã Bến Giằng", "Xã Nam Giang", "Xã Đắc Pring",
+  "Xã La Dêê", "Xã La Êê", "Xã Sông Vàng", "Xã Sông Kôn", "Xã Đông Giang",
+  "Xã Bến Hiên", "Xã Avương", "Xã Tây Giang", "Xã Hùng Sơn", "Xã Hiệp Đức",
+  "Xã Việt An", "Xã Phước Trà", "Xã Khâm Đức", "Xã Phước Năng", "Xã Phước Chánh",
+  "Xã Phước Thành", "Xã Phước Hiệp", "Đặc khu Hoàng Sa",
+];
+
 const statuses = [
   { value: "all", label: "Tất cả" },
   { value: "pending", label: "Chờ duyệt" },
@@ -122,7 +147,7 @@ export default function PropertyManagement() {
       title: property.title || "",
       description: property.description || "",
       propertyType: property.propertyType || "apartment",
-      province: property.province || "Đà Nẵng",
+      province: "Đà Nẵng",
       district: property.district || "",
       area: property.area || "",
       price: property.price || "",
@@ -217,7 +242,7 @@ export default function PropertyManagement() {
     title: formData.title.trim(),
     description: formData.description.trim(),
     propertyType: formData.propertyType,
-    province: formData.province.trim(),
+    province: "Đà Nẵng",
     district: formData.district.trim(),
     area: Number(formData.area),
     price: Number(formData.price),
@@ -570,23 +595,29 @@ function PropertyModal({
               </select>
             </Field>
 
-            <Field label="Tỉnh/Thành">
+            <Field label="Thành phố">
               <input
                 required
                 value={formData.province}
-                onChange={(event) => onFieldChange("province", event.target.value)}
+                readOnly
                 className="field-control"
               />
             </Field>
 
-            <Field label="Quận/Huyện">
-              <input
+            <Field label="Phường/Xã/Đặc khu">
+              <select
                 required
                 value={formData.district}
                 onChange={(event) => onFieldChange("district", event.target.value)}
                 className="field-control"
-                placeholder="VD: Hải Châu"
-              />
+              >
+                <option value="">Chọn phường/xã/đặc khu</option>
+                {daNangAdministrativeUnits.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {unit}
+                  </option>
+                ))}
+              </select>
             </Field>
 
             <Field label="Diện tích (m²)">

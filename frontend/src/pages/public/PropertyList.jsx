@@ -67,7 +67,7 @@ const quickFilters = [
 
 const heroStats = [
   { value: "10K+", label: "tin đăng" },
-  { value: "63", label: "tỉnh thành" },
+  { value: "94", label: "đơn vị cấp xã" },
   { value: "5K+", label: "khách hàng" },
 ];
 
@@ -318,7 +318,7 @@ export default function PropertyList() {
     });
   };
 
-  const activeLocation = searchParams.get("province") || "Việt Nam";
+  const activeLocation = searchParams.get("province") || "Đà Nẵng";
   const hasActiveFilters =
     filters.keyword ||
     filters.province ||
@@ -587,7 +587,7 @@ export default function PropertyList() {
                       {getPropertyTypeLabel(property.propertyType)}
                     </span>
                     <span className="absolute bottom-3 left-3 rounded-sm bg-white px-2.5 py-1 text-xs font-semibold text-slate-900">
-                      {property.province || "Hồ Chí Minh"}
+                      {property.province || "Đà Nẵng"}
                     </span>
                     <button
                       type="button"
