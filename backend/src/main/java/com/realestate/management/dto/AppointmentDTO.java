@@ -36,4 +36,8 @@ public class AppointmentDTO {
     private String contactName;
     private String contactPhone;
     private String contactEmail;
+    
+    // Cancellation info
+    private Long hoursUntilAppointment;
+    private Boolean isWithin24Hours;
 }

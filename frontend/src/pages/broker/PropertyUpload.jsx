@@ -50,12 +50,11 @@ const InputField = ({ label, required, icon: Icon, className = '', ...props }) =
 );
 
 const SectionCard = ({ num, title, icon: SIcon, children }) => (
-  <section className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100 hover:shadow-md transition-shadow duration-300">
-    <h3 className="text-base font-bold text-zinc-900 mb-5 flex items-center gap-3">
-      <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold shadow-sm">
+  <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+    <h3 className="text-base font-bold text-gray-900 mb-5 flex items-center gap-3">
+      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-900 text-white text-sm font-bold">
         {num}
       </span>
-      {SIcon && <SIcon className="w-4 h-4 text-zinc-400 -ml-1" />}
       {title}
     </h3>
     {children}
@@ -419,24 +418,24 @@ export default function PropertyUpload() {
       </AnimatePresence>
 
       {/* Page Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-extrabold text-zinc-900 tracking-tight mb-1">Đăng tin Bất Động Sản</h2>
-        <p className="text-sm text-zinc-500">Quản lý và đăng tin bất động sản của bạn.</p>
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Đăng tin Bất động sản</h2>
+        <p className="text-gray-600">Cung cấp đầy đủ thông tin về bất động sản được đăng bán, đảm bảo tính xác thực và pháp lý hợp lệ.</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl w-fit mb-8">
+      <div className="flex gap-3 mb-8">
         <button
           onClick={handleNewTabClick}
-          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-            activeTab === 'new' ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+          className={`flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all ${
+            activeTab === 'new' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-gray-300'
           }`}>
           <PenSquare className="w-4 h-4" /> {editingId ? 'Cập nhật tin' : 'Đăng tin mới'}
         </button>
         <button
           onClick={() => setActiveTab('list')}
-          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-            activeTab === 'list' ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+          className={`flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all ${
+            activeTab === 'list' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-gray-300'
           }`}>
           <List className="w-4 h-4" /> BĐS của tôi
         </button>
@@ -734,20 +733,69 @@ export default function PropertyUpload() {
           </div>
 
           {/* Preview + Actions */}
-          <div className="w-full xl:w-[400px] shrink-0 self-start sticky top-6">
-            <PropertyPreview data={debouncedPreview} />
-            <div className="mt-6 flex flex-col gap-3">
+          <div className="w-full xl:w-[420px] shrink-0 self-start sticky top-6 space-y-6">
+            {/* Preview Card */}
+            <div className="bg-white rounded-xl border-2 border-gray-200 p-5">
+              <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase">Xem trước tin đăng</h3>
+              <PropertyPreview data={debouncedPreview} />
+            </div>
+
+            {/* Checklist Card */}
+            <div className="bg-white rounded-xl border-2 border-gray-200 p-5">
+              <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase">Tiến độ nhập liệu</h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${formData.title && formData.type && formData.price && formData.area ? 'bg-green-500' : 'bg-gray-200'}`}>
+                    {formData.title && formData.type && formData.price && formData.area && (
+                      <CheckCircle2 className="w-3 h-3 text-white" />
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-700">Thông tin cơ bản</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${formData.description ? 'bg-green-500' : 'bg-gray-200'}`}>
+                    {formData.description && (
+                      <CheckCircle2 className="w-3 h-3 text-white" />
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-700">Mô tả & Tiện ích</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${formData.images.length > 0 ? 'bg-green-500' : 'bg-gray-200'}`}>
+                    {formData.images.length > 0 && (
+                      <CheckCircle2 className="w-3 h-3 text-white" />
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-700">Hình ảnh</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${formData.commitment ? 'bg-green-500' : 'bg-gray-200'}`}>
+                    {formData.commitment && (
+                      <CheckCircle2 className="w-3 h-3 text-white" />
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-700">Pháp lý</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-3">
               <button
-                type="submit" form="upload-form"
+                type="button"
+                onClick={handleSaveDraft}
+                disabled={isLocked}
+                className="w-full flex justify-center items-center gap-2 px-6 py-3 bg-white text-gray-700 font-bold rounded-lg border-2 border-gray-300 hover:bg-gray-50 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+                Lưu nháp
+              </button>
+              <button
+                type="submit"
+                form="upload-form"
                 disabled={isSubmitting || isLocked}
-                className="w-full flex justify-center items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-600/25 disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none">
+                className="w-full flex justify-center items-center gap-2 px-6 py-3.5 bg-gray-900 text-white font-bold rounded-lg hover:bg-gray-800 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
                 {isSubmitting
                   ? (<><Loader2 className="w-5 h-5 animate-spin" /> Đang xử lý...</>)
                   : (editingId ? 'Cập nhật tin ngay' : 'Đăng tin ngay')}
-              </button>
-              <button type="button" onClick={handleSaveDraft} disabled={isLocked}
-                className="w-full flex justify-center items-center gap-2 px-6 py-3.5 bg-white text-zinc-700 font-bold rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed">
-                Lưu nháp
               </button>
             </div>
           </div>

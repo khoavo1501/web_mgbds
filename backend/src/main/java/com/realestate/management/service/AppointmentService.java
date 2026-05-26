@@ -5,9 +5,11 @@ import com.realestate.management.dto.AppointmentRequest;
 import com.realestate.management.entity.Appointment;
 import com.realestate.management.entity.Property;
 import com.realestate.management.entity.User;
+import com.realestate.management.entity.Transaction;
 import com.realestate.management.repository.AppointmentRepository;
 import com.realestate.management.repository.PropertyRepository;
 import com.realestate.management.repository.UserRepository;
+import com.realestate.management.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,6 +30,18 @@ public class AppointmentService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ReputationService reputationService;
+
+    @Autowired
+    private NotificationService notificationService;
+
+    @Autowired
+    private TransactionService transactionService;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
 
     public List<AppointmentDTO> getMyAppointments() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -56,7 +70,7 @@ public class AppointmentService {
 
         // Check permission: only customer, broker of this appointment, or admin can view
         if (!appointment.getCustomer().getUserId().equals(currentUser.getUserId()) &&
-            (appointment.getBroker() == null || !appointment.getBroker().getUserId().equals(currentUser.getUserId())) &&
+            !appointment.getBroker().getUserId().equals(currentUser.getUserId()) &&
             !"admin".equalsIgnoreCase(currentUser.getRole())) {
             throw new RuntimeException("Không có quyền xem lịch hẹn này");
         }
@@ -74,22 +88,97 @@ public class AppointmentService {
                 .collect(Collectors.toList());
     }
 
+    public boolean canBookAppointment(Long propertyId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        User customer = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Kiểm tra xem customer đã có lịch hẹn chưa hoàn thành cho BĐS này chưa
+        boolean hasActiveAppointmentForProperty = appointmentRepository.findByCustomer(customer).stream()
+                .anyMatch(appointment ->
+                        appointment.getProperty().getPropertyId().equals(propertyId) &&
+                        ("pending".equalsIgnoreCase(appointment.getStatus()) ||
+                         "confirmed".equalsIgnoreCase(appointment.getStatus()) ||
+                         "scheduled".equalsIgnoreCase(appointment.getStatus()) ||
+                         "viewed".equalsIgnoreCase(appointment.getStatus()))
+                );
+
+        return !hasActiveAppointmentForProperty;
+    }
+
     @Transactional
     public AppointmentDTO createAppointment(AppointmentRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName();
         User customer = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Validate scheduledAt is required for creating appointment
+        if (request.getScheduledAt() == null) {
+            throw new RuntimeException("Thời gian không được để trống");
+        }
+
         Property property = propertyRepository.findById(request.getPropertyId())
                 .orElseThrow(() -> new RuntimeException("Property not found"));
 
         User broker = property.getAssignedTo();
-        // If broker is null, it's fine. Admin can manage it or assign later.
+        if (broker == null) {
+            throw new RuntimeException("Bất động sản này hiện chưa có broker phụ trách.");
+        }
 
+        // VALIDATION 0: Kiểm tra điểm uy tín
+        if (!reputationService.canBookAppointment(customer)) {
+            throw new RuntimeException("Bạn không thể đặt lịch do điểm uy tín quá thấp hoặc đã đạt giới hạn số lịch hẹn.");
+        }
+
+        // VALIDATION 1: Kiểm tra xem customer đã có lịch hẹn chưa hoàn thành cho BĐS này chưa
+        boolean hasActiveAppointmentForProperty = appointmentRepository.findByCustomer(customer).stream()
+                .anyMatch(appointment ->
+                        appointment.getProperty().getPropertyId().equals(property.getPropertyId()) &&
+                        ("pending".equalsIgnoreCase(appointment.getStatus()) ||
+                         "confirmed".equalsIgnoreCase(appointment.getStatus()) ||
+                         "scheduled".equalsIgnoreCase(appointment.getStatus()) ||
+                         "viewed".equalsIgnoreCase(appointment.getStatus()))
+                );
+
+        if (hasActiveAppointmentForProperty) {
+            throw new RuntimeException("Bạn đã có lịch hẹn chưa hoàn thành cho bất động sản này. Vui lòng hoàn thành hoặc hủy lịch cũ trước khi đặt lịch mới.");
+        }
+
+        // 🆕 VALIDATION 1.5: Kiểm tra xem customer có giao dịch pending_deposit chưa hết hạn cho BĐS này không
+        boolean hasPendingDepositTransaction = transactionRepository.findByProperty(property).stream()
+                .anyMatch(transaction ->
+                        transaction.getCustomer().getUserId().equals(customer.getUserId()) &&
+                        "pending_deposit".equalsIgnoreCase(transaction.getStatus()) &&
+                        transaction.getExpiredAt() != null &&
+                        transaction.getExpiredAt().isAfter(java.time.LocalDateTime.now())
+                );
+
+        if (hasPendingDepositTransaction) {
+            throw new RuntimeException("Bạn đã xem BĐS này và có giao dịch đang chờ đặt cọc. Vui lòng hoàn tất đặt cọc hoặc đợi giao dịch hết hạn (24h) trước khi đặt lịch xem lại.");
+        }
+
+        // VALIDATION 2: Kiểm tra xem customer đã đặt lịch trùng giờ ở BĐS khác chưa
+        boolean hasConflictingAppointment = appointmentRepository.findByCustomer(customer).stream()
+                .anyMatch(appointment ->
+                        request.getScheduledAt().equals(appointment.getScheduledAt()) &&
+                        ("pending".equalsIgnoreCase(appointment.getStatus()) ||
+                         "confirmed".equalsIgnoreCase(appointment.getStatus()) ||
+                         "scheduled".equalsIgnoreCase(appointment.getStatus()) ||
+                         "viewed".equalsIgnoreCase(appointment.getStatus()))
+                );
+
+        if (hasConflictingAppointment) {
+            throw new RuntimeException("Bạn đã có lịch hẹn khác vào thời gian này. Vui lòng chọn thời gian khác hoặc hủy lịch hẹn cũ.");
+        }
+
+        // VALIDATION 3: Kiểm tra xem khung giờ này đã có người khác đặt chưa
         boolean alreadyBooked = appointmentRepository.findByProperty(property).stream()
                 .anyMatch(appointment ->
                         request.getScheduledAt().equals(appointment.getScheduledAt()) &&
-                        !"cancelled".equalsIgnoreCase(appointment.getStatus())
+                        ("pending".equalsIgnoreCase(appointment.getStatus()) ||
+                         "confirmed".equalsIgnoreCase(appointment.getStatus()) ||
+                         "scheduled".equalsIgnoreCase(appointment.getStatus()) ||
+                         "viewed".equalsIgnoreCase(appointment.getStatus()))
                 );
 
         if (alreadyBooked) {
@@ -116,24 +205,157 @@ public class AppointmentService {
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Appointment not found"));
 
+        // Log for debugging
+        System.out.println("=== UPDATE APPOINTMENT DEBUG ===");
+        System.out.println("Current User ID: " + currentUser.getUserId());
+        System.out.println("Current User Email: " + currentUser.getEmail());
+        System.out.println("Current User Role: " + currentUser.getRole());
+        System.out.println("Appointment Customer ID: " + appointment.getCustomer().getUserId());
+        System.out.println("Appointment Broker ID: " + appointment.getBroker().getUserId());
+        System.out.println("Request Status: " + request.getStatus());
+        System.out.println("Request ScheduledAt: " + request.getScheduledAt());
+        System.out.println("================================");
+
         // Only customer or broker of this appointment or admin can update
         if (!appointment.getCustomer().getUserId().equals(currentUser.getUserId()) &&
-            (appointment.getBroker() == null || !appointment.getBroker().getUserId().equals(currentUser.getUserId())) &&
+            !appointment.getBroker().getUserId().equals(currentUser.getUserId()) &&
             !"admin".equalsIgnoreCase(currentUser.getRole())) {
+            System.out.println("PERMISSION DENIED: User " + currentUser.getUserId() + " cannot update appointment " + id);
             throw new RuntimeException("Không có quyền thay đổi lịch hẹn này");
         }
 
-        if (request.getScheduledAt() != null) {
-            appointment.setScheduledAt(request.getScheduledAt());
-            appointment.setStatus("pending"); // If date changed, reset to pending
-        }
-
+        // Update status first (if provided)
+        String oldStatus = appointment.getStatus();
         if (request.getStatus() != null) {
+            
+            // 🆕 VALIDATION: Chỉ môi giới mới có quyền xác nhận (confirmed, completed) hoặc từ chối (rejected) lịch hẹn
+            if (("confirmed".equalsIgnoreCase(request.getStatus()) || 
+                 "completed".equalsIgnoreCase(request.getStatus()) ||
+                 "rejected".equalsIgnoreCase(request.getStatus())) && 
+                !"broker".equalsIgnoreCase(currentUser.getRole()) &&
+                !"admin".equalsIgnoreCase(currentUser.getRole())) {
+                throw new RuntimeException("Chỉ môi giới mới có quyền xác nhận hoặc từ chối lịch hẹn");
+            }
+            
+            // 🆕 VALIDATION: Môi giới chỉ được xác nhận "completed" SAU NGÀY hẹn
+            if ("completed".equalsIgnoreCase(request.getStatus()) && 
+                "broker".equalsIgnoreCase(currentUser.getRole())) {
+                
+                java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                java.time.LocalDateTime scheduledTime = appointment.getScheduledAt();
+                
+                // Kiểm tra xem đã QUA NGÀY hẹn chưa (so sánh cả ngày và giờ)
+                if (scheduledTime != null && now.toLocalDate().isBefore(scheduledTime.toLocalDate())) {
+                    throw new RuntimeException(
+                        String.format("Chưa đến ngày xem nhà! Lịch hẹn: %s. Bạn chỉ có thể xác nhận hoàn thành từ ngày %s trở đi.",
+                            scheduledTime.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
+                            scheduledTime.toLocalDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                        )
+                    );
+                }
+            }
+            
             appointment.setStatus(request.getStatus());
+            
+            // 🆕 AUTO-CREATE TRANSACTION: Khi broker xác nhận "completed" (đã xem xong)
+            if ("completed".equalsIgnoreCase(request.getStatus()) && 
+                !"completed".equalsIgnoreCase(oldStatus) &&
+                "broker".equalsIgnoreCase(currentUser.getRole())) {
+                
+                try {
+                    // Tự động tạo giao dịch với thời hạn 24h để cọc
+                    transactionService.createTransactionFromCompletedAppointment(appointment);
+                    
+                    // Thông báo cho khách hàng
+                    notificationService.createNotification(
+                        appointment.getCustomer(),
+                        "appointment_completed_deposit_required",
+                        "Lịch xem nhà hoàn tất - Vui lòng đặt cọc",
+                        String.format(
+                            "Bạn đã xem xong bất động sản '%s'. Một giao dịch đã được tạo tự động. " +
+                            "Vui lòng đặt cọc trong vòng 24 giờ để giữ quyền mua. " +
+                            "Nếu không đặt cọc, bạn cần đặt lịch xem nhà lại để mua BĐS này.",
+                            appointment.getProperty().getTitle()
+                        ),
+                        "CUSTOMER"
+                    );
+                } catch (Exception e) {
+                    System.err.println("Failed to auto-create transaction: " + e.getMessage());
+                    // Không throw exception để không block việc update appointment
+                }
+            }
         }
 
+        // Update note (if provided)
         if (request.getNote() != null) {
             appointment.setNote(request.getNote());
+        }
+
+        // Only run reschedule logic if scheduledAt is actually being changed
+        if (request.getScheduledAt() != null && !request.getScheduledAt().equals(appointment.getScheduledAt())) {
+            // Lưu trạng thái cũ để kiểm tra (sử dụng biến oldStatus đã khai báo ở trên)
+            boolean isBrokerRescheduling = "broker".equalsIgnoreCase(currentUser.getRole());
+            
+            // VALIDATION: Kiểm tra xem customer có lịch hẹn trùng giờ ở BĐS khác không
+            boolean hasConflictingAppointment = appointmentRepository.findByCustomer(appointment.getCustomer()).stream()
+                    .anyMatch(apt ->
+                            !apt.getAppointmentId().equals(id) && // Không tính lịch hẹn hiện tại
+                            request.getScheduledAt().equals(apt.getScheduledAt()) &&
+                            ("pending".equalsIgnoreCase(apt.getStatus()) ||
+                             "confirmed".equalsIgnoreCase(apt.getStatus()) ||
+                             "scheduled".equalsIgnoreCase(apt.getStatus()) ||
+                             "viewed".equalsIgnoreCase(apt.getStatus()))
+                    );
+
+            if (hasConflictingAppointment) {
+                throw new RuntimeException("Khách hàng đã có lịch hẹn khác vào thời gian này. Vui lòng chọn thời gian khác.");
+            }
+
+            // VALIDATION: Kiểm tra xem khung giờ mới đã có người khác đặt chưa
+            boolean alreadyBooked = appointmentRepository.findByProperty(appointment.getProperty()).stream()
+                    .anyMatch(apt ->
+                            !apt.getAppointmentId().equals(id) && // Không tính lịch hẹn hiện tại
+                            request.getScheduledAt().equals(apt.getScheduledAt()) &&
+                            ("pending".equalsIgnoreCase(apt.getStatus()) ||
+                             "confirmed".equalsIgnoreCase(apt.getStatus()) ||
+                             "scheduled".equalsIgnoreCase(apt.getStatus()) ||
+                             "viewed".equalsIgnoreCase(apt.getStatus()))
+                    );
+
+            if (alreadyBooked) {
+                throw new RuntimeException("Khung giờ này đã có người đặt. Vui lòng chọn thời gian khác.");
+            }
+
+            // Xử lý điểm uy tín nếu là customer dời lịch đã confirmed
+            if (appointment.getCustomer().getUserId().equals(currentUser.getUserId()) &&
+                ("confirmed".equalsIgnoreCase(oldStatus) || 
+                 "scheduled".equalsIgnoreCase(oldStatus) || 
+                 "viewed".equalsIgnoreCase(oldStatus))) {
+                // Dời lịch đã confirmed cũng trừ điểm (nhưng ít hơn hủy)
+                reputationService.handleRescheduleAppointment(appointment, request.getNote());
+            }
+
+            // Nếu môi giới dời lịch, gửi thông báo cho khách hàng
+            if (isBrokerRescheduling) {
+                String newDateTime = request.getScheduledAt().toString();
+                String notificationMessage = String.format(
+                    "Môi giới %s đã đề xuất dời lịch hẹn xem '%s' sang %s. Vui lòng xác nhận lại lịch hẹn mới.",
+                    appointment.getBroker().getFullName(),
+                    appointment.getProperty().getTitle(),
+                    newDateTime
+                );
+                
+                notificationService.createNotification(
+                    appointment.getCustomer(),
+                    "appointment_rescheduled",
+                    "Lịch hẹn được đề xuất dời",
+                    notificationMessage,
+                    "customer"
+                );
+            }
+
+            appointment.setScheduledAt(request.getScheduledAt());
+            appointment.setStatus("pending"); // Reset to pending - customer needs to confirm
         }
 
         return convertToDTO(appointmentRepository.save(appointment));
@@ -150,13 +372,56 @@ public class AppointmentService {
 
         // Only customer or broker of this appointment or admin can cancel
         if (!appointment.getCustomer().getUserId().equals(currentUser.getUserId()) &&
-            (appointment.getBroker() == null || !appointment.getBroker().getUserId().equals(currentUser.getUserId())) &&
+            !appointment.getBroker().getUserId().equals(currentUser.getUserId()) &&
             !"admin".equalsIgnoreCase(currentUser.getRole())) {
             throw new RuntimeException("Không có quyền hủy lịch hẹn này");
         }
 
+        // Check if appointment is already completed or cancelled
+        if ("completed".equalsIgnoreCase(appointment.getStatus())) {
+            throw new RuntimeException("Không thể hủy lịch hẹn đã hoàn thành");
+        }
+
+        if ("cancelled".equalsIgnoreCase(appointment.getStatus())) {
+            throw new RuntimeException("Lịch hẹn này đã được hủy trước đó");
+        }
+
+        // Xử lý điểm uy tín nếu là customer hủy
+        if (appointment.getCustomer().getUserId().equals(currentUser.getUserId())) {
+            reputationService.handleCancelAppointment(appointment, appointment.getNote());
+        }
+
         appointment.setStatus("cancelled");
         appointmentRepository.save(appointment);
+    }
+
+    public AppointmentDTO getCancellationInfo(Long id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        User currentUser = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+
+        // Check permission
+        if (!appointment.getCustomer().getUserId().equals(currentUser.getUserId()) &&
+            !appointment.getBroker().getUserId().equals(currentUser.getUserId()) &&
+            !"admin".equalsIgnoreCase(currentUser.getRole())) {
+            throw new RuntimeException("Không có quyền xem thông tin lịch hẹn này");
+        }
+
+        AppointmentDTO dto = convertToDTO(appointment);
+        
+        // Calculate hours until appointment
+        long hoursUntilAppointment = java.time.Duration.between(
+            java.time.LocalDateTime.now(),
+            appointment.getScheduledAt()
+        ).toHours();
+        
+        dto.setHoursUntilAppointment(hoursUntilAppointment);
+        dto.setIsWithin24Hours(hoursUntilAppointment < 24 && hoursUntilAppointment > 0);
+        
+        return dto;
     }
 
     private AppointmentDTO convertToDTO(Appointment appointment) {
@@ -187,11 +452,9 @@ public class AppointmentService {
         dto.setCustomerEmail(appointment.getCustomer().getEmail());
         
         // Broker info
-        if (appointment.getBroker() != null) {
-            dto.setBrokerId(appointment.getBroker().getUserId());
-            dto.setBrokerName(appointment.getBroker().getFullName());
-            dto.setBrokerEmail(appointment.getBroker().getEmail());
-        }
+        dto.setBrokerId(appointment.getBroker().getUserId());
+        dto.setBrokerName(appointment.getBroker().getFullName());
+        dto.setBrokerEmail(appointment.getBroker().getEmail());
         
         // Contact info (nếu có, nếu không dùng customer info)
         dto.setContactName(appointment.getCustomer().getFullName());

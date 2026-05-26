@@ -17,12 +17,15 @@ import {
   ShieldCheck,
   Square,
   Upload,
+  AlertCircle,
 } from "lucide-react";
 import api from "../../services/api";
 import AnimatedTimeline from "../../components/AnimatedTimeline";
+import CountdownTimer from "../../components/common/CountdownTimer";
 
 const activeStatuses = new Set([
   "pending",
+  "pending_deposit",
   "customer_confirmed",
   "documents_submitted",
   "documents_verified",
@@ -35,6 +38,7 @@ const activeStatuses = new Set([
 
 const statusLabels = {
   pending: "Chờ khách xác nhận",
+  pending_deposit: "Chờ đặt cọc",
   customer_confirmed: "Đã xác nhận mua",
   documents_submitted: "Chờ kiểm tra hồ sơ",
   documents_verified: "Hồ sơ hợp lệ",
@@ -64,6 +68,7 @@ const methodLabels = {
 
 const statusStyles = {
   pending: "bg-amber-50 text-amber-800 ring-amber-200",
+  pending_deposit: "bg-orange-50 text-orange-800 ring-orange-200",
   customer_confirmed: "bg-blue-50 text-blue-700 ring-blue-200",
   documents_submitted: "bg-amber-50 text-amber-800 ring-amber-200",
   documents_verified: "bg-sky-50 text-sky-700 ring-sky-200",
@@ -744,48 +749,6 @@ function PaymentPanel({ transaction, submitting, onCopy, files, setFiles, onSubm
         {isSubmitted ? "Đang chờ admin xác nhận" : "Tôi đã chuyển khoản"}
       </button>
     </Panel>
-  );
-}
-
-function CountdownTimer({ expiredAt }) {
-  const [timeLeft, setTimeLeft] = useState("");
-
-  useEffect(() => {
-    const updateTimer = () => {
-      const now = new Date().getTime();
-      const expiration = new Date(expiredAt).getTime();
-      const diff = expiration - now;
-
-      if (diff <= 0) {
-        setTimeLeft("Đã hết hạn");
-        return;
-      }
-
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      
-      setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [expiredAt]);
-
-  return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <Clock3 className="h-5 w-5 text-red-600" />
-        <div>
-          <h4 className="text-sm font-bold text-red-800">Thời gian giữ chỗ còn lại</h4>
-          <p className="text-xs text-red-600 font-medium mt-0.5">Vui lòng hoàn thành hồ sơ và thanh toán trước khi hết hạn.</p>
-        </div>
-      </div>
-      <div className="text-2xl font-black text-red-700 tracking-wider font-mono bg-white px-4 py-2 rounded-lg border border-red-100 shadow-sm">
-        {timeLeft}
-      </div>
-    </div>
   );
 }
 

@@ -104,6 +104,21 @@ public class TransactionController {
         }
     }
 
+    /**
+     * 🆕 POST /api/transactions/{id}/submit-deposit
+     * Khách hàng submit deposit payment cho giao dịch pending_deposit
+     */
+    @PostMapping("/{id}/submit-deposit")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<TransactionDTO>> submitDepositPayment(@PathVariable Long id) {
+        try {
+            TransactionDTO updated = transactionService.submitDepositPayment(id);
+            return ResponseEntity.ok(ApiResponse.success("Đã nộp tiền cọc thành công, chờ admin xác nhận", updated));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @PatchMapping("/{id}/confirm-purchase")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<TransactionDTO>> confirmPurchase(@PathVariable Long id) {

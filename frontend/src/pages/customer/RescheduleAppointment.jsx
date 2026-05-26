@@ -4,11 +4,13 @@ import { ArrowLeft, Calendar, MapPin, AlertCircle } from 'lucide-react';
 import api from '../../services/api';
 import { updateAppointment } from '../../services/appointmentService';
 import { useAuth } from '../../context/AuthContext';
+import { useReputation } from '../../context/ReputationContext';
 
 export default function RescheduleAppointment() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { refreshScore } = useReputation();
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -99,6 +101,8 @@ export default function RescheduleAppointment() {
 
       const response = await updateAppointment(id, payload);
       if (response.success) {
+        // Refresh điểm uy tín
+        refreshScore();
         alert('Dời lịch thành công! Vui lòng chờ môi giới xác nhận lại.');
         navigate('/customer/appointments');
       }
