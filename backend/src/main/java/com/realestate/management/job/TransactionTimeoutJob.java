@@ -25,7 +25,7 @@ public class TransactionTimeoutJob {
     public void cancelExpiredTransactions() {
         LocalDateTime now = LocalDateTime.now();
         List<Transaction> pendingTransactions = transactionRepository.findByStatusIn(
-                List.of("pending", "customer_confirmed", "documents_verified")
+                List.of("pending", "pending_deposit", "customer_confirmed", "documents_verified")
         );
 
         for (Transaction tx : pendingTransactions) {

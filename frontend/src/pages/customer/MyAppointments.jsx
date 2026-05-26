@@ -176,6 +176,25 @@ const MyAppointments = () => {
           <div className="space-y-6">
             {appointments.map((appointment) => (
               <div key={appointment.appointmentId} className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                {/* Alert Banner for Pending Appointments */}
+                {appointment.status === 'pending' && (
+                  <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4">
+                    <div className="flex items-start gap-3 text-white">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-lg mb-1">⏳ Đang chờ môi giới xác nhận</h4>
+                        <p className="text-sm text-amber-50">
+                          Lịch hẹn của bạn đang chờ môi giới xác nhận. Bạn sẽ nhận được thông báo khi lịch hẹn được xác nhận.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex flex-col md:flex-row">
                   {/* Property Image */}
                   <div className="md:w-72 h-64 md:h-auto bg-gray-200 flex-shrink-0">

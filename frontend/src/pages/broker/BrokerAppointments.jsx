@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
-  Calendar, Clock, MapPin, User, Phone, Mail, 
-  CheckCircle, XCircle, Eye, Filter
+  Calendar, Clock, MapPin, User, Phone, 
+  CheckCircle, XCircle, Eye, Filter, MoreVertical, Edit
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
@@ -48,16 +48,46 @@ export default function BrokerAppointments() {
 
   const getStatusBadge = (status) => {
     const badges = {
-      pending: { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200', label: 'Chờ xác nhận' },
-      confirmed: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', label: 'Đã xác nhận' },
-      scheduled: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', label: 'Đã lên lịch' },
-      completed: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', label: 'Hoàn tất' },
-      cancelled: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', label: 'Đã hủy' },
-      rejected: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', label: 'Bị từ chối' }
+      pending: { 
+        bg: 'bg-amber-50', 
+        text: 'text-amber-700',
+        label: 'Chờ xác nhận' 
+      },
+      confirmed: { 
+        bg: 'bg-emerald-50', 
+        text: 'text-emerald-700',
+        label: 'Đã xác nhận' 
+      },
+      scheduled: { 
+        bg: 'bg-emerald-50', 
+        text: 'text-emerald-700',
+        label: 'Đã xác nhận' 
+      },
+      viewed: { 
+        bg: 'bg-emerald-50', 
+        text: 'text-emerald-700',
+        label: 'Đã xác nhận' 
+      },
+      completed: { 
+        bg: 'bg-slate-100', 
+        text: 'text-slate-700',
+        label: 'Hoàn tất' 
+      },
+      cancelled: { 
+        bg: 'bg-red-50', 
+        text: 'text-red-700',
+        label: 'Đã hủy' 
+      },
+      rejected: { 
+        bg: 'bg-red-50', 
+        text: 'text-red-700',
+        label: 'Từ chối' 
+      }
     };
     const badge = badges[status] || badges.pending;
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-bold border ${badge.bg} ${badge.text} ${badge.border}`}>
+      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${badge.bg} ${badge.text}`}>
+        <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
         {badge.label}
       </span>
     );
@@ -65,229 +95,249 @@ export default function BrokerAppointments() {
 
   const filteredAppointments = appointments.filter(apt => {
     if (filter === 'all') return true;
-    if (filter === 'upcoming') return apt.status === 'pending' || apt.status === 'confirmed' || apt.status === 'scheduled';
+    if (filter === 'upcoming') {
+      return (apt.status === 'pending' || apt.status === 'confirmed' || 
+              apt.status === 'scheduled' || apt.status === 'viewed');
+    }
+    if (filter === 'confirmed') {
+      return apt.status === 'confirmed' || apt.status === 'scheduled' || apt.status === 'viewed';
+    }
     return apt.status === filter;
   });
 
-  const stats = {
-    total: appointments.length,
-    pending: appointments.filter(a => a.status === 'pending').length,
-    confirmed: appointments.filter(a => a.status === 'confirmed' || a.status === 'scheduled').length,
-    completed: appointments.filter(a => a.status === 'completed').length
-  };
-
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex justify-center items-center h-screen bg-slate-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-200 border-t-slate-900 mx-auto mb-4"></div>
+          <p className="text-slate-600 font-medium">Đang tải...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Quản lý lịch hẹn</h1>
-        <p className="text-gray-600 mt-2">Xem và quản lý lịch hẹn của khách hàng</p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <Calendar className="w-8 h-8 opacity-80" />
-            <span className="text-3xl font-bold">{stats.total}</span>
-          </div>
-          <p className="text-blue-100 text-sm font-medium">Tổng lịch hẹn</p>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý Lịch hẹn</h1>
+          <p className="text-gray-600">Theo dõi và quản lý các cuộc hẹn xem nhà của khách hàng.</p>
         </div>
 
-        <div className="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <Clock className="w-8 h-8 opacity-80" />
-            <span className="text-3xl font-bold">{stats.pending}</span>
-          </div>
-          <p className="text-yellow-100 text-sm font-medium">Chờ xác nhận</p>
-        </div>
-
-        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <CheckCircle className="w-8 h-8 opacity-80" />
-            <span className="text-3xl font-bold">{stats.confirmed}</span>
-          </div>
-          <p className="text-green-100 text-sm font-medium">Đã xác nhận</p>
-        </div>
-
-        <div className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-2xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <CheckCircle className="w-8 h-8 opacity-80" />
-            <span className="text-3xl font-bold">{stats.completed}</span>
-          </div>
-          <p className="text-gray-100 text-sm font-medium">Hoàn tất</p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-        <div className="flex items-center gap-3">
-          <Filter className="w-5 h-5 text-gray-400" />
-          <div className="flex gap-2 flex-wrap">
+        {/* Filter Tabs */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1.5 mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${
                 filter === 'all' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gray-900 text-white' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
-              Tất cả
+              Tất cả ({appointments.length})
             </button>
             <button
               onClick={() => setFilter('upcoming')}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${
                 filter === 'upcoming' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gray-900 text-white' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
-              Sắp tới
+              Sắp tới ({appointments.filter(a => ['pending', 'confirmed', 'scheduled'].includes(a.status)).length})
             </button>
             <button
               onClick={() => setFilter('pending')}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${
                 filter === 'pending' 
-                  ? 'bg-yellow-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gray-900 text-white' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
-              Chờ xác nhận
+              Chờ xác nhận ({appointments.filter(a => a.status === 'pending').length})
             </button>
             <button
               onClick={() => setFilter('confirmed')}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${
                 filter === 'confirmed' 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gray-900 text-white' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
-              Đã xác nhận
+              Đã xác nhận ({appointments.filter(a => ['confirmed', 'scheduled'].includes(a.status)).length})
             </button>
             <button
               onClick={() => setFilter('completed')}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${
                 filter === 'completed' 
-                  ? 'bg-gray-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gray-900 text-white' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
-              Hoàn tất
+              Hoàn tất ({appointments.filter(a => a.status === 'completed').length})
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button className="p-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+              <Filter className="w-5 h-5 text-gray-600" />
+            </button>
+            <button className="p-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+              <Calendar className="w-5 h-5 text-gray-600" />
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Appointments Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Appointments Grid */}
         {filteredAppointments.length === 0 ? (
-          <div className="col-span-2 text-center py-12 bg-white rounded-xl shadow-sm">
-            <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 font-medium">Không có lịch hẹn nào</p>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Không có lịch hẹn</h3>
+            <p className="text-gray-600 text-sm">Chưa có lịch hẹn nào trong danh mục này</p>
           </div>
         ) : (
-          filteredAppointments.map((appointment) => (
-            <div key={appointment.appointmentId} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100">
-              <div className="p-6">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-blue-600" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {filteredAppointments.map((appointment) => (
+              <div 
+                key={appointment.appointmentId} 
+                className="bg-white rounded-xl shadow-sm border-2 border-gray-200 hover:border-gray-300 transition-all overflow-hidden"
+              >
+                {/* Card Header - Customer Info */}
+                <div className="p-5 border-b border-gray-100 bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-white text-lg ${
+                        appointment.status === 'pending' ? 'bg-yellow-500' :
+                        appointment.status === 'confirmed' || appointment.status === 'scheduled' ? 'bg-green-500' :
+                        appointment.status === 'completed' ? 'bg-gray-500' :
+                        'bg-gray-400'
+                      }`}>
+                        {appointment.customerName?.charAt(0).toUpperCase() || 'K'}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 text-base">{appointment.customerName}</h3>
+                        <p className="text-sm text-gray-600 flex items-center gap-1.5 mt-0.5">
+                          <Phone className="w-3.5 h-3.5" />
+                          {appointment.customerPhone}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-lg">{appointment.customerName}</h3>
-                      <p className="text-sm text-gray-600 flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {appointment.customerPhone}
-                      </p>
-                    </div>
+                    {getStatusBadge(appointment.status)}
                   </div>
-                  {getStatusBadge(appointment.status)}
                 </div>
 
                 {/* Property Info */}
-                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                  <p className="font-semibold text-gray-900 mb-1">{appointment.propertyTitle}</p>
-                  <p className="text-sm text-gray-600 flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    {appointment.propertyAddress}
-                  </p>
-                </div>
-
-                {/* Time */}
-                <div className="flex items-center gap-4 mb-4 text-sm">
-                  <div className="flex items-center gap-2 text-gray-700">
-                    <Calendar className="w-4 h-4 text-blue-600" />
-                    <span className="font-medium">
-                      {new Date(appointment.scheduledAt).toLocaleDateString('vi-VN')}
-                    </span>
+                <div className="p-5">
+                  <div className="flex gap-3 mb-4">
+                    {appointment.propertyImage && (
+                      <img 
+                        src={appointment.propertyImage} 
+                        alt={appointment.propertyTitle}
+                        className="w-24 h-24 rounded-lg object-cover flex-shrink-0 border border-gray-200"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-gray-900 text-base mb-2 line-clamp-2">
+                        {appointment.propertyTitle}
+                      </h4>
+                      <p className="text-sm text-gray-600 flex items-start gap-1.5 mb-2">
+                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <span className="line-clamp-1">{appointment.propertyAddress}</span>
+                      </p>
+                      <div className="flex items-center gap-3 text-sm text-gray-600">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-4 h-4" />
+                          <span>
+                            {new Date(appointment.scheduledAt).toLocaleDateString('vi-VN', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-4 h-4" />
+                          <span>
+                            {new Date(appointment.scheduledAt).toLocaleTimeString('vi-VN', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-700">
-                    <Clock className="w-4 h-4 text-blue-600" />
-                    <span className="font-medium">
-                      {new Date(appointment.scheduledAt).toLocaleTimeString('vi-VN', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </span>
-                  </div>
-                </div>
 
-                {/* Note */}
-                {appointment.note && (
-                  <div className="mb-4 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                    <p className="text-sm text-gray-700 italic">"{appointment.note}"</p>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-4 border-t">
-                  {appointment.status === 'pending' && (
-                    <>
-                      <button
-                        onClick={() => handleUpdateStatus(appointment.appointmentId, 'confirmed')}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Xác nhận
-                      </button>
-                      <button
-                        onClick={() => handleUpdateStatus(appointment.appointmentId, 'rejected')}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Từ chối
-                      </button>
-                    </>
+                  {/* Note */}
+                  {appointment.note && (
+                    <div className="mb-4 p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
+                      <p className="text-sm text-gray-700 italic line-clamp-2">
+                        "{appointment.note}"
+                      </p>
+                    </div>
                   )}
-                  {(appointment.status === 'confirmed' || appointment.status === 'scheduled') && (
-                    <button
-                      onClick={() => handleUpdateStatus(appointment.appointmentId, 'completed')}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Đánh dấu hoàn tất
-                    </button>
-                  )}
-                  <button
-                    onClick={() => navigate(`/customer/appointments/${appointment.appointmentId}`)}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold text-sm"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
+
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    {appointment.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleUpdateStatus(appointment.appointmentId, 'confirmed')}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-bold text-sm"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Xác nhận
+                        </button>
+                        <button
+                          onClick={() => handleUpdateStatus(appointment.appointmentId, 'rejected')}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-colors font-bold text-sm border-2 border-red-300"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Từ chối
+                        </button>
+                        <button className="px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                    {(appointment.status === 'confirmed' || appointment.status === 'scheduled') && (
+                      <>
+                        <button
+                          onClick={() => navigate(`/broker/appointments/${appointment.appointmentId}`)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-bold text-sm"
+                        >
+                          <Eye className="w-4 h-4" />
+                          Chi tiết & Liên hệ lại
+                        </button>
+                        <button className="px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                    {appointment.status === 'completed' && (
+                      <>
+                        <button
+                          onClick={() => navigate(`/broker/appointments/${appointment.appointmentId}`)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-bold text-sm"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Chấp nhận
+                        </button>
+                        <button className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-colors font-bold text-sm border-2 border-red-300">
+                          <XCircle className="w-4 h-4" />
+                          Hủy yêu cầu
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </div>

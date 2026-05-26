@@ -809,4 +809,116 @@ public class TransactionService {
             throw new RuntimeException("Không thể lưu hồ sơ: " + e.getMessage());
         }
     }
+
+    /**
+     * 🆕 Tự động tạo giao dịch khi broker xác nhận hoàn thành xem nhà
+     * Giao dịch có thời hạn 24h để khách hàng đặt cọc
+     */
+    @Transactional
+    public TransactionDTO createTransactionFromCompletedAppointment(Appointment appointment) {
+        Property property = appointment.getProperty();
+        
+        // Kiểm tra BĐS còn available không
+        if (!"published".equalsIgnoreCase(property.getStatus())) {
+            throw new RuntimeException("BĐS này không còn ở trạng thái có thể giao dịch");
+        }
+
+        // Kiểm tra xem đã có giao dịch chưa hoàn tất chưa
+        boolean hasOpenTransaction = transactionRepository.findByProperty(property).stream()
+                .anyMatch(transaction -> !"completed".equalsIgnoreCase(transaction.getStatus())
+                        && !"cancelled".equalsIgnoreCase(transaction.getStatus())
+                        && !"refunded".equalsIgnoreCase(transaction.getStatus()));
+        
+        if (hasOpenTransaction) {
+            throw new RuntimeException("BĐS này đang có giao dịch chưa hoàn tất");
+        }
+
+        // Tính tiền cọc 10%
+        java.math.BigDecimal depositAmount = property.getPrice().multiply(new java.math.BigDecimal("0.10"));
+        
+        // Tạo giao dịch
+        Transaction transaction = new Transaction();
+        transaction.setTransactionCode(generateTransactionCode());
+        transaction.setProperty(property);
+        transaction.setCustomer(appointment.getCustomer());
+        transaction.setBroker(appointment.getBroker());
+        transaction.setAppointment(appointment);
+        transaction.setTotalPrice(property.getPrice());
+        transaction.setDepositAmount(depositAmount);
+        transaction.setStatus("pending_deposit"); // Trạng thái chờ đặt cọc
+        transaction.setTransactionDate(LocalDate.now());
+        transaction.setExpiredAt(java.time.LocalDateTime.now().plusHours(24)); // 24h để đặt cọc
+
+        Transaction saved = transactionRepository.save(transaction);
+
+        // Tạo commission cho broker (pending)
+        Commission commission = new Commission();
+        commission.setTransaction(saved);
+        commission.setUser(appointment.getBroker());
+        commission.setAmount(calculateBrokerCommission(property.getPrice()));
+        commission.setStatus("pending");
+        commissionRepository.save(commission);
+
+        // Đánh dấu BĐS đang trong quá trình giao dịch
+        property.setStatus("in_transaction");
+        propertyRepository.save(property);
+
+        auditLogService.log(null, saved.getStatus(), "AUTO_CREATE_TRANSACTION_FROM_APPOINTMENT", "Transaction", saved.getTransactionId());
+
+        return convertToDTO(saved);
+    }
+
+    /**
+     * 🆕 Khách hàng submit deposit payment cho giao dịch pending_deposit
+     */
+    @Transactional
+    public TransactionDTO submitDepositPayment(Long transactionId) {
+        User currentUser = getCurrentUser();
+        
+        Transaction transaction = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giao dịch ID: " + transactionId));
+
+        // Kiểm tra quyền
+        if (!transaction.getCustomer().getUserId().equals(currentUser.getUserId())) {
+            throw new RuntimeException("Chỉ khách hàng của giao dịch mới được đặt cọc");
+        }
+
+        // Kiểm tra trạng thái
+        if (!"pending_deposit".equalsIgnoreCase(transaction.getStatus())) {
+            throw new RuntimeException("Giao dịch không ở trạng thái chờ đặt cọc");
+        }
+
+        // Kiểm tra hết hạn chưa
+        if (transaction.getExpiredAt() != null && transaction.getExpiredAt().isBefore(java.time.LocalDateTime.now())) {
+            throw new RuntimeException("Giao dịch đã hết hạn. Vui lòng đặt lịch xem nhà lại.");
+        }
+
+        // Tạo payment record
+        TransactionPayment depositPayment = new TransactionPayment();
+        depositPayment.setTransaction(transaction);
+        depositPayment.setAmount(transaction.getDepositAmount());
+        depositPayment.setPaymentMethod("transfer");
+        depositPayment.setPaymentStatus("submitted"); // Chờ admin xác nhận
+        depositPayment.setPaymentDate(LocalDate.now());
+        transactionPaymentRepository.save(depositPayment);
+
+        // Cập nhật trạng thái giao dịch
+        transaction.setStatus("payment_submitted");
+        transaction.setExpiredAt(null); // Xóa deadline vì đã submit
+        Transaction saved = transactionRepository.save(transaction);
+
+        auditLogService.log("pending_deposit", "payment_submitted", "SUBMIT_DEPOSIT_PAYMENT", "Transaction", saved.getTransactionId());
+
+        // Thông báo cho broker và admin
+        notificationService.createNotification(
+            transaction.getBroker(),
+            "deposit_submitted",
+            "Khách hàng đã đặt cọc",
+            String.format("Khách hàng %s đã nộp tiền cọc cho giao dịch %s. Vui lòng theo dõi.", 
+                transaction.getCustomer().getFullName(), transaction.getTransactionCode()),
+            "BROKER"
+        );
+
+        return convertToDTO(saved);
+    }
 }

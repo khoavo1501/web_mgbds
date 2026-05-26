@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Calendar, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, AlertTriangle, Clock, Shield } from 'lucide-react';
 import api from '../../services/api';
 import { cancelAppointment } from '../../services/appointmentService';
+import { useReputation } from '../../context/ReputationContext';
 
 export default function CancelAppointment() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { refreshScore } = useReputation();
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedReason, setSelectedReason] = useState('');
   const [customReason, setCustomReason] = useState('');
+  const [cancellationInfo, setCancellationInfo] = useState(null);
 
   const cancelReasons = [
     'Tôi đã đổi ý',
@@ -26,9 +29,16 @@ export default function CancelAppointment() {
   const fetchAppointmentDetail = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/appointments/${id}`);
+      // Gọi API mới để lấy thông tin chi tiết về việc hủy
+      const response = await api.get(`/appointments/${id}/cancellation-info`);
       if (response.data.success) {
-        setAppointment(response.data.data);
+        const data = response.data.data;
+        setAppointment(data);
+        setCancellationInfo({
+          hoursUntilAppointment: data.hoursUntilAppointment,
+          isWithin24Hours: data.isWithin24Hours,
+          status: data.status
+        });
       }
     } catch (error) {
       console.error('Error fetching appointment:', error);
@@ -39,14 +49,85 @@ export default function CancelAppointment() {
     }
   };
 
-  const handleCancel = async () => {
-    let reason = selectedReason;
+  const isConfirmedStatus = () => {
+    return appointment && (
+      appointment.status === 'confirmed' || 
+      appointment.status === 'scheduled' ||
+      appointment.status === 'viewed'
+    );
+  };
+
+  const getWarningLevel = () => {
+    if (!cancellationInfo) return 'low';
     
-    if (!reason) {
+    if (cancellationInfo.isWithin24Hours && isConfirmedStatus()) {
+      return 'critical'; // Hủy trong 24h và đã confirmed
+    } else if (isConfirmedStatus()) {
+      return 'high'; // Đã confirmed nhưng còn > 24h
+    } else if (cancellationInfo.isWithin24Hours) {
+      return 'medium'; // Trong 24h nhưng chưa confirmed
+    }
+    return 'low'; // Pending và còn xa
+  };
+
+  const getWarningMessage = () => {
+    const level = getWarningLevel();
+    
+    switch (level) {
+      case 'critical':
+        return {
+          title: '⚠️ Cảnh báo nghiêm trọng',
+          message: 'Bạn đang hủy lịch hẹn ĐÃ XÁC NHẬN trong vòng 24 giờ. Hành động này sẽ ảnh hưởng NGHIÊM TRỌNG đến điểm uy tín của bạn và có thể bị hạn chế đặt lịch trong tương lai.',
+          bgColor: 'bg-red-50',
+          borderColor: 'border-red-300',
+          textColor: 'text-red-900',
+          iconBg: 'bg-red-100',
+          iconColor: 'text-red-600'
+        };
+      case 'high':
+        return {
+          title: '⚠️ Cảnh báo quan trọng',
+          message: 'Lịch hẹn này đã được môi giới xác nhận. Việc hủy lịch sẽ ảnh hưởng đến điểm uy tín của bạn và gây bất tiện cho môi giới đã sắp xếp thời gian.',
+          bgColor: 'bg-orange-50',
+          borderColor: 'border-orange-300',
+          textColor: 'text-orange-900',
+          iconBg: 'bg-orange-100',
+          iconColor: 'text-orange-600'
+        };
+      case 'medium':
+        return {
+          title: 'Lưu ý',
+          message: 'Bạn đang hủy lịch hẹn trong vòng 24 giờ. Điều này có thể gây bất tiện cho môi giới. Vui lòng cân nhắc kỹ trước khi hủy.',
+          bgColor: 'bg-yellow-50',
+          borderColor: 'border-yellow-300',
+          textColor: 'text-yellow-900',
+          iconBg: 'bg-yellow-100',
+          iconColor: 'text-yellow-600'
+        };
+      default:
+        return {
+          title: 'Thông tin',
+          message: 'Lịch hẹn chưa được xác nhận. Bạn có thể hủy lịch mà không ảnh hưởng đến điểm uy tín.',
+          bgColor: 'bg-blue-50',
+          borderColor: 'border-blue-200',
+          textColor: 'text-blue-900',
+          iconBg: 'bg-blue-100',
+          iconColor: 'text-blue-600'
+        };
+    }
+  };
+
+  const handleCancel = async () => {
+    const warningLevel = getWarningLevel();
+    
+    // Bắt buộc phải chọn lý do nếu đã confirmed
+    if (isConfirmedStatus() && !selectedReason) {
       alert('Vui lòng chọn lý do hủy lịch');
       return;
     }
 
+    let reason = selectedReason;
+    
     if (reason === 'Lý do khác') {
       if (!customReason.trim()) {
         alert('Vui lòng nhập lý do hủy');
@@ -55,13 +136,24 @@ export default function CancelAppointment() {
       reason = customReason;
     }
 
-    if (!window.confirm('Bạn có chắc chắn muốn hủy lịch hẹn này?')) {
+    // Confirmation message tùy theo mức độ nghiêm trọng
+    let confirmMessage = 'Bạn có chắc chắn muốn hủy lịch hẹn này?';
+    
+    if (warningLevel === 'critical') {
+      confirmMessage = '⚠️ CẢNH BÁO: Hủy lịch trong 24h sẽ ảnh hưởng NGHIÊM TRỌNG đến uy tín của bạn. Bạn có CHẮC CHẮN muốn hủy?';
+    } else if (warningLevel === 'high') {
+      confirmMessage = 'Lịch đã được xác nhận. Hủy lịch sẽ ảnh hưởng đến điểm uy tín. Bạn có chắc chắn?';
+    }
+
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
     try {
       const response = await cancelAppointment(id, reason);
       if (response.success) {
+        // Refresh điểm uy tín
+        refreshScore();
         alert('Hủy lịch thành công!');
         navigate('/customer/appointments');
       }
@@ -91,6 +183,9 @@ export default function CancelAppointment() {
   if (!appointment) {
     return null;
   }
+
+  const warningConfig = getWarningMessage();
+  const warningLevel = getWarningLevel();
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -134,9 +229,16 @@ export default function CancelAppointment() {
 
                 {/* Property Details */}
                 <div className="flex-1">
-                  <span className="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full mb-2">
-                    CĂN HỘ CAO CẤP
-                  </span>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">
+                      CĂN HỘ CAO CẤP
+                    </span>
+                    {isConfirmedStatus() && (
+                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">
+                        ĐÃ XÁC NHẬN
+                      </span>
+                    )}
+                  </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2">
                     {appointment.propertyTitle}
                   </h3>
@@ -154,6 +256,12 @@ export default function CancelAppointment() {
                             year: 'numeric'
                           })}
                         </p>
+                        {cancellationInfo && cancellationInfo.hoursUntilAppointment > 0 && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            <Clock className="w-3 h-3 inline mr-1" />
+                            Còn {cancellationInfo.hoursUntilAppointment} giờ nữa
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
@@ -165,24 +273,61 @@ export default function CancelAppointment() {
               </div>
             </div>
 
-            {/* Warning Box */}
-            <div className="bg-red-50 rounded-2xl p-6 border-2 border-red-200">
+            {/* Warning Box - Dynamic based on status and time */}
+            <div className={`rounded-2xl p-6 border-2 ${warningConfig.bgColor} ${warningConfig.borderColor}`}>
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                <div className={`w-10 h-10 rounded-full ${warningConfig.iconBg} flex items-center justify-center flex-shrink-0`}>
+                  {warningLevel === 'critical' || warningLevel === 'high' ? (
+                    <AlertTriangle className={`w-6 h-6 ${warningConfig.iconColor}`} />
+                  ) : (
+                    <Shield className={`w-6 h-6 ${warningConfig.iconColor}`} />
+                  )}
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-red-900 mb-2">Lưu ý quan trọng</h3>
-                  <p className="text-sm text-red-800 leading-relaxed">
-                    Hành động này không thể hoàn tác. Lịch hẹn của bạn sẽ bị xóa khỏi hệ thống và chuyên viên tư vấn sẽ được thông báo. Việc hủy lịch quá sớt giờ có thể ảnh hưởng đến điểm uy tín của bạn.
+                  <h3 className={`text-base font-bold ${warningConfig.textColor} mb-2`}>
+                    {warningConfig.title}
+                  </h3>
+                  <p className={`text-sm ${warningConfig.textColor} leading-relaxed`}>
+                    {warningConfig.message}
                   </p>
+                  
+                  {/* Reputation Impact Indicator */}
+                  {warningLevel !== 'low' && (
+                    <div className="mt-4 pt-4 border-t border-current/20">
+                      <p className={`text-xs font-bold ${warningConfig.textColor} mb-2`}>
+                        Ảnh hưởng đến điểm uy tín:
+                      </p>
+                      <div className="flex gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <div
+                            key={i}
+                            className={`h-2 flex-1 rounded ${
+                              i < (warningLevel === 'critical' ? 5 : warningLevel === 'high' ? 3 : 1)
+                                ? warningConfig.iconBg
+                                : 'bg-gray-200'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Cancel Reasons */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-6">Lý do hủy lịch</h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">
+                Lý do hủy lịch
+                {isConfirmedStatus() && (
+                  <span className="text-red-600 ml-1">*</span>
+                )}
+              </h2>
+              {isConfirmedStatus() && (
+                <p className="text-sm text-gray-600 mb-4">
+                  Bắt buộc phải chọn lý do vì lịch hẹn đã được xác nhận
+                </p>
+              )}
               
               <div className="space-y-3">
                 {cancelReasons.map((reason) => (
@@ -207,7 +352,7 @@ export default function CancelAppointment() {
                     value={customReason}
                     onChange={(e) => setCustomReason(e.target.value)}
                     rows="4"
-                    placeholder="Nhập chi tiết lý do (không bắt buộc)..."
+                    placeholder="Nhập chi tiết lý do..."
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700 resize-none"
                   />
                 </div>
@@ -218,7 +363,14 @@ export default function CancelAppointment() {
             <div className="flex gap-4">
               <button
                 onClick={handleCancel}
-                className="flex-1 px-8 py-4 bg-red-600 text-white rounded-xl hover:bg-red-700 font-bold text-lg shadow-lg hover:shadow-xl transition-all"
+                disabled={isConfirmedStatus() && !selectedReason}
+                className={`flex-1 px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all ${
+                  isConfirmedStatus() && !selectedReason
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : warningLevel === 'critical'
+                    ? 'bg-red-600 text-white hover:bg-red-700'
+                    : 'bg-red-600 text-white hover:bg-red-700'
+                }`}
               >
                 Xác nhận hủy lịch hẹn
               </button>
@@ -247,8 +399,12 @@ export default function CancelAppointment() {
                     <MapPin className="w-16 h-16 text-gray-400" />
                   </div>
                 )}
-                <span className="absolute top-4 left-4 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                  Đang xem xét
+                <span className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold ${
+                  isConfirmedStatus() 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-yellow-600 text-white'
+                }`}>
+                  {isConfirmedStatus() ? 'Đã xác nhận' : 'Chờ xác nhận'}
                 </span>
               </div>
 
@@ -268,7 +424,11 @@ export default function CancelAppointment() {
                     <p className="text-sm font-bold text-gray-900">{appointment.customerName}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Mã yêu cầu</p>
+                    <p className="text-xs text-gray-500 mb-1">Môi giới</p>
+                    <p className="text-sm font-bold text-gray-900">{appointment.brokerName}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Mã lịch hẹn</p>
                     <p className="text-sm font-bold text-gray-900">#{appointment.appointmentId}</p>
                   </div>
                 </div>

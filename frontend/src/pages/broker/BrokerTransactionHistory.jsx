@@ -32,13 +32,13 @@ const statusLabels = {
 };
 
 const statusStyles = {
-  commitment_signed: "bg-teal-50 text-teal-700 ring-teal-200",
-  deal_scheduled: "bg-sky-50 text-sky-700 ring-sky-200",
-  broker_confirmed: "bg-cyan-50 text-cyan-700 ring-cyan-200",
-  refund_requested: "bg-orange-50 text-orange-700 ring-orange-200",
-  completed: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  cancelled: "bg-rose-50 text-rose-700 ring-rose-200",
-  default: "bg-slate-100 text-slate-700 ring-slate-200",
+  commitment_signed: "bg-teal-100 text-teal-700 border-teal-200",
+  deal_scheduled: "bg-blue-100 text-blue-700 border-blue-200",
+  broker_confirmed: "bg-cyan-100 text-cyan-700 border-cyan-200",
+  refund_requested: "bg-orange-100 text-orange-700 border-orange-200",
+  completed: "bg-green-100 text-green-700 border-green-200",
+  cancelled: "bg-red-100 text-red-700 border-red-200",
+  default: "bg-gray-100 text-gray-700 border-gray-200",
 };
 
 const formatVnd = (value) =>
@@ -121,105 +121,133 @@ export default function BrokerTransactionHistory() {
   };
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      {toast && (
-        <div className="fixed right-6 top-6 z-50 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-xl">
-          {toast}
-        </div>
-      )}
-
-      <section className="mb-6 border-b border-slate-200 pb-6">
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Quản lý giao dịch</p>
-        <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-950">BĐS đang giao dịch</h1>
-            <p className="mt-2 max-w-2xl text-sm font-medium text-slate-500">
-              Theo dõi các bất động sản đang trong giao dịch, chờ khách ký cam kết và xác nhận thanh toán cho người bán.
-            </p>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {toast && (
+          <div className="fixed right-6 top-6 z-50 rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-900 shadow-xl">
+            {toast}
           </div>
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={fetchTransactions}
-              className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-black text-slate-800 hover:bg-slate-50"
-            >
-              <RefreshCcw className="h-4 w-4" />
-              Làm mới
-            </button>
+        )}
+
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">BĐS đang giao dịch</h1>
+          <p className="text-gray-600">
+            Theo dõi các bất động sản đang trong giao dịch, chờ khách ký cam kết và xác nhận thanh toán cho người bán.
+          </p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid gap-5 md:grid-cols-3 mb-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <Building2 className="h-6 w-6 text-gray-400" />
+              <button
+                type="button"
+                onClick={fetchTransactions}
+                className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <RefreshCcw className="h-4 w-4 text-gray-600" />
+              </button>
+            </div>
+            <p className="text-sm font-semibold text-gray-600 mb-1">BĐS đang giao dịch</p>
+            <p className="text-3xl font-bold text-gray-900">{summary.total}</p>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+            <Clock3 className="h-6 w-6 text-gray-400 mb-3" />
+            <p className="text-sm font-semibold text-gray-600 mb-1">Chờ xác nhận thanh toán</p>
+            <p className="text-3xl font-bold text-gray-900">{summary.waitingBroker}</p>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+            <Banknote className="h-6 w-6 text-gray-400 mb-3" />
+            <p className="text-sm font-semibold text-gray-600 mb-1">Tổng tiền cọc</p>
+            <p className="text-3xl font-bold text-gray-900">{formatVnd(summary.deposits)}</p>
           </div>
         </div>
-      </section>
 
-      <section className="mb-6 grid gap-4 md:grid-cols-3">
-        <Metric icon={Building2} label="BĐS đang giao dịch" value={summary.total} />
-        <Metric icon={Clock3} label="Chờ xác nhận thanh toán" value={summary.waitingBroker} />
-        <Metric icon={Banknote} label="Tổng tiền cọc" value={formatVnd(summary.deposits)} />
-      </section>
-
-      {loading ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-12 text-center text-sm font-bold text-slate-500">
-          Đang tải giao dịch...
-        </div>
-      ) : activeTransactions.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white p-12 text-center">
-          <FileText className="mx-auto h-10 w-10 text-slate-400" />
-          <p className="mt-4 text-sm font-bold text-slate-500">Chưa có bất động sản nào đang giao dịch.</p>
-        </div>
-      ) : (
-        <section className="grid gap-4 xl:grid-cols-2">
-          {activeTransactions.map((item) => (
-            <article key={item.transactionId} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs font-black uppercase tracking-wider text-slate-400">
-                    {item.propertyCode || item.transactionCode}
-                  </p>
-                  <h2 className="mt-1 line-clamp-2 text-lg font-black text-slate-950">
-                    {item.propertyTitle || "Bất động sản"}
-                  </h2>
-                  <p className="mt-2 text-sm font-bold text-slate-500">
-                    Khách hàng: {item.customerName || "Chưa cập nhật"} · {formatDate(item.transactionDate)}
-                  </p>
-                  {item.dealScheduleAt && (
-                    <p className="mt-1 text-sm font-bold text-sky-700">
-                      Lịch giao dịch: {new Date(item.dealScheduleAt).toLocaleString("vi-VN")}
+        {/* Transactions List */}
+        {loading ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-gray-900 mx-auto mb-4"></div>
+            <p className="text-gray-600 font-medium">Đang tải giao dịch...</p>
+          </div>
+        ) : activeTransactions.length === 0 ? (
+          <div className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-12 text-center">
+            <FileText className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+            <p className="text-lg font-semibold text-gray-900 mb-2">Chưa có bất động sản nào đang giao dịch</p>
+            <p className="text-sm text-gray-500">Các giao dịch mới sẽ xuất hiện ở đây</p>
+          </div>
+        ) : (
+          <div className="grid gap-5 xl:grid-cols-2">
+            {activeTransactions.map((item) => (
+              <div key={item.transactionId} className="bg-white rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-all p-5 shadow-sm">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                      {item.propertyCode || item.transactionCode}
                     </p>
-                  )}
+                    <h2 className="text-lg font-bold text-gray-900 line-clamp-2 mb-2">
+                      {item.propertyTitle || "Bất động sản"}
+                    </h2>
+                    <p className="text-sm text-gray-600 mb-1">
+                      <span className="font-semibold">Khách hàng:</span> {item.customerName || "Chưa cập nhật"}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      <span className="font-semibold">Ngày giao dịch:</span> {formatDate(item.transactionDate)}
+                    </p>
+                    {item.dealScheduleAt && (
+                      <p className="text-sm text-blue-600 font-semibold mt-2">
+                        📅 Lịch giao dịch: {new Date(item.dealScheduleAt).toLocaleString("vi-VN")}
+                      </p>
+                    )}
+                  </div>
+                  <StatusPill status={item.status} />
                 </div>
-                <StatusPill status={item.status} />
-              </div>
 
-              <div className="mt-5 grid gap-3 md:grid-cols-3">
-                <Money label="Giá trị" value={item.totalPrice} />
-                <Money label="Cọc" value={item.depositAmount} />
-                <Money label="Hoàn cọc dự kiến" value={item.refundableDeposit} />
-              </div>
+                {/* Money Info */}
+                <div className="grid gap-3 md:grid-cols-3 mb-4">
+                  <div className="bg-gray-50 rounded-lg border border-gray-200 p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Giá trị</p>
+                    <p className="text-sm font-bold text-gray-900">{formatVnd(item.totalPrice)}</p>
+                  </div>
+                  <div className="bg-green-50 rounded-lg border border-green-200 p-3">
+                    <p className="text-xs font-semibold text-green-700 uppercase mb-1">Tiền cọc</p>
+                    <p className="text-sm font-bold text-green-900">{formatVnd(item.depositAmount)}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg border border-blue-200 p-3">
+                    <p className="text-xs font-semibold text-blue-700 uppercase mb-1">Hoàn cọc dự kiến</p>
+                    <p className="text-sm font-bold text-blue-900">{formatVnd(item.refundableDeposit)}</p>
+                  </div>
+                </div>
 
-              <div className="mt-5 flex flex-wrap justify-end gap-3">
+                {/* Actions */}
                 {item.status === "deal_scheduled" && (
-                  <div className="flex flex-wrap justify-end gap-3">
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => confirmBroker(item)}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-bold text-sm"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Xác nhận đã thanh toán
+                    </button>
                     <button
                       type="button"
                       onClick={() => rejectBroker(item)}
-                      className="inline-flex h-10 items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 text-sm font-black text-rose-700 hover:bg-rose-100"
+                      className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-bold text-sm"
                     >
                       Giao dịch thất bại
                     </button>
-                  <button
-                    type="button"
-                    onClick={() => confirmBroker(item)}
-                    className="inline-flex h-10 items-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-black text-white hover:bg-slate-800"
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    Xác nhận đã thanh toán cho người bán
-                  </button>
                   </div>
                 )}
               </div>
-            </article>
-          ))}
-        </section>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -244,8 +272,19 @@ function Money({ label, value }) {
 }
 
 function StatusPill({ status }) {
+  const styles = {
+    commitment_signed: "bg-teal-100 text-teal-700 border-teal-200",
+    deal_scheduled: "bg-blue-100 text-blue-700 border-blue-200",
+    broker_confirmed: "bg-cyan-100 text-cyan-700 border-cyan-200",
+    refund_requested: "bg-orange-100 text-orange-700 border-orange-200",
+    completed: "bg-green-100 text-green-700 border-green-200",
+    cancelled: "bg-red-100 text-red-700 border-red-200",
+    default: "bg-gray-100 text-gray-700 border-gray-200",
+  };
+
   return (
-    <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${statusStyles[status] || statusStyles.default}`}>
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${styles[status] || styles.default}`}>
+      <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
       {statusLabels[status] || status}
     </span>
   );
