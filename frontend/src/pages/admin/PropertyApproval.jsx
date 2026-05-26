@@ -20,6 +20,17 @@ export default function PropertyApproval() {
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [toast, setToast] = useState(null);
   const [processingId, setProcessingId] = useState(null);
+  const [docStatuses, setDocStatuses] = useState({});
+
+  useEffect(() => {
+    if (selectedProperty) {
+      setDocStatuses({});
+    }
+  }, [selectedProperty]);
+
+  const handleDocStatus = (docType, status) => {
+    setDocStatuses((prev) => ({ ...prev, [docType]: status }));
+  };
 
   const showToast = useCallback((type, message) => {
     setToast({ type, message });
@@ -222,25 +233,14 @@ export default function PropertyApproval() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4 px-6 pb-6 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 px-6 pb-6 md:grid-cols-5">
               <Detail label="Loại BĐS" value={typeLabels[selectedProperty.propertyType] || selectedProperty.propertyType} />
               <Detail label="Giá" value={formatVnd(selectedProperty.price)} />
               <Detail label="Diện tích" value={`${selectedProperty.area} m²`} />
               <Detail label="Người tạo" value={selectedProperty.createdBy?.fullName || "N/A"} />
+              <Detail label="Loại hồ sơ" value={selectedProperty.isExclusive ? "Độc quyền" : "Thông thường"} />
             </div>
 
-            <div className="px-6 pb-6">
-              <div className="rounded-lg border border-stone-200 bg-stone-50/50 p-5">
-                <h3 className="mb-4 flex items-center gap-2 text-sm font-black text-stone-900">
-                  <ShieldCheck className="h-4 w-4 text-stone-500" /> Thông tin chủ sở hữu
-                </h3>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <Detail label="Chủ nhà" value={selectedProperty.ownerName || "N/A"} />
-                  <Detail label="SĐT" value={selectedProperty.ownerPhone || "N/A"} />
-                  <Detail label="Loại hồ sơ" value={selectedProperty.isExclusive ? "Độc quyền" : "Thông thường"} />
-                </div>
-              </div>
-            </div>
 
             <div className="px-6 pb-6">
               <p className="mb-2 text-xs font-black uppercase tracking-wider text-stone-400">Mô tả</p>
@@ -255,23 +255,71 @@ export default function PropertyApproval() {
                   <ShieldCheck className="h-4 w-4 text-stone-500" /> Giấy tờ pháp lý
                 </h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <div className="rounded-lg border border-stone-200 p-4 bg-white">
-                    <p className="text-xs font-black uppercase tracking-wider text-stone-400">Sổ hồng/Sổ đỏ</p>
-                    {selectedProperty.redBookUrl ? (
-                      <a href={selectedProperty.redBookUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
-                    ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
+                  <div className="flex flex-col justify-between rounded-lg border border-stone-200 p-4 bg-white">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wider text-stone-400">Sổ hồng/Sổ đỏ</p>
+                      {selectedProperty.redBookUrl ? (
+                        <a href={selectedProperty.redBookUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
+                      ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
+                    </div>
+                    {selectedProperty.redBookUrl && (
+                      <div className="mt-3 flex gap-2">
+                        <button 
+                          onClick={() => handleDocStatus('redBook', 'approved')}
+                          className={`flex-1 rounded py-1.5 text-xs font-black transition-colors ${docStatuses.redBook === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-600 hover:bg-emerald-50'}`}>
+                          Duyệt
+                        </button>
+                        <button 
+                          onClick={() => handleDocStatus('redBook', 'rejected')}
+                          className={`flex-1 rounded py-1.5 text-xs font-black transition-colors ${docStatuses.redBook === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-stone-100 text-stone-600 hover:bg-rose-50'}`}>
+                          Từ chối
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="rounded-lg border border-stone-200 p-4 bg-white">
-                    <p className="text-xs font-black uppercase tracking-wider text-stone-400">Sổ hộ khẩu</p>
-                    {selectedProperty.householdRegistrationUrl ? (
-                      <a href={selectedProperty.householdRegistrationUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
-                    ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
+                  <div className="flex flex-col justify-between rounded-lg border border-stone-200 p-4 bg-white">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wider text-stone-400">Sổ hộ khẩu</p>
+                      {selectedProperty.householdRegistrationUrl ? (
+                        <a href={selectedProperty.householdRegistrationUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
+                      ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
+                    </div>
+                    {selectedProperty.householdRegistrationUrl && (
+                      <div className="mt-3 flex gap-2">
+                        <button 
+                          onClick={() => handleDocStatus('household', 'approved')}
+                          className={`flex-1 rounded py-1.5 text-xs font-black transition-colors ${docStatuses.household === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-600 hover:bg-emerald-50'}`}>
+                          Duyệt
+                        </button>
+                        <button 
+                          onClick={() => handleDocStatus('household', 'rejected')}
+                          className={`flex-1 rounded py-1.5 text-xs font-black transition-colors ${docStatuses.household === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-stone-100 text-stone-600 hover:bg-rose-50'}`}>
+                          Từ chối
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="rounded-lg border border-stone-200 p-4 bg-white">
-                    <p className="text-xs font-black uppercase tracking-wider text-stone-400">CCCD Chủ nhà</p>
-                    {selectedProperty.ownerIdUrl ? (
-                      <a href={selectedProperty.ownerIdUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
-                    ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
+                  <div className="flex flex-col justify-between rounded-lg border border-stone-200 p-4 bg-white">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wider text-stone-400">CCCD Chủ nhà</p>
+                      {selectedProperty.ownerIdUrl ? (
+                        <a href={selectedProperty.ownerIdUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
+                      ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
+                    </div>
+                    {selectedProperty.ownerIdUrl && (
+                      <div className="mt-3 flex gap-2">
+                        <button 
+                          onClick={() => handleDocStatus('ownerId', 'approved')}
+                          className={`flex-1 rounded py-1.5 text-xs font-black transition-colors ${docStatuses.ownerId === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-600 hover:bg-emerald-50'}`}>
+                          Duyệt
+                        </button>
+                        <button 
+                          onClick={() => handleDocStatus('ownerId', 'rejected')}
+                          className={`flex-1 rounded py-1.5 text-xs font-black transition-colors ${docStatuses.ownerId === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-stone-100 text-stone-600 hover:bg-rose-50'}`}>
+                          Từ chối
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -284,14 +332,30 @@ export default function PropertyApproval() {
                     <ShieldCheck className="h-4 w-4" /> Bất động sản độc quyền
                   </h3>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div className="rounded-lg border border-stone-200 p-4 bg-white">
-                      <p className="text-xs font-black uppercase tracking-wider text-stone-400">Hợp đồng môi giới</p>
-                      {selectedProperty.brokerageContractUrl ? (
-                        <a href={selectedProperty.brokerageContractUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">
-                          Xem hợp đồng
-                        </a>
-                      ) : (
-                        <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>
+                    <div className="flex flex-col justify-between rounded-lg border border-stone-200 p-4 bg-white">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wider text-stone-400">Hợp đồng môi giới</p>
+                        {selectedProperty.brokerageContractUrl ? (
+                          <a href={selectedProperty.brokerageContractUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">
+                            Xem hợp đồng
+                          </a>
+                        ) : (
+                          <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>
+                        )}
+                      </div>
+                      {selectedProperty.brokerageContractUrl && (
+                        <div className="mt-3 flex gap-2">
+                          <button 
+                            onClick={() => handleDocStatus('contract', 'approved')}
+                            className={`flex-1 rounded py-1.5 text-xs font-black transition-colors ${docStatuses.contract === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-600 hover:bg-emerald-50'}`}>
+                            Duyệt
+                          </button>
+                          <button 
+                            onClick={() => handleDocStatus('contract', 'rejected')}
+                            className={`flex-1 rounded py-1.5 text-xs font-black transition-colors ${docStatuses.contract === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-stone-100 text-stone-600 hover:bg-rose-50'}`}>
+                            Từ chối
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
