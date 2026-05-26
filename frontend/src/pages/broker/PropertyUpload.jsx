@@ -635,68 +635,31 @@ export default function PropertyUpload() {
                   </div>
                 </div>
 
-                <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <InputField label="Tên chủ nhà" name="ownerName" value={formData.ownerName} onChange={handleChange} placeholder="Nguyễn Văn A" required />
-                  <InputField label="Số điện thoại chủ nhà" name="ownerPhone" value={formData.ownerPhone} onChange={handleChange} placeholder="0901234567" required />
-                </div>
 
-                {/* BĐS Độc quyền checkbox & fields */}
+                {/* BĐS Độc quyền info */}
                 <div className="mb-6 p-4 rounded-xl border border-blue-100 bg-blue-50/30">
-                  <label className="flex items-start gap-3 cursor-pointer group mb-4">
-                    <div className="relative flex items-center mt-0.5">
-                      <input type="checkbox" name="isExclusive" checked={formData.isExclusive} onChange={handleChange} className="peer sr-only" />
-                      <div className="w-5 h-5 border-2 border-zinc-300 rounded-md peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all flex items-center justify-center group-hover:border-blue-400">
-                        {formData.isExclusive && (
-                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
-                          </svg>
-                        )}
+                  <div className="space-y-4">
+                    <div className="text-sm text-zinc-600 mb-2">
+                      <span className="font-semibold text-zinc-800 block mb-1">Bất động sản độc quyền (Exclusive Real Estate)</span>
+                      Là hình thức mà bạn (Broker) là người đại diện duy nhất được quyền phân phối và bán bất động sản này trong một thời gian nhất định, đảm bảo quyền lợi và hoa hồng cao nhất.
+                    </div>
+                    <div className="font-semibold text-zinc-800 mb-2">Mẫu Hợp đồng môi giới độc quyền:</div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="rounded-xl overflow-hidden border border-zinc-200 shadow-sm cursor-zoom-in group relative">
+                        <img src={page1} alt="Hợp đồng trang 1" className="w-full h-auto" onClick={() => window.open(page1, '_blank')} />
+                        <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors pointer-events-none"></div>
+                      </div>
+                      <div className="rounded-xl overflow-hidden border border-zinc-200 shadow-sm cursor-zoom-in group relative">
+                        <img src={page2} alt="Hợp đồng trang 2" className="w-full h-auto" onClick={() => window.open(page2, '_blank')} />
+                        <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors pointer-events-none"></div>
+                      </div>
+                      <div className="rounded-xl overflow-hidden border border-zinc-200 shadow-sm cursor-zoom-in group relative">
+                        <img src={page3} alt="Hợp đồng trang 3" className="w-full h-auto" onClick={() => window.open(page3, '_blank')} />
+                        <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors pointer-events-none"></div>
                       </div>
                     </div>
-                    <div>
-                      <span className="text-sm font-semibold text-zinc-800">Đây là Bất động sản độc quyền</span>
-                      <p className="text-xs text-zinc-500 mt-0.5">Yêu cầu cung cấp hợp đồng môi giới độc quyền</p>
-                    </div>
-                  </label>
-
-                  {formData.isExclusive && (
-                    <div className="space-y-4 pt-4 border-t border-blue-100 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <div>
-                        <label className="block text-sm font-medium text-zinc-700 mb-1.5">
-                          Hợp đồng môi giới độc quyền <span className="text-red-500">*</span>
-                        </label>
-                        {formData.brokerageContractFile ? (
-                          <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-zinc-200">
-                            <FileText className="w-5 h-5 text-blue-500 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-zinc-700 truncate">{formData.brokerageContractFile.name}</p>
-                              <p className="text-[11px] text-zinc-400">Đã chọn</p>
-                            </div>
-                            <button type="button" onClick={() => setFormData(p => ({ ...p, brokerageContractFile: null }))} className="text-zinc-400 hover:text-red-500 transition-colors shrink-0">
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="relative">
-                            <input 
-                              type="file" 
-                              accept=".pdf,.jpg,.jpeg,.png" 
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                              onChange={(e) => {
-                                if (e.target.files && e.target.files[0]) {
-                                  setFormData(p => ({ ...p, brokerageContractFile: { file: e.target.files[0], name: e.target.files[0].name } }));
-                                }
-                              }} 
-                            />
-                            <div className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-zinc-200 rounded-xl bg-white hover:bg-zinc-50 transition-colors">
-                              <UploadCloud className="w-5 h-5 text-zinc-400" />
-                              <span className="text-sm text-zinc-500 font-medium">Tải lên hợp đồng</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                    <p className="text-xs text-zinc-400 mt-2 text-center">Click vào ảnh để xem chi tiết</p>
+                  </div>
                 </div>
                 
                 <div className="pt-5 border-t border-zinc-100">
