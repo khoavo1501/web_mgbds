@@ -45,30 +45,30 @@ const heroSlides = [
 
 const premiumProjects = [
   {
-    title: "Han River Residence",
+    title: "The Riverfront Residence",
     type: "Căn hộ cao cấp",
-    location: "Phường Hải Châu, Đà Nẵng",
+    location: "Thủ Thiêm, TP. Hồ Chí Minh",
     image:
       "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=85",
   },
   {
-    title: "My Khe Beach Villas",
+    title: "Serenity Lake Villas",
     type: "Biệt thự nghỉ dưỡng",
-    location: "Phường Sơn Trà, Đà Nẵng",
+    location: "Hồ Tràm, Bà Rịa - Vũng Tàu",
     image:
       "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=85",
   },
   {
-    title: "Sky Garden Da Nang",
+    title: "Sky Garden District",
     type: "Dự án hot",
-    location: "Phường Ngũ Hành Sơn, Đà Nẵng",
+    location: "Cầu Giấy, Hà Nội",
     image:
       "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1200&q=85",
   },
   {
-    title: "Lien Chieu Marina Homes",
+    title: "Marina Bay Homes",
     type: "Shophouse",
-    location: "Phường Liên Chiểu, Đà Nẵng",
+    location: "Hạ Long, Quảng Ninh",
     image:
       "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?auto=format&fit=crop&w=1200&q=85",
   },
@@ -103,11 +103,19 @@ const PLACEHOLDER_IMAGE =
 
 const propertyTypeLabels = {
   apartment: "Căn hộ",
-  house: "Nhà phố",
+  house: "Nhà riêng",
   land: "Đất nền",
   villa: "Biệt thự",
   shophouse: "Shophouse",
 };
+
+const propertyTypes = [
+  { label: "Căn hộ", value: "apartment" },
+  { label: "Nhà riêng", value: "house" },
+  { label: "Đất nền", value: "land" },
+  { label: "Biệt thự", value: "villa" },
+  { label: "Shophouse", value: "shophouse" },
+];
 
 const priceRanges = [
   { label: "Mức giá", minPrice: "", maxPrice: "" },
@@ -120,7 +128,7 @@ const priceRanges = [
 const quickTags = [
   { label: "Căn hộ cao cấp", params: { keyword: "căn hộ cao cấp", propertyType: "apartment" } },
   { label: "Villa hồ bơi", params: { keyword: "villa hồ bơi", propertyType: "villa" } },
-  { label: "Nhà phố trung tâm", params: { keyword: "nhà phố", propertyType: "house" } },
+  { label: "Nhà riêng trung tâm", params: { keyword: "nhà riêng", propertyType: "house" } },
   { label: "Đất nền đầu tư", params: { keyword: "đất nền", propertyType: "land" } },
 ];
 
@@ -134,14 +142,15 @@ const trustItems = [
   { title: "Tin đăng xác thực", description: "Dữ liệu được rà soát trước khi hiển thị.", icon: CheckCircle2 },
   { title: "Hỗ trợ 24/7", description: "Đội ngũ tư vấn luôn sẵn sàng kết nối.", icon: Headphones },
   { title: "Minh bạch pháp lý", description: "Thông tin pháp lý rõ ràng, dễ kiểm tra.", icon: FileCheck2 },
-  { title: "Đa dạng bất động sản", description: "Căn hộ, nhà phố, biệt thự và đất nền.", icon: Layers3 },
+  { title: "Đa dạng bất động sản", description: "Căn hộ, nhà riêng, biệt thự và đất nền.", icon: Layers3 },
 ];
 
 const fallbackCategories = [
   { label: "Căn hộ", type: "apartment", count: "1,234 tin đăng", icon: Building2 },
-  { label: "Nhà phố", type: "house", count: "856 tin đăng", icon: Home },
-  { label: "Biệt thự", type: "villa", count: "342 tin đăng", icon: Home },
+  { label: "Nhà riêng", type: "house", count: "856 tin đăng", icon: Home },
   { label: "Đất nền", type: "land", count: "2,105 tin đăng", icon: MapPin },
+  { label: "Biệt thự", type: "villa", count: "342 tin đăng", icon: Home },
+  { label: "Shophouse", type: "shophouse", count: "210 tin đăng", icon: Building2 },
 ];
 
 const formatPrice = (price) => {
@@ -229,7 +238,7 @@ function PropertyCard({ property, large = false, badge, postedTime }) {
           </span>
         )}
         <span className="absolute bottom-3 left-3 rounded-sm bg-white px-2.5 py-1 text-xs font-semibold text-slate-900">
-          {property.province || "Đà Nẵng"}
+          {property.province || "Hồ Chí Minh"}
         </span>
       </div>
       <div className={large ? "p-5" : "p-4"}>
@@ -273,7 +282,7 @@ export default function Homepage() {
   const [showStickySearch, setShowStickySearch] = useState(false);
   const [filters, setFilters] = useState({
     keyword: "",
-    province: "",
+    propertyType: "",
     priceRange: "0",
   });
 
@@ -311,11 +320,6 @@ export default function Homepage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const provinces = useMemo(
-    () => [...new Set(featuredProperties.map((property) => property.province).filter(Boolean))],
-    [featuredProperties]
-  );
-
   const categoryCounts = useMemo(() => {
     const counts = featuredProperties.reduce((acc, property) => {
       acc[property.propertyType] = (acc[property.propertyType] || 0) + 1;
@@ -349,7 +353,7 @@ export default function Homepage() {
 
     navigateWithParams({
       keyword: filters.keyword.trim(),
-      province: filters.province,
+      propertyType: filters.propertyType,
       minPrice: selectedRange?.minPrice,
       maxPrice: selectedRange?.maxPrice,
     });
@@ -370,14 +374,14 @@ export default function Homepage() {
       </label>
 
       <select
-        value={filters.province}
-        onChange={(event) => updateFilter("province", event.target.value)}
+        value={filters.propertyType}
+        onChange={(event) => updateFilter("propertyType", event.target.value)}
         className="h-14 rounded-lg border border-white/70 bg-white/[0.92] px-4 text-base font-bold text-slate-800 outline-none transition focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
       >
-        <option value="">Tất cả khu vực</option>
-        {provinces.map((province) => (
-          <option key={province} value={province}>
-            {province}
+        <option value="">Tất cả loại hình</option>
+        {propertyTypes.map((type) => (
+          <option key={type.value} value={type.value}>
+            {type.label}
           </option>
         ))}
       </select>
@@ -453,7 +457,7 @@ export default function Homepage() {
               Tìm đúng bất động sản, chạm đúng chuẩn sống.
             </h1>
             <p className="mt-6 max-w-2xl text-base font-semibold leading-8 text-white/80 sm:text-xl">
-              Khám phá căn hộ, villa và nhà phố được chọn lọc với dữ liệu minh bạch, hình ảnh rõ nét và kết nối môi giới nhanh chóng.
+              Khám phá căn hộ, villa và nhà riêng được chọn lọc với dữ liệu minh bạch, hình ảnh rõ nét và kết nối môi giới nhanh chóng.
             </p>
 
             <div className="mt-8 grid max-w-2xl grid-cols-3 overflow-hidden rounded-lg border border-white/15 bg-white/[0.08] backdrop-blur-md">
@@ -657,7 +661,7 @@ export default function Homepage() {
           <h2 className="text-center text-2xl font-extrabold tracking-tight text-slate-950">
             Khám phá theo loại hình
           </h2>
-          <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {categoryCounts.map((category) => {
               const Icon = category.icon;
               return (

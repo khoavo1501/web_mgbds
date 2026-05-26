@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Bath,
   BedDouble,
@@ -29,11 +29,19 @@ const PAGE_SIZE = 6;
 
 const propertyTypeLabels = {
   apartment: "Căn hộ",
-  house: "Nhà phố",
+  house: "Nhà riêng",
   land: "Đất nền",
   villa: "Biệt thự",
   shophouse: "Shophouse",
 };
+
+const propertyTypes = [
+  { label: "Căn hộ", value: "apartment" },
+  { label: "Nhà riêng", value: "house" },
+  { label: "Đất nền", value: "land" },
+  { label: "Biệt thự", value: "villa" },
+  { label: "Shophouse", value: "shophouse" },
+];
 
 const priceRanges = [
   { label: "Mức giá", value: "" },
@@ -60,14 +68,14 @@ const sortOptions = [
 
 const quickFilters = [
   { label: "Căn hộ", values: { propertyType: "apartment" } },
-  { label: "Nhà phố", values: { propertyType: "house" } },
+  { label: "Nhà riêng", values: { propertyType: "house" } },
   { label: "Dưới 3 tỷ", values: { priceRange: "0-3000000000" } },
-  { label: "Gần trung tâm", values: { keyword: "trung tâm" } },
+  { label: "Đất nền", values: { propertyType: "land" } },
 ];
 
 const heroStats = [
   { value: "10K+", label: "tin đăng" },
-  { value: "94", label: "đơn vị cấp xã" },
+  { value: "63", label: "tỉnh thành" },
   { value: "5K+", label: "khách hàng" },
 ];
 
@@ -107,7 +115,6 @@ const getRangeValue = (ranges, minKey, maxKey, params) => {
 const buildSearchParams = (filters) => {
   const params = new URLSearchParams();
   if (filters.keyword.trim()) params.set("keyword", filters.keyword.trim());
-  if (filters.province) params.set("province", filters.province);
   if (filters.propertyType) params.set("propertyType", filters.propertyType);
 
   const selectedPrice = priceRanges.find((range) => range.value === filters.priceRange);
@@ -133,7 +140,6 @@ const buildSearchParams = (filters) => {
 
 const buildFilterState = (searchParams) => ({
   keyword: searchParams.get("keyword") || "",
-  province: searchParams.get("province") || "",
   propertyType: searchParams.get("propertyType") || "",
   priceRange: getRangeValue(priceRanges, "minPrice", "maxPrice", searchParams),
   minPrice: searchParams.get("minPrice") || "",
@@ -191,7 +197,6 @@ function ListingSkeleton() {
 export default function PropertyList() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [properties, setProperties] = useState([]);
-  const [filterOptions, setFilterOptions] = useState([]);
   const [filters, setFilters] = useState(() => buildFilterState(searchParams));
   const [loading, setLoading] = useState(true);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -203,36 +208,12 @@ export default function PropertyList() {
   });
   const [likedProperties, setLikedProperties] = useState(new Set());
 
-  const provinces = useMemo(
-    () => [...new Set(filterOptions.map((property) => property.province).filter(Boolean))],
-    [filterOptions]
-  );
-
-  const propertyTypes = useMemo(
-    () => [...new Set(filterOptions.map((property) => property.propertyType).filter(Boolean))],
-    [filterOptions]
-  );
-
-  useEffect(() => {
-    const fetchOptions = async () => {
-      try {
-        const response = await api.get("/properties?status=published&size=100");
-        if (response.data.success) {
-          setFilterOptions(response.data.data.content || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch filter options", error);
-      }
-    };
-
-    fetchOptions();
-  }, []);
-
   useEffect(() => {
     const fetchProperties = async () => {
       setLoading(true);
       try {
         const params = new URLSearchParams(searchParams);
+        params.delete("province");
         params.set("status", "published");
         params.set("size", String(PAGE_SIZE));
         if (!params.has("sortBy")) params.set("sortBy", "createdAt");
@@ -304,6 +285,7 @@ export default function PropertyList() {
 
   const goToPage = (page) => {
     const params = new URLSearchParams(searchParams);
+    params.delete("province");
     params.set("page", String(page));
     setSearchParams(params);
   };
@@ -318,10 +300,8 @@ export default function PropertyList() {
     });
   };
 
-  const activeLocation = searchParams.get("province") || "Đà Nẵng";
   const hasActiveFilters =
     filters.keyword ||
-    filters.province ||
     filters.propertyType ||
     filters.priceRange ||
     filters.areaRange ||
@@ -349,7 +329,7 @@ export default function PropertyList() {
             <span className="text-white/35">/</span>
             <span>Nhà đất bán</span>
             <span className="text-white/35">/</span>
-            <span className="text-[#f7d794]">{activeLocation}</span>
+            <span className="text-[#f7d794]">Tất cả loại hình</span>
           </div>
 
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}>
@@ -361,7 +341,7 @@ export default function PropertyList() {
               Tìm kiếm bất động sản phù hợp
             </h1>
             <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-white/74">
-              Lọc nhanh theo khu vực, loại hình, ngân sách và diện tích để tìm đúng lựa chọn bạn cần.
+              Lọc nhanh theo loại hình, ngân sách và diện tích để tìm đúng lựa chọn bạn cần.
             </p>
 
             <div className="mt-7 grid max-w-2xl grid-cols-3 overflow-hidden rounded-lg border border-white/15 bg-white/[0.08] backdrop-blur-md">
@@ -383,7 +363,7 @@ export default function PropertyList() {
           transition={{ duration: 0.45, delay: 0.1 }}
           className="relative z-10 mb-8 rounded-2xl border border-white/50 bg-white/82 p-4 shadow-2xl shadow-slate-950/12 backdrop-blur-xl"
         >
-          <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr_0.8fr_0.8fr_auto]">
+          <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_0.8fr_0.8fr_auto]">
             <label className="relative block">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
@@ -395,23 +375,6 @@ export default function PropertyList() {
             </label>
 
             <label className="relative block">
-              <MapPin className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <select
-                value={filters.province}
-                onChange={(event) => updateFilter("province", event.target.value)}
-                className="h-12 w-full appearance-none rounded-lg border border-white/80 bg-white/90 pl-11 pr-9 text-sm font-bold text-slate-800 outline-none transition focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
-              >
-                <option value="">Tất cả khu vực</option>
-                {provinces.map((province) => (
-                  <option key={province} value={province}>
-                    {province}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            </label>
-
-            <label className="relative block">
               <Building2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <select
                 value={filters.propertyType}
@@ -420,8 +383,8 @@ export default function PropertyList() {
               >
                 <option value="">Tất cả loại hình</option>
                 {propertyTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {getPropertyTypeLabel(type)}
+                  <option key={type.value} value={type.value}>
+                    {type.label}
                   </option>
                 ))}
               </select>
@@ -549,7 +512,7 @@ export default function PropertyList() {
               Cập nhật mới nhất hôm nay
             </div>
             <h2 className="mt-2 text-2xl font-black text-slate-950">
-              {pageInfo.totalElements.toLocaleString("vi-VN")} bất động sản phù hợp tại {activeLocation}
+              {pageInfo.totalElements.toLocaleString("vi-VN")} bất động sản phù hợp
             </h2>
           </div>
           <span className="w-fit rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-500 shadow-sm">
@@ -587,7 +550,7 @@ export default function PropertyList() {
                       {getPropertyTypeLabel(property.propertyType)}
                     </span>
                     <span className="absolute bottom-3 left-3 rounded-sm bg-white px-2.5 py-1 text-xs font-semibold text-slate-900">
-                      {property.province || "Đà Nẵng"}
+                      {property.province || "Hồ Chí Minh"}
                     </span>
                     <button
                       type="button"
@@ -649,7 +612,7 @@ export default function PropertyList() {
               Không tìm thấy bất động sản phù hợp
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm font-medium leading-6 text-slate-500">
-              Hãy thử bỏ bớt bộ lọc hoặc tìm theo khu vực rộng hơn để xem thêm tin đăng.
+              Hãy thử bỏ bớt bộ lọc hoặc tìm theo từ khóa khác để xem thêm tin đăng.
             </p>
           </div>
         )}

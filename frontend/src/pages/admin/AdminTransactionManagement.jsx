@@ -13,6 +13,7 @@ const statusMeta = {
   deposit_paid: { label: "Đã cọc", tone: "blue" },
   documents_submitted: { label: "Chờ duyệt giấy tờ", tone: "gold" },
   document_verifying: { label: "Đang duyệt giấy tờ", tone: "gold" },
+  documents_verified: { label: "Đã duyệt hợp lệ", tone: "green" },
   notarizing: { label: "Đang công chứng", tone: "purple" },
   payment_submitted: { label: "Chờ duyệt thanh toán", tone: "blue" },
   completed: { label: "Hoàn tất", tone: "green" },
@@ -69,7 +70,11 @@ export default function AdminTransactionManagement() {
       const response = await api.patch(`/transactions/${txId}/documents/${docId}/verify`);
       if (response.data.success) {
         showToast("success", "Đã duyệt giấy tờ");
-        setSelectedTx(response.data.data); // Update modal with fresh data
+        const updatedTransaction = response.data.data;
+        setSelectedTx(updatedTransaction); // Update modal with fresh data
+        if (updatedTransaction?.status === "documents_verified") {
+          setFilterStatus("documents_verified");
+        }
         fetchTransactions(); // Update background list
       }
     } catch (error) {

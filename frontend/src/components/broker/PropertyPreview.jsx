@@ -98,22 +98,6 @@ export default function PropertyPreview({ data }) {
                             <span className="text-[13px]">{data.area ? `${data.area} m²` : '--'}</span>
                         </div>
                     </div>
-
-                    {/* Amenities tags */}
-                    {data.amenities && data.amenities.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pt-3 border-t border-zinc-100">
-                            {data.amenities.slice(0, 4).map(a => (
-                                <span key={a} className="text-[11px] font-medium bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md">
-                                    {a}
-                                </span>
-                            ))}
-                            {data.amenities.length > 4 && (
-                                <span className="text-[11px] font-medium bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-md">
-                                    +{data.amenities.length - 4}
-                                </span>
-                            )}
-                        </div>
-                    )}
                 </div>
             </motion.div>
         </div>
