@@ -22,7 +22,10 @@ const statusMeta = {
 
 const documentTypeMeta = {
   cccd: "Căn cước công dân",
+  cccd_front: "CCCD mặt trước",
+  cccd_back: "CCCD mặt sau",
   household: "Sổ hộ khẩu",
+  residence: "Sổ hộ khẩu / Xác nhận cư trú",
   marriage: "Giấy đăng ký kết hôn",
 };
 
@@ -30,12 +33,13 @@ export default function AdminTransactionManagement() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("documents_submitted");
+  const [filterStatus, setFilterStatus] = useState("identity_pending");
   
   // Modal states
   const [selectedTx, setSelectedTx] = useState(null);
   const [toast, setToast] = useState(null);
   const [rejectPrompt, setRejectPrompt] = useState(null);
+  const [identityRejectPrompt, setIdentityRejectPrompt] = useState(false);
 
   const fetchTransactions = useCallback(async () => {
     try {
@@ -89,8 +93,42 @@ export default function AdminTransactionManagement() {
     }
   };
 
+  const handleVerifyCustomerIdentity = async (transaction) => {
+    try {
+      const response = await api.patch(`/admin/users/${transaction.customerId}/identity-status`, null, {
+        params: { status: "verified" },
+      });
+      if (response.data.success) {
+        showToast("success", "Đã duyệt hồ sơ xác thực khách hàng");
+        setSelectedTx(null);
+        fetchTransactions();
+      }
+    } catch (error) {
+      showToast("error", error.response?.data?.message || "Không thể duyệt hồ sơ khách hàng");
+    }
+  };
+
+  const handleRejectCustomerIdentity = async (transaction, reason) => {
+    try {
+      const response = await api.patch(`/admin/users/${transaction.customerId}/identity-status`, null, {
+        params: { status: "rejected", reason },
+      });
+      if (response.data.success) {
+        showToast("success", "Đã từ chối hồ sơ xác thực khách hàng");
+        setSelectedTx(null);
+        setIdentityRejectPrompt(false);
+        fetchTransactions();
+      }
+    } catch (error) {
+      showToast("error", error.response?.data?.message || "Không thể từ chối hồ sơ khách hàng");
+    }
+  };
+
   const filteredTransactions = transactions.filter((tx) => {
-    const matchStatus = filterStatus === "all" || tx.status === filterStatus;
+    const matchStatus =
+      filterStatus === "all" ||
+      (filterStatus === "identity_pending" && tx.customerIdentityStatus === "pending_review") ||
+      tx.status === filterStatus;
     const matchSearch =
       tx.transactionCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tx.customerName?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -125,6 +163,7 @@ export default function AdminTransactionManagement() {
             value={filterStatus}
             onChange={setFilterStatus}
             options={[
+              { value: "identity_pending", label: "Hồ sơ khách chờ duyệt" },
               { value: "all", label: "Tất cả trạng thái" },
               { value: "documents_submitted", label: "Chờ duyệt giấy tờ" },
               { value: "document_verifying", label: "Đang duyệt" },
@@ -175,7 +214,11 @@ export default function AdminTransactionManagement() {
                   <p className="text-[11px] font-medium text-stone-500">{tx.customerEmail}</p>
                 </div>
                 <div>
-                  <StatusBadge status={tx.status} />
+                  {tx.customerIdentityStatus === "pending_review" ? (
+                    <IdentityBadge status={tx.customerIdentityStatus} />
+                  ) : (
+                    <StatusBadge status={tx.status} />
+                  )}
                 </div>
                 <div className="text-right">
                   <button
@@ -198,6 +241,8 @@ export default function AdminTransactionManagement() {
           onClose={() => setSelectedTx(null)}
           onVerify={(docId) => handleVerifyDocument(selectedTx.transactionId, docId)}
           onReject={(docId) => setRejectPrompt(docId)}
+          onVerifyIdentity={() => handleVerifyCustomerIdentity(selectedTx)}
+          onRejectIdentity={() => setIdentityRejectPrompt(true)}
         />
       )}
 
@@ -205,6 +250,15 @@ export default function AdminTransactionManagement() {
         <RejectPromptModal
           onCancel={() => setRejectPrompt(null)}
           onSubmit={(reason) => handleRejectDocument(selectedTx.transactionId, rejectPrompt, reason)}
+        />
+      )}
+
+      {identityRejectPrompt && (
+        <RejectPromptModal
+          title="Từ chối hồ sơ khách hàng"
+          description="Nhập lý do để khách hàng cập nhật lại hồ sơ xác thực trong trang cá nhân."
+          onCancel={() => setIdentityRejectPrompt(false)}
+          onSubmit={(reason) => handleRejectCustomerIdentity(selectedTx, reason)}
         />
       )}
 
@@ -231,6 +285,27 @@ function StatusBadge({ status }) {
   );
 }
 
+function IdentityBadge({ status }) {
+  const labels = {
+    pending_review: "Hồ sơ khách chờ duyệt",
+    verified: "Hồ sơ khách đã duyệt",
+    rejected: "Hồ sơ khách bị từ chối",
+    not_submitted: "Chưa có hồ sơ khách",
+  };
+  const styles = {
+    pending_review: "bg-amber-50 text-amber-700",
+    verified: "bg-emerald-50 text-emerald-700",
+    rejected: "bg-rose-50 text-rose-700",
+    not_submitted: "bg-stone-100 text-stone-600",
+  };
+  const key = status || "not_submitted";
+  return (
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black ${styles[key] || styles.not_submitted}`}>
+      {labels[key] || key}
+    </span>
+  );
+}
+
 function Select({ value, onChange, options }) {
   return (
     <select
@@ -247,8 +322,14 @@ function Select({ value, onChange, options }) {
   );
 }
 
-function DocumentReviewModal({ transaction, onClose, onVerify, onReject }) {
+function DocumentReviewModal({ transaction, onClose, onVerify, onReject, onVerifyIdentity, onRejectIdentity }) {
   const documents = transaction.documents || [];
+  const identityDocuments = [
+    { key: "cccdFront", label: "CCCD mặt trước", url: transaction.customerCccdFrontUrl },
+    { key: "cccdBack", label: "CCCD mặt sau", url: transaction.customerCccdBackUrl },
+    { key: "residence", label: "Sổ hộ khẩu / xác nhận cư trú", url: transaction.customerResidenceUrl },
+  ];
+  const isIdentityReview = transaction.customerIdentityStatus === "pending_review";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/55 px-4 backdrop-blur-sm">
@@ -268,7 +349,45 @@ function DocumentReviewModal({ transaction, onClose, onVerify, onReject }) {
         </div>
 
         <div className="overflow-y-auto p-6 flex-1">
-          {documents.length === 0 ? (
+          {isIdentityReview ? (
+            <div className="space-y-6">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+                Khách hàng đã cập nhật hồ sơ xác thực trong trang cá nhân. Admin duyệt tại mục pháp lý này để mở bước thanh toán cọc.
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                {identityDocuments.map((doc) => (
+                  <div key={doc.key} className="overflow-hidden rounded-lg border border-stone-200 bg-white">
+                    <div className="border-b border-stone-200 bg-stone-50 px-4 py-3">
+                      <h4 className="text-sm font-black text-stone-900">{doc.label}</h4>
+                    </div>
+                    <div className="flex min-h-[260px] items-center justify-center bg-stone-100 p-3">
+                      {doc.url ? (
+                        <img src={doc.url} alt={doc.label} className="max-h-[360px] rounded object-contain shadow-sm" />
+                      ) : (
+                        <span className="text-sm font-bold text-stone-400">Chưa có file</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end gap-3 border-t border-stone-200 pt-4">
+                <button
+                  type="button"
+                  onClick={onRejectIdentity}
+                  className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-black text-rose-700 hover:bg-rose-100"
+                >
+                  Từ chối
+                </button>
+                <button
+                  type="button"
+                  onClick={onVerifyIdentity}
+                  className="rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-700"
+                >
+                  Duyệt hồ sơ khách
+                </button>
+              </div>
+            </div>
+          ) : documents.length === 0 ? (
             <div className="text-center py-10 text-stone-500 font-medium">
               Chưa có giấy tờ nào được tải lên.
             </div>
@@ -324,7 +443,7 @@ function DocumentReviewModal({ transaction, onClose, onVerify, onReject }) {
   );
 }
 
-function RejectPromptModal({ onCancel, onSubmit }) {
+function RejectPromptModal({ title, description, onCancel, onSubmit }) {
   const [reason, setReason] = useState("");
 
   const handleSubmit = (e) => {
@@ -337,9 +456,9 @@ function RejectPromptModal({ onCancel, onSubmit }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/55 px-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl">
-        <h2 className="text-xl font-black text-stone-950">Từ chối giấy tờ</h2>
+        <h2 className="text-xl font-black text-stone-950">{title || "Từ chối giấy tờ"}</h2>
         <p className="mt-2 text-sm font-medium leading-6 text-stone-500">
-          Vui lòng nhập lý do từ chối để khách hàng có thể cập nhật lại giấy tờ chính xác hơn.
+          {description || "Vui lòng nhập lý do từ chối để khách hàng có thể cập nhật lại giấy tờ chính xác hơn."}
         </p>
         <form onSubmit={handleSubmit} className="mt-4">
           <textarea

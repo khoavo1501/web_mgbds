@@ -15,6 +15,8 @@ public class TransactionRequest {
     @NotNull(message = "Customer ID không được để trống")
     private Long customerId;
 
+    private Long appointmentId;
+
     @NotNull(message = "Tổng giá trị không được để trống")
     @DecimalMin(value = "0.01", message = "Tổng giá trị phải lớn hơn 0")
     private BigDecimal totalPrice;

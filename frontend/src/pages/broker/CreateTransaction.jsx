@@ -35,7 +35,7 @@ export default function CreateTransaction() {
     api.get('/appointments')
       .then(res => {
         if (res.data.success) {
-          const apps = (res.data.data || []).filter((item) => item.status !== "cancelled");
+          const apps = (res.data.data || []).filter((item) => item.status === "viewed");
           setAppointments(apps);
           
           // Auto-select from URL
@@ -124,6 +124,7 @@ export default function CreateTransaction() {
       const payload = {
         propertyId: Number(formData.propertyId),
         customerId: Number(formData.customerId),
+        appointmentId: Number(selectedAppId),
         totalPrice: Number(formData.price),
         depositAmount: Number(formData.depositAmount || 0),
         paymentMethod: formData.paymentMethod,

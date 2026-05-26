@@ -11,6 +11,7 @@ const activeStatuses = new Set([
   "deposit_confirmed",
   "commitment_signed",
   "deal_scheduled",
+  "broker_confirmed",
   "refund_requested",
 ]);
 

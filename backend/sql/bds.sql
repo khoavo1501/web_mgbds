@@ -17,6 +17,14 @@ CREATE TABLE users (
     role VARCHAR(20) NOT NULL,                      -- 'admin', 'broker', 'customer'
     full_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
+    bank_name VARCHAR(100),
+    bank_account_number VARCHAR(50),
+    bank_account_holder VARCHAR(255),
+    identity_verification_status VARCHAR(30) DEFAULT 'not_submitted',
+    cccd_front_url VARCHAR(500),
+    cccd_back_url VARCHAR(500),
+    residence_url VARCHAR(500),
+    identity_reject_reason TEXT,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -36,7 +44,7 @@ CREATE TABLE properties (
     title VARCHAR(500) NOT NULL,
     description TEXT,
     property_type VARCHAR(50) NOT NULL,
-    status VARCHAR(30) DEFAULT 'pending',           -- 'pending', 'published', 'in_transaction', 'sold'
+    status VARCHAR(30) DEFAULT 'pending',           -- 'pending', 'published', 'in_transaction', 'deposit_paid', 'sold'
     province VARCHAR(100) NOT NULL,
     district VARCHAR(100) NOT NULL,
     area NUMERIC(10, 2) NOT NULL,
