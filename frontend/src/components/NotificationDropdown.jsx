@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, CheckCircle, XCircle, AlertCircle, Clock, FileText, Check } from 'lucide-react';
 
-// Example types: DOCUMENT_REJECTED, DOCUMENT_VERIFIED, PAYMENT_CONFIRMED, PROPERTY_APPROVED, PROPERTY_REJECTED, TRANSACTION_CANCELLED, APPOINTMENT_APPROVED
+// Example types: DOCUMENT_REJECTED, DOCUMENT_VERIFIED, PAYMENT_CONFIRMED, PROPERTY_APPROVED, PROPERTY_REJECTED, TRANSACTION_CANCELLED, APPOINTMENT_APPROVED, appointment_rescheduled
 const getIconForType = (type) => {
   switch (type) {
     case 'DOCUMENT_VERIFIED':
@@ -14,6 +14,8 @@ const getIconForType = (type) => {
     case 'PROPERTY_REJECTED':
     case 'TRANSACTION_CANCELLED':
       return <XCircle className="w-5 h-5 text-red-500" />;
+    case 'appointment_rescheduled':
+      return <Clock className="w-5 h-5 text-amber-500" />;
     default:
       return <Bell className="w-5 h-5 text-blue-500" />;
   }

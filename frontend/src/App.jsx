@@ -4,6 +4,7 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { FavoritesProvider } from "./context/FavoritesContext";
+import { ReputationProvider } from "./context/ReputationContext";
 
 // Public & Auth Pages
 import Homepage from "./pages/public/Homepage";
@@ -18,6 +19,7 @@ import MyAppointments from "./pages/customer/MyAppointments";
 import AppointmentDetail from "./pages/customer/AppointmentDetail";
 import BookAppointmentFlow from "./pages/customer/BookAppointmentFlow";
 import BookAppointment from "./pages/customer/BookAppointment";
+import BookAppointmentNew from "./pages/customer/BookAppointmentNew";
 import RescheduleAppointment from "./pages/customer/RescheduleAppointment";
 import CancelAppointment from "./pages/customer/CancelAppointment";
 
@@ -28,6 +30,7 @@ import PropertyUpload from "./pages/broker/PropertyUpload";
 import BrokerTransactionHistory from "./pages/broker/BrokerTransactionHistory";
 import CreateTransaction from "./pages/broker/CreateTransaction";
 import BrokerAppointments from "./pages/broker/BrokerAppointments";
+import BrokerAppointmentDetail from "./pages/broker/BrokerAppointmentDetail";
 import BrokerLayout from "./layouts/BrokerLayout";
 
 // Admin Pages
@@ -41,8 +44,9 @@ import AdminTransactionManagement from "./pages/admin/AdminTransactionManagement
 function App() {
   return (
     <AuthProvider>
-      <FavoritesProvider>
-        <Router>
+      <ReputationProvider>
+        <FavoritesProvider>
+          <Router>
           <Routes>
             {/* Public Routes */}
             <Route element={<PublicLayout />}>
@@ -62,6 +66,7 @@ function App() {
                 <Route path="/customer/appointments/:id/reschedule" element={<RescheduleAppointment />} />
                 <Route path="/customer/appointments/:id/cancel" element={<CancelAppointment />} />
                 <Route path="/properties/:propertyId/book" element={<BookAppointment />} />
+                <Route path="/properties/:propertyId/book-appointment" element={<BookAppointmentNew />} />
                 <Route path="/properties/:propertyId/book-flow" element={<BookAppointmentFlow />} />
               </Route>
             </Route>
@@ -71,6 +76,7 @@ function App() {
               <Route element={<BrokerLayout />}>
                 <Route path="/broker" element={<BrokerDashboard />} />
                 <Route path="/broker/appointments" element={<BrokerAppointments />} />
+                <Route path="/broker/appointments/:id" element={<BrokerAppointmentDetail />} />
                 <Route path="/broker/finance" element={<BrokerFinance />} />
                 <Route path="/broker/transaction" element={<Navigate to="/broker/transactions/history" replace />} />
                 <Route path="/broker/transactions/history" element={<BrokerTransactionHistory />} />
@@ -97,6 +103,7 @@ function App() {
           </Routes>
         </Router>
       </FavoritesProvider>
+      </ReputationProvider>
     </AuthProvider>
   );
 }

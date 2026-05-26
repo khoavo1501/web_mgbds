@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 public class AppointmentRequest {
     private Long propertyId;
     
-    @NotNull(message = "Thời gian không được để trống")
+    // Không dùng @NotNull vì field này optional khi chỉ update status
+    // Validation sẽ được xử lý trong service layer
     @Future(message = "Thời gian phải trong tương lai")
     private LocalDateTime scheduledAt;
     

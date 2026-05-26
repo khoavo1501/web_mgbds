@@ -45,8 +45,19 @@ public class AppointmentController {
         }
     }
 
+    @GetMapping("/can-book/{propertyId}")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'customer') or hasAuthority('ROLE_CUSTOMER') or hasAuthority('customer')")
+    public ResponseEntity<ApiResponse<Boolean>> canBookAppointment(@PathVariable Long propertyId) {
+        try {
+            boolean canBook = appointmentService.canBookAppointment(propertyId);
+            return ResponseEntity.ok(ApiResponse.success("Success", canBook));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @PostMapping
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'customer') or hasAuthority('ROLE_CUSTOMER') or hasAuthority('customer')")
     public ResponseEntity<ApiResponse<AppointmentDTO>> createAppointment(@Valid @RequestBody AppointmentRequest request) {
         try {
             return ResponseEntity.ok(ApiResponse.success("Đặt lịch thành công", appointmentService.createAppointment(request)));
@@ -73,6 +84,16 @@ public class AppointmentController {
         try {
             appointmentService.cancelAppointment(id);
             return ResponseEntity.ok(ApiResponse.success("Hủy lịch hẹn thành công"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{id}/cancellation-info")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<AppointmentDTO>> getCancellationInfo(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Success", appointmentService.getCancellationInfo(id)));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }

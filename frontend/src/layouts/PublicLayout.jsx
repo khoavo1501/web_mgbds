@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Building2,
@@ -12,10 +12,13 @@ import {
   UserCircle,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useReputation } from "../context/ReputationContext";
 import NotificationDropdown from "../components/NotificationDropdown";
+import ReputationBadge from "../components/common/ReputationBadge";
 
 export default function PublicLayout() {
   const { user, logout } = useAuth();
+  const { reputationScore } = useReputation();
   const navigate = useNavigate();
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -77,12 +80,24 @@ export default function PublicLayout() {
                   <button
                   type="button"
                   onClick={() => setShowDropdown((value) => !value)}
-                  className="flex items-center gap-2 text-sm font-semibold text-slate-900"
+                  className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm transition hover:bg-slate-50"
                 >
-                  <UserCircle className="h-5 w-5" />
-                  <span className="hidden max-w-40 truncate sm:inline">
-                    {user.fullName || user.email}
-                  </span>
+                  <UserCircle className="h-5 w-5 text-slate-600" />
+                  <div className="flex flex-col items-start">
+                    <span className="hidden text-sm font-bold text-slate-900 sm:inline">
+                      {user.fullName || user.email}
+                    </span>
+                    {user.role === "customer" && reputationScore && (
+                      <div className="hidden sm:block">
+                        <ReputationBadge 
+                          score={reputationScore.currentScore} 
+                          level={reputationScore.level} 
+                          size="sm"
+                          showScore={true}
+                        />
+                      </div>
+                    )}
+                  </div>
                   <ChevronDown className="h-4 w-4 text-slate-500" />
                 </button>
 
