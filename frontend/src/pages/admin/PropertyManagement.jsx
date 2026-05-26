@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Eye,
@@ -37,8 +37,9 @@ const propertyTypes = [
 
 const statuses = [
   { value: "all", label: "Tất cả" },
-  { value: "pending", label: "Chờ duyệt" },
+  { value: "pending_review", label: "Chờ duyệt" },
   { value: "published", label: "Đang đăng" },
+  { value: "in_transaction", label: "Đang giao dịch" },
   { value: "deposit_paid", label: "Đã cọc" },
   { value: "rejected", label: "Từ chối" },
   { value: "sold", label: "Đã bán" },
@@ -46,7 +47,7 @@ const statuses = [
 ];
 
 const statusMeta = {
-  pending: { label: "Chờ duyệt", className: "bg-amber-100 text-amber-800" },
+  pending_review: { label: "Chờ duyệt", className: "bg-amber-100 text-amber-800" },
   published: { label: "Đang đăng", className: "bg-emerald-100 text-emerald-800" },
   deposit_paid: { label: "Đã cọc", className: "bg-amber-100 text-amber-800" },
   in_transaction: { label: "Đang giao dịch", className: "bg-cyan-100 text-cyan-800" },
@@ -106,7 +107,7 @@ export default function PropertyManagement() {
   const summary = useMemo(() => {
     return {
       total: properties.length,
-      pending: properties.filter((item) => item.status === "pending").length,
+      pending: properties.filter((item) => item.status === "pending_review").length,
       published: properties.filter((item) => item.status === "published").length,
       totalValue: properties.reduce((sum, item) => sum + Number(item.price || 0), 0),
     };
@@ -425,6 +426,19 @@ export default function PropertyManagement() {
                     <IconButton title="Xem nhanh" onClick={() => setPreviewProperty(property)}>
                       <Eye className="h-4 w-4" />
                     </IconButton>
+                    <IconButton title="Chỉnh sửa" onClick={() => openEditModal(property)}>
+                      <Pencil className="h-4 w-4" />
+                    </IconButton>
+                    {property.status === "pending_review" && (
+                      <>
+                        <IconButton title="Duyệt BĐS và giấy tờ" tone="approve" onClick={() => handleStatusChange(property, "published")}>
+                          <CheckCircle2 className="h-4 w-4" />
+                        </IconButton>
+                        <IconButton title="Từ chối" tone="danger" onClick={() => handleStatusChange(property, "rejected")}>
+                          <XCircle className="h-4 w-4" />
+                        </IconButton>
+                      </>
+                    )}
                     <IconButton title="Xóa" tone="danger" onClick={() => setDeleteTarget(property)}>
                       <Trash2 className="h-4 w-4" />
                     </IconButton>
@@ -501,6 +515,7 @@ function Select({ value, onChange, options }) {
 function IconButton({ children, title, onClick, tone = "neutral" }) {
   const tones = {
     neutral: "border-stone-200 text-stone-500 hover:text-stone-950",
+    approve: "border-emerald-200 text-emerald-700 hover:bg-emerald-50",
     danger: "border-rose-200 text-rose-700 hover:bg-rose-50",
   };
 
@@ -631,7 +646,7 @@ function PropertyModal({
               <div>
                 <p className="text-sm font-black text-stone-900">Hình ảnh</p>
                 <p className="text-xs font-medium text-stone-500">
-                  Chọn ảnh từ máy để lưu vào thư mục local `backend/images`, tên file sẽ được mã hoá.
+                  Chọn ảnh từ máy để lưu vào thư mục local `backend/images`, tên file sẽ được mã hóa.
                 </p>
               </div>
               <div className="flex items-center gap-2">

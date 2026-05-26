@@ -46,6 +46,29 @@ public class PropertyService {
     @Autowired
     private UserRepository userRepository;
 
+    private void validatePropertyLegalDocuments(Property property) {
+        List<String> missing = new ArrayList<>();
+        if (isBlank(property.getRedBookUrl())) {
+            missing.add("so do/so hong");
+        }
+        if (isBlank(property.getHouseholdRegistrationUrl())) {
+            missing.add("so ho khau/xac nhan cu tru");
+        }
+        if (isBlank(property.getOwnerIdUrl())) {
+            missing.add("CCCD nguoi ban");
+        }
+        if (Boolean.TRUE.equals(property.getIsExclusive()) && isBlank(property.getBrokerageContractUrl())) {
+            missing.add("hop dong moi gioi doc quyen");
+        }
+        if (!missing.isEmpty()) {
+            throw new RuntimeException("Chua the duyet BDS vi thieu: " + String.join(", ", missing));
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
     /**
      * Lấy danh sách BDS với phân trang và tìm kiếm
      */
@@ -409,7 +432,7 @@ public class PropertyService {
         // Admin hoặc Broker (nếu là người tạo và đang ở trạng thái pending) mới được xóa
         if ("broker".equalsIgnoreCase(currentUser.getRole())) {
             boolean isCreator = property.getCreatedBy() != null && property.getCreatedBy().getUserId().equals(currentUser.getUserId());
-            if (!isCreator || !"pending".equals(property.getStatus())) {
+            if (!isCreator || !"pending_review".equals(property.getStatus())) {
                 throw new RuntimeException("Bạn không có quyền xóa BDS này, hoặc BDS đã được duyệt");
             }
         } else if (!"admin".equalsIgnoreCase(currentUser.getRole())) {
@@ -431,7 +454,7 @@ public class PropertyService {
     @Transactional
     public PropertyDTO updatePropertyStatus(Long id, String status) {
         // Validate status
-        if (!status.matches("pending|published|in_transaction|sold|rented|rejected")) {
+        if (!status.matches("pending_review|published|in_transaction|deposit_paid|sold|rented|rejected|inactive")) {
             throw new RuntimeException("Trạng thái không hợp lệ. Chỉ chấp nhận: pending, published, sold, rented, rejected");
         }
 
@@ -454,6 +477,10 @@ public class PropertyService {
             if ("published".equals(status)) {
                 throw new RuntimeException("Chỉ Admin mới có quyền duyệt BDS");
             }
+        }
+
+        if ("published".equals(status)) {
+            validatePropertyLegalDocuments(property);
         }
 
         property.setStatus(status);

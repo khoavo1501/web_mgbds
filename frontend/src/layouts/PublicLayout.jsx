@@ -114,6 +114,14 @@ export default function PublicLayout() {
                     {user?.role === "customer" && (
                       <>
                         <Link
+                          to="/customer/profile"
+                          onClick={() => setShowDropdown(false)}
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          <UserCircle className="h-4 w-4" />
+                          Hồ sơ
+                        </Link>
+                        <Link
                           to="/customer/transactions/active"
                           onClick={() => setShowDropdown(false)}
                           className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"

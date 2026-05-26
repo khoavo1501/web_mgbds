@@ -164,14 +164,14 @@ export default function FinancialManagement() {
 
   const summary = useMemo(() => {
     const completed = transactions.filter((item) => item.status === "completed");
-    const pending = transactions.filter((item) => item.status === "pending");
+    const pending = transactions.filter((item) => item.status === "payment_submitted");
     const depositConfirmed = transactions.filter((item) => item.status === "deposit_confirmed");
     const cancelled = transactions.filter((item) => item.status === "cancelled");
 
     return {
       revenue: completed.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0),
       deposits: transactions.reduce((sum, item) => sum + Number(item.depositAmount || 0), 0),
-      pendingValue: pending.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0),
+      pendingValue: pending.reduce((sum, item) => sum + Number(item.depositAmount || 0), 0),
       completedCount: completed.length,
       pendingCount: pending.length,
       depositConfirmedCount: depositConfirmed.length,

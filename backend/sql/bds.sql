@@ -332,12 +332,12 @@ INSERT INTO properties (property_code, title, description, property_type, status
 
 -- 4. Property Images
 INSERT INTO property_images (property_id, url, is_primary) VALUES
-(1, 'https://picsum.photos/800/600?random=1',  true),
+(1, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779804022/3_y3eafz.jpg',  true),
 (1, 'https://picsum.photos/800/600?random=2',  false),
 (1, 'https://picsum.photos/800/600?random=3',  false),
-(2, 'https://picsum.photos/800/600?random=4',  true),
+(2, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779804022/2_tn5nkr.jpg',  true),
 (2, 'https://picsum.photos/800/600?random=5',  false),
-(3, 'https://picsum.photos/800/600?random=6',  true),
+(3, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779804022/1_aiegq5.jpg',  true),
 (3, 'https://picsum.photos/800/600?random=7',  false),
 (3, 'https://picsum.photos/800/600?random=8',  false),
 (3, 'https://picsum.photos/800/600?random=9',  false),

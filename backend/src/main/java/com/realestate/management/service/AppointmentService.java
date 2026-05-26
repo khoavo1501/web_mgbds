@@ -5,7 +5,6 @@ import com.realestate.management.dto.AppointmentRequest;
 import com.realestate.management.entity.Appointment;
 import com.realestate.management.entity.Property;
 import com.realestate.management.entity.User;
-import com.realestate.management.entity.Transaction;
 import com.realestate.management.repository.AppointmentRepository;
 import com.realestate.management.repository.PropertyRepository;
 import com.realestate.management.repository.UserRepository;
@@ -36,9 +35,6 @@ public class AppointmentService {
 
     @Autowired
     private NotificationService notificationService;
-
-    @Autowired
-    private TransactionService transactionService;
 
     @Autowired
     private TransactionRepository transactionRepository;
@@ -230,6 +226,7 @@ public class AppointmentService {
             
             // 🆕 VALIDATION: Chỉ môi giới mới có quyền xác nhận (confirmed, completed) hoặc từ chối (rejected) lịch hẹn
             if (("confirmed".equalsIgnoreCase(request.getStatus()) || 
+                 "viewed".equalsIgnoreCase(request.getStatus()) ||
                  "completed".equalsIgnoreCase(request.getStatus()) ||
                  "rejected".equalsIgnoreCase(request.getStatus())) && 
                 !"broker".equalsIgnoreCase(currentUser.getRole()) &&
@@ -238,7 +235,7 @@ public class AppointmentService {
             }
             
             // 🆕 VALIDATION: Môi giới chỉ được xác nhận "completed" SAU NGÀY hẹn
-            if ("completed".equalsIgnoreCase(request.getStatus()) && 
+            if (("viewed".equalsIgnoreCase(request.getStatus()) || "completed".equalsIgnoreCase(request.getStatus())) &&
                 "broker".equalsIgnoreCase(currentUser.getRole())) {
                 
                 java.time.LocalDateTime now = java.time.LocalDateTime.now();
@@ -256,34 +253,6 @@ public class AppointmentService {
             }
             
             appointment.setStatus(request.getStatus());
-            
-            // 🆕 AUTO-CREATE TRANSACTION: Khi broker xác nhận "completed" (đã xem xong)
-            if ("completed".equalsIgnoreCase(request.getStatus()) && 
-                !"completed".equalsIgnoreCase(oldStatus) &&
-                "broker".equalsIgnoreCase(currentUser.getRole())) {
-                
-                try {
-                    // Tự động tạo giao dịch với thời hạn 24h để cọc
-                    transactionService.createTransactionFromCompletedAppointment(appointment);
-                    
-                    // Thông báo cho khách hàng
-                    notificationService.createNotification(
-                        appointment.getCustomer(),
-                        "appointment_completed_deposit_required",
-                        "Lịch xem nhà hoàn tất - Vui lòng đặt cọc",
-                        String.format(
-                            "Bạn đã xem xong bất động sản '%s'. Một giao dịch đã được tạo tự động. " +
-                            "Vui lòng đặt cọc trong vòng 24 giờ để giữ quyền mua. " +
-                            "Nếu không đặt cọc, bạn cần đặt lịch xem nhà lại để mua BĐS này.",
-                            appointment.getProperty().getTitle()
-                        ),
-                        "CUSTOMER"
-                    );
-                } catch (Exception e) {
-                    System.err.println("Failed to auto-create transaction: " + e.getMessage());
-                    // Không throw exception để không block việc update appointment
-                }
-            }
         }
 
         // Update note (if provided)

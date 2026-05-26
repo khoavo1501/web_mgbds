@@ -36,10 +36,11 @@ import BrokerLayout from "./layouts/BrokerLayout";
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import PropertyManagement from "./pages/admin/PropertyManagement";
-import PropertyApproval from "./pages/admin/PropertyApproval";
 import FinancialManagement from "./pages/admin/FinancialManagement";
 import UserManagement from "./pages/admin/UserManagement";
 import AdminTransactionManagement from "./pages/admin/AdminTransactionManagement";
+import AdminReviewCenter from "./pages/admin/AdminReviewCenter";
+import AdminReports from "./pages/admin/AdminReports";
 
 function App() {
   return (
@@ -58,6 +59,7 @@ function App() {
               {/* Customer */}
               <Route element={<ProtectedRoute allowedRoles={['customer']} />}>
                 <Route path="/customer" element={<CustomerDashboard />} />
+                <Route path="/customer/profile" element={<CustomerDashboard mode="profile" />} />
                 <Route path="/customer/transactions" element={<CustomerTransactions />} />
                 <Route path="/customer/transactions/active" element={<CustomerTransactions activeOnly />} />
                 <Route path="/customer/transactions/:transactionId" element={<CustomerTransactions detail />} />
@@ -91,9 +93,11 @@ function App() {
                 {/* Admin */}
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/properties" element={<PropertyManagement />} />
-                <Route path="/admin/approval" element={<PropertyApproval />} />
+                <Route path="/admin/approval" element={<Navigate to="/admin/reviews" replace />} />
                 <Route path="/admin/transactions" element={<AdminTransactionManagement />} />
+                <Route path="/admin/reviews" element={<AdminReviewCenter />} />
                 <Route path="/admin/finance" element={<FinancialManagement />} />
+                <Route path="/admin/reports" element={<AdminReports />} />
                 <Route path="/admin/users" element={<UserManagement />} />
               </Route>
             </Route>

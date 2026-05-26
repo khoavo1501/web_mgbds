@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Calendar, Clock, MapPin, User, Phone, 
-  CheckCircle, XCircle, Eye, Filter, MoreVertical, Edit
+  CheckCircle, XCircle, Eye, Filter, MoreVertical, Edit, FileText
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
@@ -37,7 +37,13 @@ export default function BrokerAppointments() {
       });
       
       if (response.data.success) {
-        alert(`Đã ${newStatus === 'confirmed' ? 'xác nhận' : newStatus === 'completed' ? 'hoàn tất' : 'từ chối'} lịch hẹn`);
+        const actionLabels = {
+          confirmed: 'xác nhận',
+          viewed: 'xác nhận đã dẫn xem nhà',
+          completed: 'hoàn tất',
+          rejected: 'từ chối'
+        };
+        alert(`Đã ${actionLabels[newStatus] || 'cập nhật'} lịch hẹn`);
         fetchAppointments();
       }
     } catch (error) {
@@ -64,9 +70,9 @@ export default function BrokerAppointments() {
         label: 'Đã xác nhận' 
       },
       viewed: { 
-        bg: 'bg-emerald-50', 
-        text: 'text-emerald-700',
-        label: 'Đã xác nhận' 
+        bg: 'bg-blue-50', 
+        text: 'text-blue-700',
+        label: 'Đã dẫn xem nhà' 
       },
       completed: { 
         bg: 'bg-slate-100', 
@@ -97,10 +103,10 @@ export default function BrokerAppointments() {
     if (filter === 'all') return true;
     if (filter === 'upcoming') {
       return (apt.status === 'pending' || apt.status === 'confirmed' || 
-              apt.status === 'scheduled' || apt.status === 'viewed');
+              apt.status === 'scheduled');
     }
     if (filter === 'confirmed') {
-      return apt.status === 'confirmed' || apt.status === 'scheduled' || apt.status === 'viewed';
+      return apt.status === 'confirmed' || apt.status === 'scheduled';
     }
     return apt.status === filter;
   });
@@ -169,6 +175,16 @@ export default function BrokerAppointments() {
               Đã xác nhận ({appointments.filter(a => ['confirmed', 'scheduled'].includes(a.status)).length})
             </button>
             <button
+              onClick={() => setFilter('viewed')}
+              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+                filter === 'viewed' 
+                  ? 'bg-gray-900 text-white' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              Đã dẫn xem nhà ({appointments.filter(a => a.status === 'viewed').length})
+            </button>
+            <button
               onClick={() => setFilter('completed')}
               className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${
                 filter === 'completed' 
@@ -213,6 +229,7 @@ export default function BrokerAppointments() {
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-white text-lg ${
                         appointment.status === 'pending' ? 'bg-yellow-500' :
                         appointment.status === 'confirmed' || appointment.status === 'scheduled' ? 'bg-green-500' :
+                        appointment.status === 'viewed' ? 'bg-blue-500' :
                         appointment.status === 'completed' ? 'bg-gray-500' :
                         'bg-gray-400'
                       }`}>
@@ -313,8 +330,32 @@ export default function BrokerAppointments() {
                           <Eye className="w-4 h-4" />
                           Chi tiết & Liên hệ lại
                         </button>
+                        <button
+                          onClick={() => handleUpdateStatus(appointment.appointmentId, 'viewed')}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-bold text-sm"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Đã dẫn xem nhà
+                        </button>
                         <button className="px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
                           <Edit className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                    {appointment.status === 'viewed' && (
+                      <>
+                        <button
+                          onClick={() => navigate(`/broker/transactions/create?appointmentId=${appointment.appointmentId}`)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors font-bold text-sm"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Tạo giao dịch cọc
+                        </button>
+                        <button
+                          onClick={() => navigate(`/broker/appointments/${appointment.appointmentId}`)}
+                          className="px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                        >
+                          <Eye className="w-4 h-4" />
                         </button>
                       </>
                     )}

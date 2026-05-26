@@ -51,7 +51,13 @@ export default function BrokerAppointmentDetail() {
       });
       
       if (response.data.success) {
-        alert(`Đã ${newStatus === 'confirmed' ? 'xác nhận' : newStatus === 'completed' ? 'hoàn tất' : 'từ chối'} lịch hẹn`);
+        const actionLabels = {
+          confirmed: 'xác nhận',
+          viewed: 'xác nhận đã dẫn xem nhà',
+          completed: 'hoàn tất',
+          rejected: 'từ chối'
+        };
+        alert(`Đã ${actionLabels[newStatus] || 'cập nhật'} lịch hẹn`);
         fetchAppointmentDetail();
       }
     } catch (error) {
@@ -104,10 +110,10 @@ export default function BrokerAppointmentDetail() {
         icon: CheckCircle
       },
       viewed: { 
-        bg: 'bg-emerald-50', 
-        text: 'text-emerald-700', 
-        dot: 'bg-emerald-500',
-        label: 'Đã xác nhận',
+        bg: 'bg-blue-50', 
+        text: 'text-blue-700', 
+        dot: 'bg-blue-500',
+        label: 'Đã dẫn xem nhà',
         icon: CheckCircle
       },
       completed: { 
@@ -207,7 +213,7 @@ export default function BrokerAppointmentDetail() {
                   </button>
                 </>
               )}
-              {(appointment.status === 'confirmed' || appointment.status === 'scheduled' || appointment.status === 'viewed') && (
+              {(appointment.status === 'confirmed' || appointment.status === 'scheduled') && (
                 <>
                   {getStatusBadge(appointment.status)}
                   <button
@@ -217,10 +223,21 @@ export default function BrokerAppointmentDetail() {
                     Dời lịch
                   </button>
                   <button
-                    onClick={() => handleUpdateStatus('completed')}
+                    onClick={() => handleUpdateStatus('viewed')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
+                  >
+                    Đã dẫn xem nhà
+                  </button>
+                </>
+              )}
+              {appointment.status === 'viewed' && (
+                <>
+                  {getStatusBadge(appointment.status)}
+                  <button
+                    onClick={() => navigate(`/broker/transactions/create?appointmentId=${appointment.appointmentId}`)}
                     className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors font-semibold text-sm"
                   >
-                    Đánh dấu hoàn tất
+                    Tạo giao dịch cọc
                   </button>
                 </>
               )}
