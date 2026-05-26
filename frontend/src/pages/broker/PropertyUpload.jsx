@@ -13,6 +13,14 @@ const wardList = [
   'Phường Hội An', 'Phường Hội An Đông', 'Phường Hội An Tây'
 ];
 
+const propertyTypes = [
+  { label: 'Căn hộ', value: 'apartment' },
+  { label: 'Nhà riêng', value: 'house' },
+  { label: 'Đất nền', value: 'land' },
+  { label: 'Biệt thự', value: 'villa' },
+  { label: 'Shophouse', value: 'shophouse' },
+];
+
 const InputField = ({ label, required, icon: Icon, className = '', ...props }) => (
   <div className={className}>
     <label className="block text-sm font-medium text-zinc-700 mb-1.5">
@@ -164,7 +172,7 @@ export default function PropertyUpload() {
   const [editingId, setEditingId] = useState(null);
 
   const [formData, setFormData] = useState({
-    title: '', type: 'Nhà ở', price: '', area: '', address: '', ward: 'Phường Hải Châu',
+    title: '', type: 'Căn hộ', price: '', area: '', address: '', ward: 'Phường Hải Châu',
     description: '', images: [], 
     redBookFile: null, householdRegistrationFile: null, ownerIdFile: null,
     commitment: false, status: 'Nháp',
@@ -181,10 +189,10 @@ export default function PropertyUpload() {
   const isLocked = editingId && formData.status !== 'pending' && formData.status !== 'Nháp';
 
   const handleEditProperty = useCallback((prop) => {
-    const typeMapReverse = { 'house': 'Nhà ở', 'land': 'Đất nền', 'apartment': 'Chung cư', 'rental': 'Cho thuê' };
+    const typeMapReverse = { apartment: 'Căn hộ', house: 'Nhà riêng', land: 'Đất nền', villa: 'Biệt thự', shophouse: 'Shophouse' };
     setFormData({
       title: prop.title || '',
-      type: typeMapReverse[prop.propertyType] || 'Nhà ở',
+      type: typeMapReverse[prop.propertyType] || 'Căn hộ',
       price: prop.price || '',
       area: prop.area || '',
       ward: prop.district ? (wardList.find(w => prop.district.includes(w)) || 'Phường Hải Châu') : 'Phường Hải Châu',
@@ -209,7 +217,7 @@ export default function PropertyUpload() {
   const handleNewTabClick = useCallback(() => {
     setEditingId(null);
     setFormData({
-      title: '', type: 'Nhà ở', price: '', area: '', address: '', ward: 'Phường Hải Châu',
+      title: '', type: 'Căn hộ', price: '', area: '', address: '', ward: 'Phường Hải Châu',
       description: '', images: [], 
       redBookFile: null, householdRegistrationFile: null, ownerIdFile: null,
       commitment: false, status: 'Nháp',
@@ -285,7 +293,7 @@ export default function PropertyUpload() {
     if (!formData.commitment) return showToast('error', 'Vui lòng xác nhận cam kết thông tin.');
 
     // Map loại BĐS tiếng Việt → giá trị backend
-    const typeMap = { 'Nhà ở': 'house', 'Đất nền': 'land', 'Chung cư': 'apartment', 'Cho thuê': 'rental' };
+    const typeMap = { 'Căn hộ': 'apartment', 'Nhà riêng': 'house', 'Đất nền': 'land', 'Biệt thự': 'villa', 'Shophouse': 'shophouse' };
 
     setIsSubmitting(true);
     try {
@@ -359,7 +367,7 @@ export default function PropertyUpload() {
         // Reset form
         setEditingId(null);
         setFormData({
-          title: '', type: 'Nhà ở', price: '', area: '', address: '', ward: 'Phường Hải Châu',
+          title: '', type: 'Căn hộ', price: '', area: '', address: '', ward: 'Phường Hải Châu',
           description: '', images: [], 
           redBookFile: null, householdRegistrationFile: null, ownerIdFile: null,
           commitment: false, status: 'Nháp',
@@ -443,10 +451,9 @@ export default function PropertyUpload() {
                     </label>
                     <select name="type" value={formData.type} onChange={handleChange}
                       className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm appearance-none bg-white">
-                      <option>Nhà ở</option>
-                      <option>Đất nền</option>
-                      <option>Chung cư</option>
-                      <option>Cho thuê</option>
+                      {propertyTypes.map((type) => (
+                        <option key={type.value} value={type.label}>{type.label}</option>
+                      ))}
                     </select>
                   </div>
                   <InputField label="Mức giá (VNĐ)" required name="price" value={formData.price} onChange={handleChange} type="number" placeholder="VD: 2500000000" />
