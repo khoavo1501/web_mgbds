@@ -3,35 +3,14 @@ import { UploadCloud, CheckCircle2, Map, Loader2, X, FileText, Plus, Trash2, Fil
 import PropertyPreview from '../../components/broker/PropertyPreview';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
-import page1 from '../../assets/images/contracts/page1.png';
-import page2 from '../../assets/images/contracts/page2.png';
-import page3 from '../../assets/images/contracts/page3.png';
-
-const amenitiesList = ['Hồ bơi','Phòng gym','Sân vườn','Ban công','Gara ô tô','An ninh 24/7','Thang máy','Gần trường học','Gần bệnh viện','Gần chợ/siêu thị','Sân thượng','Khu BBQ'];
 
 const wardList = [
-  'Phường Hải Châu', 'Phường Hòa Cường', 'Phường Thanh Khê', 'Phường An Khê',
-  'Phường An Hải', 'Phường Sơn Trà', 'Phường Ngũ Hành Sơn', 'Phường Hòa Khánh',
-  'Phường Hải Vân', 'Phường Liên Chiểu', 'Phường Cẩm Lệ', 'Phường Hòa Xuân',
-  'Xã Hòa Vang', 'Xã Hòa Tiến', 'Xã Bà Nà', 'Xã Núi Thành', 'Xã Tam Mỹ',
-  'Xã Tam Anh', 'Xã Đức Phú', 'Xã Tam Xuân', 'Xã Tam Hải',
-  'Phường Tam Kỳ', 'Phường Quảng Phú', 'Phường Hương Trà', 'Phường Bàn Thạch',
-  'Xã Tây Hồ', 'Xã Chiên Đàn', 'Xã Phú Ninh', 'Xã Lãnh Ngọc', 'Xã Tiên Phước',
-  'Xã Thạnh Bình', 'Xã Sơn Cẩm Hà', 'Xã Trà Liên', 'Xã Trà Giáp', 'Xã Trà Tân',
-  'Xã Trà Đốc', 'Xã Trà My', 'Xã Nam Trà My', 'Xã Trà Tập', 'Xã Trà Vân',
-  'Xã Trà Linh', 'Xã Trà Leng', 'Xã Thăng Bình', 'Xã Thăng An', 'Xã Thăng Trường',
-  'Xã Thăng Điền', 'Xã Thăng Phú', 'Xã Đồng Dương', 'Xã Quế Sơn Trung',
-  'Xã Quế Sơn', 'Xã Xuân Phú', 'Xã Nông Sơn', 'Xã Quế Phước', 'Xã Duy Nghĩa',
-  'Xã Nam Phước', 'Xã Duy Xuyên', 'Xã Thu Bồn',
-  'Phường Điện Bàn', 'Phường Điện Bàn Đông', 'Phường An Thắng', 'Phường Điện Bàn Bắc',
-  'Xã Điện Bàn Tây', 'Xã Gò Nổi',
-  'Phường Hội An', 'Phường Hội An Đông', 'Phường Hội An Tây',
-  'Xã Tân Hiệp', 'Xã Đại Lộc', 'Xã Hà Nha', 'Xã Thượng Đức', 'Xã Vu Gia',
-  'Xã Phú Thuận', 'Xã Thạnh Mỹ', 'Xã Bến Giằng', 'Xã Nam Giang', 'Xã Đắc Pring',
-  'Xã La Dêê', 'Xã La Êê', 'Xã Sông Vàng', 'Xã Sông Kôn', 'Xã Đông Giang',
-  'Xã Bến Hiên', 'Xã Avương', 'Xã Tây Giang', 'Xã Hùng Sơn', 'Xã Hiệp Đức',
-  'Xã Việt An', 'Xã Phước Trà', 'Xã Khâm Đức', 'Xã Phước Năng', 'Xã Phước Chánh',
-  'Xã Phước Thành', 'Xã Phước Hiệp', 'Đặc khu Hoàng Sa'
+  'Phường Hải Châu', 'Phường Hòa Cường', 'Phường Thanh Khê', 'Phường An Khê', 
+  'Phường An Hải', 'Phường Sơn Trà', 'Phường Ngũ Hành Sơn', 'Phường Hòa Khánh', 
+  'Phường Hải Vân', 'Phường Liên Chiểu', 'Phường Cẩm Lệ', 'Phường Hòa Xuân', 
+  'Phường Tam Kỳ', 'Phường Quảng Phú', 'Phường Hương Trà', 'Phường Bàn Thạch', 
+  'Phường Điện Bàn', 'Phường Điện Bàn Đông', 'Phường An Thắng', 'Phường Điện Bàn Bắc', 
+  'Phường Hội An', 'Phường Hội An Đông', 'Phường Hội An Tây'
 ];
 
 const InputField = ({ label, required, icon: Icon, className = '', ...props }) => (
@@ -186,7 +165,7 @@ export default function PropertyUpload() {
 
   const [formData, setFormData] = useState({
     title: '', type: 'Nhà ở', price: '', area: '', address: '', ward: 'Phường Hải Châu',
-    description: '', amenities: [], images: [], 
+    description: '', images: [], 
     redBookFile: null, householdRegistrationFile: null, ownerIdFile: null,
     commitment: false, status: 'Nháp',
     isExclusive: false, ownerName: '', ownerPhone: '', brokerageContractFile: null
@@ -211,7 +190,6 @@ export default function PropertyUpload() {
       ward: prop.district ? (wardList.find(w => prop.district.includes(w)) || 'Phường Hải Châu') : 'Phường Hải Châu',
       address: prop.district ? prop.district.replace(new RegExp(`,?\\s*(${wardList.join('|')})`), '').trim() : '',
       description: prop.description || '',
-      amenities: prop.amenities || [],
       images: (prop.images || []).map(i => ({ id: i.imageId || Math.random().toString(), url: i.url, preview: i.url, isPrimary: i.isPrimary })),
       redBookFile: prop.redBookUrl ? { name: 'Sổ đỏ.pdf', url: prop.redBookUrl } : null,
       householdRegistrationFile: prop.householdRegistrationUrl ? { name: 'Sổ hộ khẩu.pdf', url: prop.householdRegistrationUrl } : null,
@@ -232,7 +210,7 @@ export default function PropertyUpload() {
     setEditingId(null);
     setFormData({
       title: '', type: 'Nhà ở', price: '', area: '', address: '', ward: 'Phường Hải Châu',
-      description: '', amenities: [], images: [], 
+      description: '', images: [], 
       redBookFile: null, householdRegistrationFile: null, ownerIdFile: null,
       commitment: false, status: 'Nháp',
       isExclusive: false, ownerName: '', ownerPhone: '', brokerageContractFile: null
@@ -243,13 +221,6 @@ export default function PropertyUpload() {
   const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
     setFormData(p => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
-  }, []);
-
-  const toggleAmenity = useCallback((a) => {
-    setFormData(p => ({
-      ...p,
-      amenities: p.amenities.includes(a) ? p.amenities.filter(x => x !== a) : [...p.amenities, a]
-    }));
   }, []);
 
   const handleDragOver = useCallback(e => { e.preventDefault(); setIsDragging(true); }, []);
@@ -305,7 +276,12 @@ export default function PropertyUpload() {
     if (!formData.title.trim()) return showToast('error', 'Vui lòng nhập tiêu đề BĐS.');
     if (!formData.price) return showToast('error', 'Vui lòng nhập mức giá.');
     if (!formData.area) return showToast('error', 'Vui lòng nhập diện tích.');
-    if (!formData.ward) return showToast('error', 'Vui lòng chọn phường/xã/đặc khu.');
+    if (!formData.ward) return showToast('error', 'Vui lòng chọn phường.');
+    if (!formData.ownerName.trim()) return showToast('error', 'Vui lòng nhập tên chủ nhà.');
+    if (!formData.ownerPhone.trim()) return showToast('error', 'Vui lòng nhập SĐT chủ nhà.');
+    if (formData.isExclusive) {
+      if (!formData.brokerageContractFile) return showToast('error', 'Vui lòng upload Hợp đồng môi giới độc quyền.');
+    }
     if (!formData.commitment) return showToast('error', 'Vui lòng xác nhận cam kết thông tin.');
 
     // Map loại BĐS tiếng Việt → giá trị backend
@@ -384,7 +360,7 @@ export default function PropertyUpload() {
         setEditingId(null);
         setFormData({
           title: '', type: 'Nhà ở', price: '', area: '', address: '', ward: 'Phường Hải Châu',
-          description: '', amenities: [], images: [], 
+          description: '', images: [], 
           redBookFile: null, householdRegistrationFile: null, ownerIdFile: null,
           commitment: false, status: 'Nháp',
           isExclusive: false, ownerName: '', ownerPhone: '', brokerageContractFile: null
@@ -477,7 +453,7 @@ export default function PropertyUpload() {
                   <InputField label="Diện tích (m²)" required name="area" value={formData.area} onChange={handleChange} type="number" placeholder="VD: 85" />
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 mb-1.5">
-                      Phường/Xã/Đặc khu <span className="text-red-500">*</span>
+                      Phường <span className="text-red-500">*</span>
                     </label>
                     <select name="ward" value={formData.ward} onChange={handleChange}
                       className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm appearance-none bg-white">
@@ -503,21 +479,6 @@ export default function PropertyUpload() {
                     placeholder="Mô tả chi tiết về bất động sản, tiện ích xung quanh, ưu điểm nổi bật..."
                     className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm resize-none transition-all"
                   />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-zinc-700 mb-3 block">Tiện ích nổi bật</label>
-                  <div className="flex flex-wrap gap-2">
-                    {amenitiesList.map(a => (
-                      <button key={a} type="button" onClick={() => toggleAmenity(a)}
-                        className={`px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 ${
-                          formData.amenities.includes(a)
-                            ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm'
-                            : 'bg-white border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:text-zinc-700'
-                        }`}>
-                        {a}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </SectionCard>
 
@@ -667,6 +628,11 @@ export default function PropertyUpload() {
                   </div>
                 </div>
 
+                <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <InputField label="Tên chủ nhà" name="ownerName" value={formData.ownerName} onChange={handleChange} placeholder="Nguyễn Văn A" required />
+                  <InputField label="Số điện thoại chủ nhà" name="ownerPhone" value={formData.ownerPhone} onChange={handleChange} placeholder="0901234567" required />
+                </div>
+
                 {/* BĐS Độc quyền checkbox & fields */}
                 <div className="mb-6 p-4 rounded-xl border border-blue-100 bg-blue-50/30">
                   <label className="flex items-start gap-3 cursor-pointer group mb-4">
@@ -682,31 +648,46 @@ export default function PropertyUpload() {
                     </div>
                     <div>
                       <span className="text-sm font-semibold text-zinc-800">Đây là Bất động sản độc quyền</span>
-                      <p className="text-xs text-zinc-500 mt-0.5">Yêu cầu cung cấp thông tin chủ nhà và hợp đồng môi giới</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">Yêu cầu cung cấp hợp đồng môi giới độc quyền</p>
                     </div>
                   </label>
 
                   {formData.isExclusive && (
                     <div className="space-y-4 pt-4 border-t border-blue-100 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <div className="text-sm text-zinc-600 mb-2">
-                        Bất động sản độc quyền (Exclusive Real Estate) là hình thức mà bạn (Broker) là người đại diện duy nhất được quyền phân phối và bán bất động sản này trong một thời gian nhất định, đảm bảo quyền lợi và hoa hồng cao nhất.
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-700 mb-1.5">
+                          Hợp đồng môi giới độc quyền <span className="text-red-500">*</span>
+                        </label>
+                        {formData.brokerageContractFile ? (
+                          <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-zinc-200">
+                            <FileText className="w-5 h-5 text-blue-500 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-zinc-700 truncate">{formData.brokerageContractFile.name}</p>
+                              <p className="text-[11px] text-zinc-400">Đã chọn</p>
+                            </div>
+                            <button type="button" onClick={() => setFormData(p => ({ ...p, brokerageContractFile: null }))} className="text-zinc-400 hover:text-red-500 transition-colors shrink-0">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <input 
+                              type="file" 
+                              accept=".pdf,.jpg,.jpeg,.png" 
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  setFormData(p => ({ ...p, brokerageContractFile: { file: e.target.files[0], name: e.target.files[0].name } }));
+                                }
+                              }} 
+                            />
+                            <div className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-zinc-200 rounded-xl bg-white hover:bg-zinc-50 transition-colors">
+                              <UploadCloud className="w-5 h-5 text-zinc-400" />
+                              <span className="text-sm text-zinc-500 font-medium">Tải lên hợp đồng</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="font-semibold text-zinc-800 mb-2">Mẫu Hợp đồng môi giới độc quyền:</div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="rounded-xl overflow-hidden border border-zinc-200 shadow-sm cursor-zoom-in group relative">
-                          <img src={page1} alt="Hợp đồng trang 1" className="w-full h-auto" onClick={() => window.open(page1, '_blank')} />
-                          <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors pointer-events-none"></div>
-                        </div>
-                        <div className="rounded-xl overflow-hidden border border-zinc-200 shadow-sm cursor-zoom-in group relative">
-                          <img src={page2} alt="Hợp đồng trang 2" className="w-full h-auto" onClick={() => window.open(page2, '_blank')} />
-                          <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors pointer-events-none"></div>
-                        </div>
-                        <div className="rounded-xl overflow-hidden border border-zinc-200 shadow-sm cursor-zoom-in group relative">
-                          <img src={page3} alt="Hợp đồng trang 3" className="w-full h-auto" onClick={() => window.open(page3, '_blank')} />
-                          <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors pointer-events-none"></div>
-                        </div>
-                      </div>
-                      <p className="text-xs text-zinc-400 mt-2 text-center">Click vào ảnh để xem chi tiết</p>
                     </div>
                   )}
                 </div>

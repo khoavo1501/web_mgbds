@@ -35,31 +35,6 @@ const propertyTypes = [
   { value: "rental", label: "Cho thuê" },
 ];
 
-const daNangAdministrativeUnits = [
-  "Phường Hải Châu", "Phường Hòa Cường", "Phường Thanh Khê", "Phường An Khê",
-  "Phường An Hải", "Phường Sơn Trà", "Phường Ngũ Hành Sơn", "Phường Hòa Khánh",
-  "Phường Hải Vân", "Phường Liên Chiểu", "Phường Cẩm Lệ", "Phường Hòa Xuân",
-  "Xã Hòa Vang", "Xã Hòa Tiến", "Xã Bà Nà", "Xã Núi Thành", "Xã Tam Mỹ",
-  "Xã Tam Anh", "Xã Đức Phú", "Xã Tam Xuân", "Xã Tam Hải",
-  "Phường Tam Kỳ", "Phường Quảng Phú", "Phường Hương Trà", "Phường Bàn Thạch",
-  "Xã Tây Hồ", "Xã Chiên Đàn", "Xã Phú Ninh", "Xã Lãnh Ngọc", "Xã Tiên Phước",
-  "Xã Thạnh Bình", "Xã Sơn Cẩm Hà", "Xã Trà Liên", "Xã Trà Giáp", "Xã Trà Tân",
-  "Xã Trà Đốc", "Xã Trà My", "Xã Nam Trà My", "Xã Trà Tập", "Xã Trà Vân",
-  "Xã Trà Linh", "Xã Trà Leng", "Xã Thăng Bình", "Xã Thăng An", "Xã Thăng Trường",
-  "Xã Thăng Điền", "Xã Thăng Phú", "Xã Đồng Dương", "Xã Quế Sơn Trung",
-  "Xã Quế Sơn", "Xã Xuân Phú", "Xã Nông Sơn", "Xã Quế Phước", "Xã Duy Nghĩa",
-  "Xã Nam Phước", "Xã Duy Xuyên", "Xã Thu Bồn",
-  "Phường Điện Bàn", "Phường Điện Bàn Đông", "Phường An Thắng", "Phường Điện Bàn Bắc",
-  "Xã Điện Bàn Tây", "Xã Gò Nổi",
-  "Phường Hội An", "Phường Hội An Đông", "Phường Hội An Tây",
-  "Xã Tân Hiệp", "Xã Đại Lộc", "Xã Hà Nha", "Xã Thượng Đức", "Xã Vu Gia",
-  "Xã Phú Thuận", "Xã Thạnh Mỹ", "Xã Bến Giằng", "Xã Nam Giang", "Xã Đắc Pring",
-  "Xã La Dêê", "Xã La Êê", "Xã Sông Vàng", "Xã Sông Kôn", "Xã Đông Giang",
-  "Xã Bến Hiên", "Xã Avương", "Xã Tây Giang", "Xã Hùng Sơn", "Xã Hiệp Đức",
-  "Xã Việt An", "Xã Phước Trà", "Xã Khâm Đức", "Xã Phước Năng", "Xã Phước Chánh",
-  "Xã Phước Thành", "Xã Phước Hiệp", "Đặc khu Hoàng Sa",
-];
-
 const statuses = [
   { value: "all", label: "Tất cả" },
   { value: "pending", label: "Chờ duyệt" },
@@ -147,7 +122,7 @@ export default function PropertyManagement() {
       title: property.title || "",
       description: property.description || "",
       propertyType: property.propertyType || "apartment",
-      province: "Đà Nẵng",
+      province: property.province || "Đà Nẵng",
       district: property.district || "",
       area: property.area || "",
       price: property.price || "",
@@ -242,7 +217,7 @@ export default function PropertyManagement() {
     title: formData.title.trim(),
     description: formData.description.trim(),
     propertyType: formData.propertyType,
-    province: "Đà Nẵng",
+    province: formData.province.trim(),
     district: formData.district.trim(),
     area: Number(formData.area),
     price: Number(formData.price),
@@ -595,29 +570,23 @@ function PropertyModal({
               </select>
             </Field>
 
-            <Field label="Thành phố">
+            <Field label="Tỉnh/Thành">
               <input
                 required
                 value={formData.province}
-                readOnly
+                onChange={(event) => onFieldChange("province", event.target.value)}
                 className="field-control"
               />
             </Field>
 
-            <Field label="Phường/Xã/Đặc khu">
-              <select
+            <Field label="Quận/Huyện">
+              <input
                 required
                 value={formData.district}
                 onChange={(event) => onFieldChange("district", event.target.value)}
                 className="field-control"
-              >
-                <option value="">Chọn phường/xã/đặc khu</option>
-                {daNangAdministrativeUnits.map((unit) => (
-                  <option key={unit} value={unit}>
-                    {unit}
-                  </option>
-                ))}
-              </select>
+                placeholder="VD: Hải Châu"
+              />
             </Field>
 
             <Field label="Diện tích (m²)">
@@ -765,6 +734,14 @@ function PreviewModal({ property, onClose }) {
             <Detail label="Giá" value={formatVnd(property.price)} />
             <Detail label="Diện tích" value={`${property.area} m²`} />
             <Detail label="Trạng thái" value={statusMeta[property.status]?.label || property.status} />
+          </div>
+          <div className="mt-4 rounded-lg border border-stone-200 bg-stone-50/70 p-4">
+            <p className="mb-3 text-xs font-black uppercase tracking-wider text-stone-400">Thông tin chủ sở hữu</p>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <Detail label="Chủ nhà" value={property.ownerName || "N/A"} />
+              <Detail label="SĐT" value={property.ownerPhone || "N/A"} />
+              <Detail label="Loại hồ sơ" value={property.isExclusive ? "Độc quyền" : "Thông thường"} />
+            </div>
           </div>
           <p className="mt-4 rounded-lg bg-stone-50 p-4 text-sm font-medium leading-6 text-stone-700">
             {property.description || "Tin đăng chưa có mô tả."}

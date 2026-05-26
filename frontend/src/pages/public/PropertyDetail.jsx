@@ -8,6 +8,8 @@ import {
   Heart,
   Mail,
   MapPin,
+  MessageCircle,
+  Navigation,
   Phone,
   Share2,
   Square,
@@ -24,7 +26,7 @@ const TIME_SLOTS = ["08:30", "09:30", "10:30", "14:00", "15:00", "16:00"];
 
 const propertyTypeLabels = {
   apartment: "Căn hộ",
-  house: "Nhà phố",
+  house: "Nhà riêng",
   land: "Đất nền",
   villa: "Biệt thự",
   shophouse: "Shophouse",
@@ -63,6 +65,12 @@ const formatArea = (area) => {
   return `${Number(area).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} m²`;
 };
 
+const formatPricePerSquareMeter = (price, area) => {
+  if (!hasValue(price) || !hasValue(area) || Number(area) <= 0) return "";
+  const value = Number(price) / Number(area);
+  return `≈ ${Number(value / 1000000).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} triệu/m²`;
+};
+
 const formatDate = (date) => {
   if (!hasValue(date)) return "";
   const parsedDate = new Date(date);
@@ -74,6 +82,11 @@ const getPropertyTypeLabel = (type) => propertyTypeLabels[type] || type || "";
 
 const getLocation = (property) =>
   [property.address, property.ward, property.district, property.province].filter(Boolean).join(", ");
+
+const getPropertyImage = (property) => {
+  const primaryImage = property?.images?.find((image) => image.isPrimary);
+  return primaryImage?.url || property?.images?.[0]?.url || PLACEHOLDER_IMAGE;
+};
 
 const getNextDays = (count = 14) => {
   const days = [];
@@ -89,6 +102,37 @@ const getNextDays = (count = 14) => {
   return days;
 };
 
+function RelatedPropertyCard({ property }) {
+  return (
+    <Link
+      to={`/properties/${property.propertyId}`}
+      className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+    >
+      <div className="relative h-48 overflow-hidden">
+        <img
+          src={getPropertyImage(property)}
+          alt={property.title}
+          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+        />
+        <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-black text-slate-900">
+          {getPropertyTypeLabel(property.propertyType)}
+        </span>
+      </div>
+      <div className="p-4">
+        <h3 className="line-clamp-2 text-base font-black leading-snug text-slate-950">{property.title}</h3>
+        <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-slate-500">
+          <MapPin className="h-4 w-4 shrink-0" />
+          <span className="line-clamp-1">{getLocation(property)}</span>
+        </p>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <p className="text-lg font-black text-slate-950">{formatPrice(property.price)}</p>
+          <p className="text-sm font-bold text-slate-500">{formatArea(property.area)}</p>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export default function PropertyDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -100,6 +144,8 @@ export default function PropertyDetail() {
   const [showScheduler, setShowScheduler] = useState(false);
   const [bookingStatus, setBookingStatus] = useState({ type: "", message: "" });
   const [currentTime] = useState(() => Date.now());
+  const [relatedProperties, setRelatedProperties] = useState([]);
+  const [favoriteToast, setFavoriteToast] = useState("");
   const { user } = useAuth();
   const { toggleFavorite, isFavorite } = useFavorites();
 
@@ -108,7 +154,17 @@ export default function PropertyDetail() {
       try {
         const response = await api.get(`/properties/${id}`);
         if (response.data.success) {
-          setProperty(response.data.data);
+          const nextProperty = response.data.data;
+          setProperty(nextProperty);
+
+          const relatedResponse = await api.get(
+            `/properties?status=published&propertyType=${nextProperty.propertyType || ""}&size=4&sortBy=createdAt&sortDirection=DESC`
+          );
+          if (relatedResponse.data.success) {
+            setRelatedProperties(
+              (relatedResponse.data.data.content || []).filter((item) => item.propertyId !== nextProperty.propertyId).slice(0, 3)
+            );
+          }
         }
       } catch (error) {
         console.error("Failed to fetch property details", error);
@@ -190,6 +246,13 @@ export default function PropertyDetail() {
     });
   };
 
+  const handleToggleFavorite = () => {
+    const willSave = !isFavorite(property.propertyId);
+    toggleFavorite(property);
+    setFavoriteToast(willSave ? "Đã lưu bất động sản" : "Đã bỏ lưu bất động sản");
+    window.setTimeout(() => setFavoriteToast(""), 2200);
+  };
+
   if (loading) {
     return (
       <div className="grid min-h-[60vh] place-items-center bg-slate-50">
@@ -218,10 +281,15 @@ export default function PropertyDetail() {
   const typeLabel = getPropertyTypeLabel(property.propertyType);
   const location = getLocation(property);
   const price = formatPrice(property.price);
+  const pricePerSquareMeter = formatPricePerSquareMeter(property.price, property.area);
   const area = formatArea(property.area);
   const favorite = isFavorite(property.propertyId);
   const broker = property.assignedTo || property.createdBy;
   const hasBrokerInfo = broker?.fullName || broker?.phone || broker?.email;
+  const statusLabel = statusLabels[property.status] || property.status || "Đang mở bán";
+  const mapQuery = encodeURIComponent(location || `${property.district || ""}, ${property.province || ""}`);
+  const mapUrl = `https://www.google.com/maps?q=${mapQuery}&output=embed`;
+  const brokerPhoneDigits = broker?.phone?.replace(/\D/g, "");
 
   const overviewItems = [
     area && { icon: Square, label: area },
@@ -234,7 +302,7 @@ export default function PropertyDetail() {
     property.status && { label: "Trạng thái", value: statusLabels[property.status] || property.status },
     property.propertyCode && { label: "Mã tin", value: property.propertyCode },
     property.province && { label: "Tỉnh/Thành", value: property.province },
-    property.district && { label: "Phường/Xã/Đặc khu", value: property.district },
+    property.district && { label: "Quận/Huyện", value: property.district },
     property.ward && { label: "Phường/Xã", value: property.ward },
     area && { label: "Diện tích", value: area },
     hasValue(property.bedrooms) && { label: "Phòng ngủ", value: property.bedrooms },
@@ -245,6 +313,11 @@ export default function PropertyDetail() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
+      {favoriteToast && (
+        <div className="fixed right-6 top-24 z-50 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 shadow-xl">
+          {favoriteToast}
+        </div>
+      )}
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-4 flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-500">
           <Link to="/" className="hover:text-slate-950">Trang chủ</Link>
@@ -254,34 +327,39 @@ export default function PropertyDetail() {
           <span className="text-slate-950">{property.title}</span>
         </div>
 
-        <section className="grid gap-2 overflow-hidden rounded-lg md:grid-cols-[1.55fr_0.5fr]">
+        <section className="grid gap-2 overflow-hidden rounded-xl border border-white bg-white shadow-sm md:grid-cols-[1.55fr_0.5fr]">
           <div className="h-[420px] overflow-hidden bg-slate-200">
-            <img src={images[0]} alt={property.title} className="h-full w-full object-cover" />
+            <img src={images[0]} alt={property.title} className="h-full w-full object-cover transition duration-700 hover:scale-105" />
           </div>
           <div className="grid gap-2">
             <div className="h-[206px] overflow-hidden bg-slate-200">
-              <img src={images[1] || images[0]} alt={property.title} className="h-full w-full object-cover" />
+              <img src={images[1] || images[0]} alt={property.title} className="h-full w-full object-cover transition duration-700 hover:scale-105" />
             </div>
             <div className="h-[206px] overflow-hidden bg-slate-200">
-              <img src={images[2] || images[0]} alt={property.title} className="h-full w-full object-cover" />
+              <img src={images[2] || images[0]} alt={property.title} className="h-full w-full object-cover transition duration-700 hover:scale-105" />
             </div>
           </div>
         </section>
 
         <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_390px]">
-          <div>
-            <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-6">
+            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  {typeLabel && (
+                    <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-black uppercase tracking-wide text-white">
+                      {typeLabel}
+                    </span>
+                  )}
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                    {statusLabel}
+                  </span>
+                </div>
                 <div className="flex items-center gap-3">
                   <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-slate-950">
                     {property.title}
                   </h1>
-                  {(property.status === 'locked' || property.status === 'in_transaction' || property.isLocked) && (
-                    <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-yellow-200">Đang giao dịch</span>
-                  )}
-                  {property.status === 'sold' && (
-                    <span className="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-red-200">Đã bán</span>
-                  )}
                 </div>
                 {location && (
                   <p className="mt-3 flex items-start gap-2 text-sm font-medium text-slate-600">
@@ -301,43 +379,51 @@ export default function PropertyDetail() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => toggleFavorite(property)}
-                  className={`grid h-10 w-10 place-items-center rounded-full border transition ${
-                    favorite ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  onClick={handleToggleFavorite}
+                  className={`grid h-11 w-11 place-items-center rounded-full border transition hover:-translate-y-0.5 ${
+                    favorite ? "border-rose-500 bg-rose-500 text-white shadow-lg shadow-rose-500/20" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
                   aria-label="Lưu bất động sản"
                 >
-                  <Heart className={`h-4 w-4 ${favorite ? "fill-current" : ""}`} />
+                  <Heart className={`h-5 w-5 transition ${favorite ? "fill-current scale-110" : ""}`} />
                 </button>
               </div>
             </div>
 
             {(price || overviewItems.length > 0) && (
-              <div className="flex flex-wrap items-center gap-5 border-b border-slate-200 py-5">
-                {price && <p className="text-3xl font-extrabold text-slate-950">{price}</p>}
-                {overviewItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <span key={item.label} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                      <Icon className="h-4 w-4 text-slate-500" />
-                      {item.label}
-                    </span>
-                  );
-                })}
+              <div className="mt-6 rounded-xl bg-slate-950 p-5 text-white shadow-lg shadow-slate-950/10">
+                <div className="flex flex-wrap items-end justify-between gap-5">
+                  <div>
+                    {price && <p className="text-4xl font-black tracking-tight">{price}</p>}
+                    {pricePerSquareMeter && <p className="mt-2 text-sm font-bold text-white/65">{pricePerSquareMeter}</p>}
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {overviewItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <span key={item.label} className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm font-bold">
+                          <Icon className="h-4 w-4 text-[#d7b56d]" />
+                          {item.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
+            </section>
 
             {property.description && (
-              <section className="border-b border-slate-200 py-6">
-                <h2 className="text-lg font-extrabold text-slate-950">Thông tin mô tả</h2>
-                <p className="mt-4 whitespace-pre-line text-sm font-medium leading-7 text-slate-600">
+              <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="text-xl font-black text-slate-950">🏡 Mô tả bất động sản</h2>
+                <p className="mt-4 whitespace-pre-line text-base font-medium leading-8 text-slate-600">
                   {property.description}
                 </p>
               </section>
             )}
 
             {detailItems.length > 0 && (
-              <section className="py-6">
+              <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-extrabold text-slate-950">Đặc điểm bất động sản</h2>
                 <div className="mt-4 grid border-t border-slate-200 sm:grid-cols-2">
                   {detailItems.map((item) => (
@@ -352,10 +438,28 @@ export default function PropertyDetail() {
                 </div>
               </section>
             )}
+
+            {location && (
+              <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-4 flex items-center gap-2">
+                  <Navigation className="h-5 w-5 text-[#9b7932]" />
+                  <h2 className="text-lg font-extrabold text-slate-950">Vị trí bất động sản</h2>
+                </div>
+                <div className="overflow-hidden rounded-xl border border-slate-200">
+                  <iframe
+                    title="Vị trí bất động sản"
+                    src={mapUrl}
+                    className="h-72 w-full"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              </section>
+            )}
           </div>
 
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <aside className="lg:sticky lg:top-[100px] lg:self-start">
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg shadow-slate-950/5 transition hover:-translate-y-1 hover:shadow-xl">
               {hasBrokerInfo && (
                 <div className="mb-5 flex items-center gap-3">
                   <div className="grid h-14 w-14 place-items-center rounded-full bg-slate-100 text-slate-600">
@@ -374,10 +478,22 @@ export default function PropertyDetail() {
               {broker?.phone && (
                 <a
                   href={`tel:${broker.phone}`}
-                  className="mb-4 flex h-11 items-center justify-center gap-2 rounded-md bg-green-600 px-4 text-sm font-bold text-white transition hover:bg-green-700"
+                  className="mb-3 flex h-12 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-black text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700"
                 >
                   <Phone className="h-4 w-4" />
-                  {broker.phone}
+                  Gọi ngay {broker.phone}
+                </a>
+              )}
+
+              {brokerPhoneDigits && (
+                <a
+                  href={`https://zalo.me/${brokerPhoneDigits}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mb-4 flex h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Chat Zalo
                 </a>
               )}
 
@@ -393,7 +509,7 @@ export default function PropertyDetail() {
                     setShowScheduler((value) => !value);
                     setBookingStatus({ type: "", message: "" });
                   }}
-                  className="flex h-11 w-full items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-extrabold text-white transition hover:bg-slate-800"
+                  className="flex h-12 w-full animate-pulse items-center justify-center rounded-lg bg-[#d7b56d] px-4 text-sm font-black text-slate-950 shadow-lg shadow-[#d7b56d]/25 transition hover:bg-[#edcd82]"
                 >
                   {showScheduler ? "Ẩn lịch đặt hẹn" : "Đặt lịch xem nhà"}
                 </button>
@@ -495,6 +611,25 @@ export default function PropertyDetail() {
             </div>
           </aside>
         </section>
+
+        {relatedProperties.length > 0 && (
+          <section className="mt-10 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-[#9b7932]">Gợi ý thêm</p>
+                <h2 className="mt-1 text-2xl font-black text-slate-950">Bất động sản tương tự</h2>
+              </div>
+              <Link to={`/properties?propertyType=${property.propertyType || ""}`} className="hidden text-sm font-black text-slate-700 hover:text-slate-950 sm:inline-flex">
+                Xem thêm
+              </Link>
+            </div>
+            <div className="grid gap-5 md:grid-cols-3">
+              {relatedProperties.map((item) => (
+                <RelatedPropertyCard key={item.propertyId} property={item} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );

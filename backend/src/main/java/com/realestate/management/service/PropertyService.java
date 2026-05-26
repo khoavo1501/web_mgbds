@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
  */
 @Service
 public class PropertyService {
-    private static final String SUPPORTED_PROVINCE = "Đà Nẵng";
     private static final String VIETNAMESE_ACCENT_CHARS =
         "áàảãạăắằẳẵặâấầẩẫậđéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵ";
     private static final String VIETNAMESE_ASCII_CHARS =
@@ -238,17 +237,18 @@ public class PropertyService {
         property.setTitle(request.getTitle());
         property.setDescription(request.getDescription());
         property.setPropertyType(request.getPropertyType());
-        property.setProvince(SUPPORTED_PROVINCE);
+        property.setProvince(request.getProvince());
         property.setDistrict(request.getDistrict());
         property.setArea(request.getArea());
         property.setPrice(request.getPrice());
         property.setStatus("pending_review"); // Changed to pending_review
 
+        property.setOwnerName(request.getOwnerName());
+        property.setOwnerPhone(request.getOwnerPhone());
+
         // Set Exclusive Contract Fields
         if (Boolean.TRUE.equals(request.getIsExclusive())) {
             property.setIsExclusive(true);
-            property.setOwnerName(request.getOwnerName());
-            property.setOwnerPhone(request.getOwnerPhone());
             property.setExclusiveDuration(request.getExclusiveDuration());
             property.setBrokerageFee(request.getBrokerageFee());
             property.setOwnerDesiredPrice(request.getOwnerDesiredPrice());
@@ -328,16 +328,17 @@ public class PropertyService {
         property.setTitle(request.getTitle());
         property.setDescription(request.getDescription());
         property.setPropertyType(request.getPropertyType());
-        property.setProvince(SUPPORTED_PROVINCE);
+        property.setProvince(request.getProvince());
         property.setDistrict(request.getDistrict());
         property.setArea(request.getArea());
         property.setPrice(request.getPrice());
 
+        property.setOwnerName(request.getOwnerName());
+        property.setOwnerPhone(request.getOwnerPhone());
+
         // Update Exclusive Contract Fields
         if (Boolean.TRUE.equals(request.getIsExclusive())) {
             property.setIsExclusive(true);
-            property.setOwnerName(request.getOwnerName());
-            property.setOwnerPhone(request.getOwnerPhone());
             property.setExclusiveDuration(request.getExclusiveDuration());
             property.setBrokerageFee(request.getBrokerageFee());
             property.setOwnerDesiredPrice(request.getOwnerDesiredPrice());

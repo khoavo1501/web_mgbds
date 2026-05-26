@@ -230,6 +230,19 @@ export default function PropertyApproval() {
             </div>
 
             <div className="px-6 pb-6">
+              <div className="rounded-lg border border-stone-200 bg-stone-50/50 p-5">
+                <h3 className="mb-4 flex items-center gap-2 text-sm font-black text-stone-900">
+                  <ShieldCheck className="h-4 w-4 text-stone-500" /> Thông tin chủ sở hữu
+                </h3>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <Detail label="Chủ nhà" value={selectedProperty.ownerName || "N/A"} />
+                  <Detail label="SĐT" value={selectedProperty.ownerPhone || "N/A"} />
+                  <Detail label="Loại hồ sơ" value={selectedProperty.isExclusive ? "Độc quyền" : "Thông thường"} />
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 pb-6">
               <p className="mb-2 text-xs font-black uppercase tracking-wider text-stone-400">Mô tả</p>
               <p className="whitespace-pre-wrap rounded-lg bg-stone-50 p-4 text-sm font-medium leading-6 text-stone-700">
                 {selectedProperty.description || "Tin đăng chưa có mô tả."}
@@ -271,8 +284,6 @@ export default function PropertyApproval() {
                     <ShieldCheck className="h-4 w-4" /> Bất động sản độc quyền
                   </h3>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <Detail label="Chủ nhà" value={selectedProperty.ownerName || "N/A"} />
-                    <Detail label="SĐT" value={selectedProperty.ownerPhone || "N/A"} />
                     <div className="rounded-lg border border-stone-200 p-4 bg-white">
                       <p className="text-xs font-black uppercase tracking-wider text-stone-400">Hợp đồng môi giới</p>
                       {selectedProperty.brokerageContractUrl ? (
