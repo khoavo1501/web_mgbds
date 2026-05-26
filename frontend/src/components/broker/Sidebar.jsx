@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Building2, LayoutDashboard, Users, ListChecks,
@@ -16,9 +15,9 @@ function cn(...inputs) {
 const navItems = [
   { name: 'Tổng quan', href: '/broker', icon: LayoutDashboard },
   { name: 'Đăng tin BĐS', href: '/broker/upload', icon: UploadCloud },
-  { name: 'Quản lý Lead', href: '/broker/leads', icon: Users },
-  { name: 'Quản lý lịch hẹn', href: '/broker/appointments', icon: Calendar },
-  { name: 'Quản lý giao dịch', href: '/broker/transaction', icon: ListChecks },
+
+  { name: 'Lịch hẹn', href: '/broker/appointments', icon: Calendar },
+  { name: 'BĐS đang giao dịch', href: '/broker/transactions/history', icon: ListChecks },
   { name: 'Hoa hồng', href: '/broker/finance', icon: Wallet },
 ];
 

@@ -8,7 +8,7 @@ export const FavoritesProvider = ({ children }) => {
     if (saved) {
       try {
         return JSON.parse(saved);
-      } catch (e) {
+      } catch {
         return [];
       }
     }

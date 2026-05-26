@@ -2,17 +2,27 @@ import { useState, useEffect } from "react";
 import { Users, Calendar, TrendingUp } from "lucide-react";
 import StatCard from "../../components/StatCard";
 import Badge from "../../components/Badge";
+import { Link } from "react-router-dom";
 import api from "../../services/api";
+
+const appointmentStatusLabels = {
+  pending: "Chờ xác nhận",
+  confirmed: "Đã xác nhận lịch",
+  viewed: "Đã dẫn khách xem nhà",
+  cancelled: "Đã hủy",
+};
+
+const getAppointmentBadge = (status) => {
+  if (status === "confirmed" || status === "viewed") return "success";
+  if (status === "cancelled") return "danger";
+  return "warning";
+};
 
 export default function BrokerDashboard() {
   const [appointments, setAppointments] = useState([]);
   const [rescheduleId, setRescheduleId] = useState(null);
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
-
-  useEffect(() => {
-    fetchAppointments();
-  }, []);
 
   const fetchAppointments = async () => {
     try {
@@ -32,10 +42,14 @@ export default function BrokerDashboard() {
         alert("Cập nhật lịch hẹn thành công!");
         fetchAppointments();
       }
-    } catch (err) {
+    } catch {
       alert("Lỗi khi cập nhật lịch hẹn");
     }
   };
+
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
 
   const openRescheduleModal = (apt) => {
     setBookingDate(apt.scheduledAt.split('T')[0]);
@@ -94,14 +108,25 @@ export default function BrokerDashboard() {
                     <p className="text-sm text-slate-500 mt-1 text-red-600">Ghi chú: {apt.note}</p>
                   </div>
                   <div className="text-right">
-                    <Badge status={apt.status === 'confirmed' ? 'success' : apt.status === 'cancelled' ? 'danger' : 'warning'}>
-                      {apt.status === 'confirmed' ? 'Đã xác nhận' : apt.status === 'cancelled' ? 'Đã hủy' : apt.status === 'pending' ? 'Chờ xác nhận' : apt.status}
+                    <Badge status={getAppointmentBadge(apt.status)}>
+                      {appointmentStatusLabels[apt.status] || apt.status}
                     </Badge>
                     {apt.status === 'pending' && (
                       <div className="mt-2 flex flex-col gap-2">
                         <button onClick={() => handleUpdateStatus(apt.appointmentId, 'confirmed')} className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200">Xác nhận</button>
                         <button onClick={() => openRescheduleModal(apt)} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200">Dời lịch</button>
                         <button onClick={() => handleUpdateStatus(apt.appointmentId, 'cancelled')} className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200">Từ chối</button>
+                      </div>
+                    )}
+                    {apt.status === 'confirmed' && (
+                      <div className="mt-2 flex flex-col gap-2">
+                        <button onClick={() => handleUpdateStatus(apt.appointmentId, 'viewed')} className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200">Xác nhận đã dẫn khách xem nhà</button>
+                        <button onClick={() => openRescheduleModal(apt)} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200">Dời lịch</button>
+                      </div>
+                    )}
+                    {apt.status === 'viewed' && (
+                      <div className="mt-2 flex flex-col gap-2">
+                        <Link to={`/broker/transactions/create?appointmentId=${apt.appointmentId}`} className="text-xs text-center font-semibold bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700">Tạo Giao Dịch Đặt Cọc</Link>
                       </div>
                     )}
                   </div>

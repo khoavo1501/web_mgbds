@@ -176,6 +176,31 @@ const MyAppointments = () => {
           <div className="space-y-6">
             {appointments.map((appointment) => (
               <div key={appointment.appointmentId} className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                {/* Alert Banner for Pending Rescheduled Appointments */}
+                {appointment.status === 'pending' && (
+                  <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4">
+                    <div className="flex items-start gap-3 text-white">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-lg mb-1">⚠️ Yêu cầu xác nhận lịch hẹn mới</h4>
+                        <p className="text-sm text-amber-50">
+                          Môi giới đã đề xuất dời lịch hẹn này. Vui lòng xem chi tiết và xác nhận lại lịch hẹn mới.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => navigate(`/customer/appointments/${appointment.appointmentId}`)}
+                        className="flex-shrink-0 px-4 py-2 bg-white text-amber-600 rounded-lg hover:bg-amber-50 font-bold text-sm transition-colors"
+                      >
+                        Xác nhận ngay →
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex flex-col md:flex-row">
                   {/* Property Image */}
                   <div className="md:w-72 h-64 md:h-auto bg-gray-200 flex-shrink-0">
@@ -274,6 +299,51 @@ const MyAppointments = () => {
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-3">
+                      {appointment.status === 'pending' && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const token = localStorage.getItem('token');
+                              console.log('Token exists:', !!token);
+                              console.log('Appointment ID:', appointment.appointmentId);
+                              console.log('Request body:', { status: 'confirmed' });
+                              
+                              const response = await fetch(`http://localhost:8080/api/appointments/${appointment.appointmentId}`, {
+                                method: 'PUT',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({ status: 'confirmed' })
+                              });
+                              
+                              console.log('Response status:', response.status);
+                              const data = await response.json();
+                              console.log('Response data:', data);
+                              
+                              if (response.ok && data.success) {
+                                alert('✅ Đã xác nhận lịch hẹn thành công!');
+                                fetchAppointments(); // Refresh list
+                              } else {
+                                const errorMsg = data.message || 'Không thể xác nhận lịch hẹn';
+                                console.error('Error message:', errorMsg);
+                                console.error('Full response:', data);
+                                alert('❌ ' + errorMsg + '\n\nVui lòng kiểm tra:\n1. Đã đăng nhập chưa?\n2. Backend đã khởi động lại chưa?\n3. Xem console để biết thêm chi tiết');
+                              }
+                            } catch (error) {
+                              console.error('Error confirming appointment:', error);
+                              alert('❌ Có lỗi xảy ra: ' + error.message + '\n\nVui lòng kiểm tra console để biết thêm chi tiết');
+                            }
+                          }}
+                          className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold transition-colors shadow-lg shadow-emerald-500/30 animate-pulse"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Xác nhận lịch hẹn mới
+                        </button>
+                      )}
+                      
                       <button
                         onClick={() => navigate(`/customer/appointments/${appointment.appointmentId}`)}
                         className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-semibold transition-colors"

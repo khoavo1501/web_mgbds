@@ -25,4 +25,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByProperty(Property property);
     
     List<Transaction> findByBrokerAndStatus(User broker, String status);
+    
+    List<Transaction> findByStatusIn(List<String> statuses);
 }

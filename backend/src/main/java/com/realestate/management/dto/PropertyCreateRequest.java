@@ -46,6 +46,21 @@ public class PropertyCreateRequest {
     // Danh sách URL hình ảnh
     private List<ImageRequest> images;
 
+    // Exclusive Contract Fields
+    private Boolean isExclusive;
+    private String ownerName;
+    private String ownerPhone;
+    private String exclusiveDuration;
+    private BigDecimal brokerageFee;
+    private BigDecimal ownerDesiredPrice;
+    private String commissionTerms;
+    private String brokerageContractUrl;
+
+    // Legal Documents
+    private String redBookUrl;
+    private String householdRegistrationUrl;
+    private String ownerIdUrl;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

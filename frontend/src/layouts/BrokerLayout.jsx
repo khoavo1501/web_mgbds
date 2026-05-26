@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/broker/Sidebar';
-import { Menu, Bell, Search, UserCircle } from 'lucide-react';
+import { Menu, Search } from 'lucide-react';
+import NotificationDropdown from '../components/NotificationDropdown';
 
 export default function BrokerLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -32,10 +33,7 @@ export default function BrokerLayout() {
                         </div>
 
                         <div className="flex items-center gap-3">
-                            <button className="relative text-zinc-400 hover:text-zinc-600 transition-colors p-2 hover:bg-zinc-50 rounded-xl">
-                                <Bell className="h-5 w-5" />
-                                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-                            </button>
+                            <NotificationDropdown />
                             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-md">
                                 NV
                             </div>

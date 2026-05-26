@@ -24,14 +24,20 @@ public class Notification {
     @Column(name = "notification_id")
     private Long notificationId;
 
+    @Column(name = "type", length = 50)
+    private String type; // DOCUMENT_REJECTED, PAYMENT_CONFIRMED, etc.
+
     @Column(name = "title", nullable = false, length = 255)
     private String title;
 
-    @Column(name = "content", columnDefinition = "TEXT")
-    private String content;
+    @Column(name = "message", columnDefinition = "TEXT")
+    private String message;
 
     @Column(name = "is_read")
     private Boolean isRead = false;
+
+    @Column(name = "target_role", length = 50)
+    private String targetRole; // CUSTOMER, BROKER, ADMIN
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

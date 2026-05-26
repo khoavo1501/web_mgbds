@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Bath,
   BedDouble,
@@ -21,6 +21,7 @@ const statusLabels = {
   pending: "Chờ xác nhận",
   scheduled: "Đã lên lịch",
   confirmed: "Đã xác nhận",
+  viewed: "Đã xem nhà",
   completed: "Đã hoàn tất",
   cancelled: "Đã hủy",
 };
@@ -56,7 +57,7 @@ const getPropertyImage = (property) => {
 };
 
 const getStatusClass = (status) => {
-  if (status === "confirmed" || status === "scheduled") return "bg-green-50 text-green-700";
+  if (status === "confirmed" || status === "scheduled" || status === "viewed") return "bg-green-50 text-green-700";
   if (status === "cancelled") return "bg-red-50 text-red-700";
   if (status === "completed") return "bg-slate-100 text-slate-700";
   return "bg-amber-50 text-amber-700";
@@ -66,12 +67,15 @@ export default function CustomerDashboard() {
   const [activeTab, setActiveTab] = useState("appointments");
   const [appointments, setAppointments] = useState([]);
   const [loadingAppointments, setLoadingAppointments] = useState(true);
+  const [transactions, setTransactions] = useState([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [bookingProperty, setBookingProperty] = useState(null);
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
   const [rescheduleId, setRescheduleId] = useState(null);
   const { favorites } = useFavorites();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const fetchAppointments = useCallback(async () => {
     setLoadingAppointments(true);
@@ -89,10 +93,24 @@ export default function CustomerDashboard() {
     }
   }, []);
 
+  const fetchTransactions = useCallback(async () => {
+    setLoadingTransactions(true);
+    try {
+      const res = await api.get("/transactions");
+      if (res.data.success) {
+        setTransactions(res.data.data || []);
+      }
+    } catch (err) {
+      console.error("Lỗi khi tải danh sách giao dịch", err);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  }, []);
+
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAppointments();
-  }, [fetchAppointments]);
+    fetchTransactions();
+  }, [fetchAppointments, fetchTransactions]);
 
   const resetBookingForm = () => {
     setBookingProperty(null);
@@ -161,6 +179,18 @@ export default function CustomerDashboard() {
     }
   };
 
+  const handleCreateDeposit = async (appointment) => {
+    if (!window.confirm("Bạn xác nhận đặt cọc 10% giá trị bất động sản này?")) return;
+    try {
+      const res = await api.post(`/transactions/appointment/${appointment.appointmentId}/deposit`);
+      if (res.data.success) {
+        navigate(`/customer/transactions/${res.data.data.transactionId}`);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || "Không thể đặt cọc bất động sản này.");
+    }
+  };
+
   return (
     <div>
       <section className="mb-8 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
@@ -181,6 +211,12 @@ export default function CustomerDashboard() {
             <CalendarClock className="h-4 w-4" />
             Tìm bất động sản
           </Link>
+          <Link
+            to="/customer/transactions/active"
+            className="inline-flex w-fit items-center gap-2 rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
+          >
+            Đang giao dịch
+          </Link>
         </div>
       </section>
 
@@ -190,12 +226,12 @@ export default function CustomerDashboard() {
           <p className="mt-2 text-3xl font-extrabold text-slate-950">{appointments.length}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-bold text-slate-500">Đang quan tâm</p>
-          <p className="mt-2 text-3xl font-extrabold text-slate-950">{favorites.length}</p>
+          <p className="text-sm font-bold text-slate-500">Giao dịch</p>
+          <p className="mt-2 text-3xl font-extrabold text-slate-950">{transactions.length}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-bold text-slate-500">Tài khoản</p>
-          <p className="mt-2 text-lg font-extrabold text-slate-950">Khách hàng</p>
+          <p className="text-sm font-bold text-slate-500">Đang quan tâm</p>
+          <p className="mt-2 text-3xl font-extrabold text-slate-950">{favorites.length}</p>
         </div>
       </div>
 
@@ -203,6 +239,7 @@ export default function CustomerDashboard() {
         <nav className="flex gap-8">
           {[
             { id: "appointments", label: "Lịch hẹn của tôi" },
+            { id: "transactions", label: "Giao dịch của tôi" },
             { id: "favorites", label: "Bất động sản yêu thích" },
           ].map((tab) => (
             <button
@@ -269,24 +306,41 @@ export default function CustomerDashboard() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right text-sm">
-                        {(appointment.status === "pending" || appointment.status === "scheduled") && (
-                          <div className="flex justify-end gap-3">
+                        <div className="flex justify-end items-center gap-3">
+                          <Link
+                            to={`/properties/${appointment.propertyId}`}
+                            className="font-bold text-blue-600 hover:text-blue-800"
+                          >
+                            Xem chi tiết
+                          </Link>
+                          {(appointment.status === "pending" || appointment.status === "scheduled") && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => openRescheduleModal(appointment)}
+                                className="font-bold text-slate-700 hover:text-slate-950"
+                              >
+                                Dời lịch
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleCancel(appointment.appointmentId)}
+                                className="font-bold text-red-600 hover:text-red-700"
+                              >
+                                Hủy
+                              </button>
+                            </>
+                          )}
+                          {appointment.status === "viewed" && (
                             <button
                               type="button"
-                              onClick={() => openRescheduleModal(appointment)}
-                              className="font-bold text-slate-700 hover:text-slate-950"
+                              onClick={() => handleCreateDeposit(appointment)}
+                              className="inline-flex rounded-md bg-slate-950 px-3 py-2 text-xs font-extrabold text-white transition hover:bg-slate-800"
                             >
-                              Dời lịch
+                              Đặt cọc 10%
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => handleCancel(appointment.appointmentId)}
-                              className="font-bold text-red-600 hover:text-red-700"
-                            >
-                              Hủy
-                            </button>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -294,6 +348,70 @@ export default function CustomerDashboard() {
                   <tr>
                     <td colSpan="5" className="px-6 py-10 text-center text-sm font-medium text-slate-500">
                       Bạn chưa có lịch hẹn nào.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "transactions" && (
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    Mã Giao Dịch
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    Bất động sản
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    Trạng thái
+                  </th>
+                  <th className="px-6 py-4 text-right text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    Thao tác
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 bg-white">
+                {loadingTransactions ? (
+                  <tr>
+                    <td colSpan="4" className="px-6 py-8 text-center text-sm font-medium text-slate-500">
+                      Đang tải giao dịch...
+                    </td>
+                  </tr>
+                ) : transactions.length > 0 ? (
+                  transactions.map((tx) => (
+                    <tr key={tx.transactionId} className="hover:bg-slate-50/70">
+                      <td className="px-6 py-4 text-sm font-extrabold text-slate-950">
+                        {tx.transactionCode}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-bold text-slate-800">
+                        {tx.propertyTitle}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${getStatusClass(tx.status)}`}>
+                          {statusLabels[tx.status] || tx.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Link
+                          to={`/customer/transactions/${tx.transactionId}`}
+                          className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                        >
+                          Xem chi tiết
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" className="px-6 py-8 text-center text-sm font-medium text-slate-500">
+                      Bạn chưa có giao dịch nào.
                     </td>
                   </tr>
                 )}

@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState } from "react";
 import api from "../services/api";
 
@@ -29,6 +28,7 @@ export const AuthProvider = ({ children }) => {
           userId: data.userId,
           email: data.email,
           fullName: data.fullName,
+          phone: data.phone,
           role: data.role,
         };
         setUser(newUser);

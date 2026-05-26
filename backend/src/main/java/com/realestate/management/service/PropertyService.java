@@ -55,6 +55,9 @@ public class PropertyService {
         );
 
         Page<Property> propertyPage;
+        if (!canViewAllProperties() && searchRequest.getStatus() == null) {
+            searchRequest.setStatus("published");
+        }
 
         // Nếu có keyword, tìm kiếm theo keyword
         // Nếu có các filter khác, tìm kiếm theo nhiều tiêu chí
@@ -91,9 +94,7 @@ public class PropertyService {
         else {
             // Kiểm tra xem có authenticated user không
             try {
-                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-                if (authentication != null && authentication.isAuthenticated() 
-                    && !authentication.getPrincipal().equals("anonymousUser")) {
+                if (canViewAllProperties()) {
                     // User đã đăng nhập -> Lấy tất cả BĐS
                     propertyPage = propertyRepository.findAll(pageable);
                 } else {
@@ -132,6 +133,21 @@ public class PropertyService {
         return keyword.trim();
     }
 
+    private boolean canViewAllProperties() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()
+                    || authentication.getPrincipal().equals("anonymousUser")) {
+                return false;
+            }
+            return userRepository.findByEmail(authentication.getName())
+                    .map(user -> "admin".equalsIgnoreCase(user.getRole()) || "broker".equalsIgnoreCase(user.getRole()))
+                    .orElse(false);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * Lấy chi tiết 1 BDS theo ID
      */
@@ -167,7 +183,27 @@ public class PropertyService {
         property.setDistrict(request.getDistrict());
         property.setArea(request.getArea());
         property.setPrice(request.getPrice());
-        property.setStatus("pending"); // Mặc định là pending
+        property.setStatus("pending_review"); // Changed to pending_review
+
+        // Set Exclusive Contract Fields
+        if (Boolean.TRUE.equals(request.getIsExclusive())) {
+            property.setIsExclusive(true);
+            property.setOwnerName(request.getOwnerName());
+            property.setOwnerPhone(request.getOwnerPhone());
+            property.setExclusiveDuration(request.getExclusiveDuration());
+            property.setBrokerageFee(request.getBrokerageFee());
+            property.setOwnerDesiredPrice(request.getOwnerDesiredPrice());
+            property.setCommissionTerms(request.getCommissionTerms());
+            property.setBrokerageContractUrl(request.getBrokerageContractUrl());
+        } else {
+            property.setIsExclusive(false);
+        }
+        
+        // Set Legal Documents
+        property.setRedBookUrl(request.getRedBookUrl());
+        property.setHouseholdRegistrationUrl(request.getHouseholdRegistrationUrl());
+        property.setOwnerIdUrl(request.getOwnerIdUrl());
+        
         property.setCreatedBy(currentUser);
 
         // Nếu có assignedToId, gán broker phụ trách
@@ -181,6 +217,8 @@ public class PropertyService {
             }
             
             property.setAssignedTo(assignedUser);
+        } else if ("broker".equalsIgnoreCase(currentUser.getRole())) {
+            property.setAssignedTo(currentUser);
         }
 
         // Lưu property
@@ -235,6 +273,30 @@ public class PropertyService {
         property.setDistrict(request.getDistrict());
         property.setArea(request.getArea());
         property.setPrice(request.getPrice());
+
+        // Update Exclusive Contract Fields
+        if (Boolean.TRUE.equals(request.getIsExclusive())) {
+            property.setIsExclusive(true);
+            property.setOwnerName(request.getOwnerName());
+            property.setOwnerPhone(request.getOwnerPhone());
+            property.setExclusiveDuration(request.getExclusiveDuration());
+            property.setBrokerageFee(request.getBrokerageFee());
+            property.setOwnerDesiredPrice(request.getOwnerDesiredPrice());
+            property.setCommissionTerms(request.getCommissionTerms());
+            property.setBrokerageContractUrl(request.getBrokerageContractUrl());
+        } else {
+            property.setIsExclusive(false);
+        }
+
+        // Update Legal Documents
+        property.setRedBookUrl(request.getRedBookUrl());
+        property.setHouseholdRegistrationUrl(request.getHouseholdRegistrationUrl());
+        property.setOwnerIdUrl(request.getOwnerIdUrl());
+
+        // Nếu broker update và trạng thái không phải là pending_review -> đổi về pending_review
+        if ("broker".equalsIgnoreCase(currentUser.getRole()) && !"pending_review".equals(property.getStatus())) {
+            property.setStatus("pending_review");
+        }
 
         // Admin có thể gán broker
         if ("admin".equalsIgnoreCase(currentUser.getRole()) && request.getAssignedToId() != null) {
@@ -309,7 +371,7 @@ public class PropertyService {
     @Transactional
     public PropertyDTO updatePropertyStatus(Long id, String status) {
         // Validate status
-        if (!status.matches("pending|published|sold|rented|rejected")) {
+        if (!status.matches("pending|published|in_transaction|sold|rented|rejected")) {
             throw new RuntimeException("Trạng thái không hợp lệ. Chỉ chấp nhận: pending, published, sold, rented, rejected");
         }
 
@@ -387,16 +449,47 @@ public class PropertyService {
         dto.setArea(property.getArea());
         dto.setPrice(property.getPrice());
         dto.setCreatedAt(property.getCreatedAt());
+        
+        // Legal Documents
+        dto.setRedBookUrl(property.getRedBookUrl());
+        dto.setHouseholdRegistrationUrl(property.getHouseholdRegistrationUrl());
+        dto.setOwnerIdUrl(property.getOwnerIdUrl());
 
         // Convert createdBy
         if (property.getCreatedBy() != null) {
             User creator = property.getCreatedBy();
             dto.setCreatedBy(new PropertyDTO.UserSimpleDTO(
-                creator.getUserId(),
-                creator.getFullName(),
-                creator.getEmail(),
-                creator.getPhone()
+                property.getCreatedBy().getUserId(),
+                property.getCreatedBy().getFullName(),
+                property.getCreatedBy().getEmail(),
+                property.getCreatedBy().getPhone()
             ));
+        
+            dto.setIsExclusive(property.getIsExclusive());
+            dto.setIsLocked(property.getIsLocked());
+
+            // Check if current user is admin or the creator
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            boolean isAuthorized = false;
+            if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
+                String currentUserEmail = auth.getName();
+                boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                if (isAdmin || creator.getEmail().equals(currentUserEmail)) {
+                    isAuthorized = true;
+                }
+            }
+
+            if (isAuthorized) {
+                // Exclusive fields only for Admin and the Broker who created it
+                dto.setContractStatus(property.getContractStatus());
+                dto.setOwnerName(property.getOwnerName());
+                dto.setOwnerPhone(property.getOwnerPhone());
+                dto.setExclusiveDuration(property.getExclusiveDuration());
+                dto.setBrokerageFee(property.getBrokerageFee());
+                dto.setOwnerDesiredPrice(property.getOwnerDesiredPrice());
+                dto.setCommissionTerms(property.getCommissionTerms());
+                dto.setBrokerageContractUrl(property.getBrokerageContractUrl());
+            }
         }
 
         // Convert assignedTo

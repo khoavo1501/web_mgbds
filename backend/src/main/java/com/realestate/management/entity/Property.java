@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * Entity Property - Bất động sản
- * Status: 'pending', 'published', 'sold'
+ * Status: 'pending', 'published', 'in_transaction', 'sold'
  */
 @Entity
 @Table(name = "properties")
@@ -40,7 +40,7 @@ public class Property {
     private String propertyType; // 'apartment', 'house', 'land', 'villa'
 
     @Column(name = "status", length = 30)
-    private String status = "pending"; // 'pending', 'published', 'sold'
+    private String status = "pending_review"; // 'pending_review', 'approved', 'locked', 'sold', 'rented', 'rejected', 'inactive'
 
     @Column(name = "province", nullable = false, length = 100)
     private String province;
@@ -57,6 +57,53 @@ public class Property {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    // ===================================================================
+    // Exclusive Brokerage Contract Details
+    // ===================================================================
+
+    @Column(name = "is_exclusive")
+    private Boolean isExclusive = false;
+
+    @Column(name = "contract_status", length = 30)
+    private String contractStatus; // PENDING, ACTIVE, EXPIRED, TERMINATED, REJECTED
+
+    @Column(name = "owner_name", length = 100)
+    private String ownerName;
+
+    @Column(name = "owner_phone", length = 20)
+    private String ownerPhone;
+
+    @Column(name = "exclusive_duration", length = 100)
+    private String exclusiveDuration;
+
+    @Column(name = "brokerage_fee", precision = 5, scale = 2)
+    private BigDecimal brokerageFee; // % fee
+
+    @Column(name = "owner_desired_price", precision = 18, scale = 2)
+    private BigDecimal ownerDesiredPrice;
+
+    @Column(name = "commission_terms", columnDefinition = "TEXT")
+    private String commissionTerms;
+
+    @Column(name = "brokerage_contract_url", length = 500)
+    private String brokerageContractUrl;
+
+    @Column(name = "is_locked")
+    private Boolean isLocked = false;
+
+    // ===================================================================
+    // Legal Document Details
+    // ===================================================================
+
+    @Column(name = "red_book_url", length = 500)
+    private String redBookUrl;
+
+    @Column(name = "household_registration_url", length = 500)
+    private String householdRegistrationUrl;
+
+    @Column(name = "owner_id_url", length = 500)
+    private String ownerIdUrl;
 
     // ===================================================================
     // Relationships
