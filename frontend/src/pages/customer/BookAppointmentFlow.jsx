@@ -167,7 +167,7 @@ export default function BookAppointmentFlow() {
             </div>
             <h1 className="text-4xl font-bold text-gray-900 mb-3">Đặt lịch thành công!</h1>
             <p className="text-gray-600">
-              Cảm ơn bạn đã tin tưởng NhaDatPro. Lịch hẹn của bạn đã được xác nhận với đại lý.
+              Lịch hẹn đã được ghi nhận và đang chờ môi giới xác nhận.
             </p>
           </div>
 
@@ -231,9 +231,6 @@ export default function BookAppointmentFlow() {
             </button>
           </div>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Bạn cần hỗ trợ? <button className="text-green-600 hover:underline font-semibold">Liên hệ với chúng tôi</button>
-          </p>
         </div>
       </div>
     );
@@ -253,7 +250,7 @@ export default function BookAppointmentFlow() {
           </button>
           <h1 className="text-3xl font-bold text-gray-900">Xác nhận thông tin liên hệ</h1>
           <p className="text-gray-600 mt-2">
-            Thông tin liên hệ của bạn được lấy từ hồ sơ cá nhân. Vui lòng kiểm tra lại trước khi xác nhận.
+            Thông tin liên hệ được lấy từ hồ sơ cá nhân. Kiểm tra lại trước khi xác nhận.
           </p>
         </div>
 
@@ -373,9 +370,6 @@ export default function BookAppointmentFlow() {
                   )}
                 </button>
 
-                <p className="text-center text-sm text-gray-500">
-                  Bằng cách nhấn xác nhận, bạn đồng ý với Điều khoản dịch vụ của chúng tôi.
-                </p>
               </form>
             </div>
           </div>

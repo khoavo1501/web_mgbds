@@ -155,7 +155,7 @@ export default function BookAppointmentNew() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Chọn thời gian xem nhà</h1>
           <p className="text-gray-600">
-            Vui lòng chọn ngày và giờ phù hợp để chuyên viên tư vấn của chúng tôi có thể sắp xếp đón tiếp bạn tốt nhất.
+            Chọn ngày và khung giờ phù hợp để môi giới xác nhận lịch xem nhà.
           </p>
         </div>
 
@@ -392,9 +392,6 @@ export default function BookAppointmentNew() {
                   <ArrowRight className="w-5 h-5" />
                 </button>
                 
-                <p className="text-center text-xs text-gray-500 mt-3">
-                  Bằng cách nhấn xác nhận, bạn đồng ý với Điều khoản dịch vụ của chúng tôi.
-                </p>
               </div>
             </div>
           </div>

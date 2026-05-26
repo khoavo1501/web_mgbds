@@ -15,10 +15,10 @@ export default function AppointmentWarningModal({ isOpen, onClose, onViewAppoint
         {/* Message */}
         <div className="text-center">
           <p className="text-base font-semibold text-slate-900">
-            Bạn đã có lịch hẹn chưa hoàn thành cho bất động sản này
+            Đã có lịch hẹn chưa hoàn thành cho bất động sản này
           </p>
           <p className="mt-2 text-sm font-medium text-slate-600">
-            Vui lòng hoàn thành hoặc hủy lịch cũ trước khi đặt lịch mới.
+            Hoàn thành hoặc hủy lịch cũ trước khi đặt lịch mới.
           </p>
         </div>
 

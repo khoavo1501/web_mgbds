@@ -13,7 +13,9 @@ public class AppointmentDTO {
     private Long appointmentId;
     private LocalDateTime scheduledAt;
     private String status;
+    private String appointmentType;
     private String note;
+    private Long transactionId;
     
     // Property info
     private Long propertyId;

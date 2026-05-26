@@ -36,7 +36,7 @@ const statusLabels = {
   published: "Đang mở bán",
   in_transaction: "Đang giao dịch",
   deposit_paid: "Đã cọc",
-  pending: "Chờ duyệt",
+  pending: "Chờ kiểm tra",
   rejected: "Đã từ chối",
   sold: "Đã bán",
   Available: "Đang mở bán",

@@ -85,6 +85,37 @@ const getMonthKey = (date) => {
   return `T${parsed.getMonth() + 1}/${parsed.getFullYear().toString().slice(-2)}`;
 };
 
+const mockCashFlowData = (realByMonth = {}) => {
+  const deposits = [
+    420_000_000,
+    510_000_000,
+    480_000_000,
+    640_000_000,
+    590_000_000,
+    720_000_000,
+    680_000_000,
+    800_000_000,
+  ];
+  return deposits.map((deposit, index) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - (deposits.length - 1 - index));
+    const month = getMonthKey(date);
+    if (realByMonth[month]) {
+      return {
+        ...realByMonth[month],
+        isMock: false,
+      };
+    }
+    return {
+      month,
+      revenue: deposit * 0.4,
+      deposit,
+      commission: deposit * 0.6,
+      isMock: true,
+    };
+  });
+};
+
 export default function FinancialManagement() {
   const [transactions, setTransactions] = useState([]);
   const [commissions, setCommissions] = useState([]);
@@ -183,26 +214,18 @@ export default function FinancialManagement() {
   const chartData = useMemo(() => {
     const grouped = transactions.reduce((acc, item) => {
       const key = getMonthKey(item.transactionDate);
+      if (key === "Chưa rõ") return acc;
       if (!acc[key]) {
         acc[key] = { month: key, revenue: 0, deposit: 0, commission: 0 };
       }
-      if (item.status === "completed") {
-        acc[key].revenue += Number(item.totalPrice || 0);
-      }
-      acc[key].deposit += Number(item.depositAmount || 0);
+      const deposit = Number(item.depositAmount || 0);
+      acc[key].deposit += deposit;
+      acc[key].revenue += deposit * 0.4;
+      acc[key].commission += deposit * 0.6;
       return acc;
     }, {});
 
-    commissions.forEach((item) => {
-      const transaction = transactions.find((trx) => trx.transactionId === item.transactionId);
-      const key = getMonthKey(transaction?.transactionDate);
-      if (!grouped[key]) {
-        grouped[key] = { month: key, revenue: 0, deposit: 0, commission: 0 };
-      }
-      grouped[key].commission += Number(item.brokerAmount || item.amount || 0);
-    });
-
-    return Object.values(grouped).slice(-8);
+    return mockCashFlowData(grouped);
   }, [commissions, transactions]);
 
   const brokerData = useMemo(() => {
@@ -645,12 +668,23 @@ function TransactionTable({ loading, rows, processingId, onStatusChange }) {
 }
 
 function PaymentVerificationModal({ transaction, onClose, onVerified, onReject }) {
-  const receiptDoc = (transaction.documents || []).find(d => d.documentType === 'receipt');
+  const docs = transaction.documents || [];
   const [viewDoc, setViewDoc] = useState(null);
+  const getDocByType = (...types) =>
+    docs.find((doc) => types.some((type) => String(doc.documentType || "").toLowerCase() === type.toLowerCase()));
+  const receiptDoc = getDocByType("receipt");
+  const openDoc = (doc) => {
+    if (!doc?.url) return;
+    setViewDoc({
+      url: doc.url,
+      name: doc.fileName || doc.documentType,
+      type: doc.url.toLowerCase().endsWith(".pdf") ? "pdf" : "image",
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/55 px-4 backdrop-blur-sm">
-      <div className="max-h-[88vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white shadow-2xl">
+      <div className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white shadow-2xl">
         <div className="flex items-start justify-between border-b border-stone-200 p-6">
           <div>
             <h2 className="text-xl font-black text-stone-950">Xác nhận thanh toán</h2>
@@ -660,31 +694,33 @@ function PaymentVerificationModal({ transaction, onClose, onVerified, onReject }
             <XCircle className="h-5 w-5" />
           </button>
         </div>
-        
-        <div className="p-6 space-y-4">
+
+        <div className="space-y-4 p-6">
           <div className="rounded-lg border border-stone-200 p-4">
-            <h3 className="font-bold text-stone-900 mb-4">Hồ sơ và Chứng từ</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <h3 className="mb-4 font-bold text-stone-900">Hồ sơ và chứng từ</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
               {[
-                { doc: (transaction.documents || []).find(d => d.documentType === 'CCCD'), label: 'CCCD' },
-                { doc: (transaction.documents || []).find(d => d.documentType === 'Sổ hộ khẩu' || d.documentType === 'household'), label: 'Hộ khẩu' },
-                { doc: (transaction.documents || []).find(d => d.documentType === 'receipt'), label: 'Biên lai cọc' }
+                { doc: getDocByType("cccd_front", "CCCD"), label: "CCCD trước" },
+                { doc: getDocByType("cccd_back"), label: "CCCD sau" },
+                { doc: getDocByType("residence", "household", "Sổ hộ khẩu"), label: "Hộ khẩu" },
+                { doc: receiptDoc, label: "Biên lai cọc" },
               ].map(({ doc, label }, idx) => (
                 <div key={idx}>
-                  <p className="text-xs font-bold text-stone-600 mb-2">{label}</p>
+                  <p className="mb-2 text-xs font-bold text-stone-600">{label}</p>
                   {doc ? (
-                    <div 
-                      className="block w-full overflow-hidden rounded-lg border border-stone-200 cursor-pointer hover:opacity-90"
-                      onClick={() => setViewDoc({ url: doc.url, name: doc.fileName, type: doc.url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image' })}
+                    <button
+                      type="button"
+                      className="block w-full overflow-hidden rounded-lg border border-stone-200 hover:opacity-90"
+                      onClick={() => openDoc(doc)}
                     >
-                      {doc.url.toLowerCase().endsWith('.pdf') ? (
-                        <div className="w-full h-24 bg-stone-100 flex items-center justify-center text-stone-500 font-bold text-xs">PDF</div>
+                      {doc.url.toLowerCase().endsWith(".pdf") ? (
+                        <div className="flex h-24 w-full items-center justify-center bg-stone-100 text-xs font-bold text-stone-500">PDF</div>
                       ) : (
-                        <img src={doc.url} alt={label} className="w-full h-24 object-cover" />
+                        <img src={doc.url} alt={label} className="h-24 w-full object-cover" />
                       )}
-                    </div>
+                    </button>
                   ) : (
-                    <div className="w-full h-24 bg-stone-50 rounded-lg border border-stone-200 flex items-center justify-center">
+                    <div className="flex h-24 w-full items-center justify-center rounded-lg border border-stone-200 bg-stone-50">
                       <span className="text-xs text-stone-400">Trống</span>
                     </div>
                   )}
@@ -692,12 +728,24 @@ function PaymentVerificationModal({ transaction, onClose, onVerified, onReject }
               ))}
             </div>
           </div>
-          <div className="flex justify-between items-center bg-stone-50 p-4 rounded-lg border border-stone-200">
+
+          <div className="flex items-center justify-between rounded-lg border border-stone-200 bg-stone-50 p-4">
             <span className="font-bold text-stone-700">Số tiền cần cọc:</span>
-            <span className="font-black text-emerald-600 text-lg">{new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(transaction.depositAmount || 0))} VNĐ</span>
+            <span className="text-lg font-black text-emerald-600">{new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(transaction.depositAmount || 0))} VNĐ</span>
           </div>
+
+          {receiptDoc && (
+            <button
+              type="button"
+              onClick={() => openDoc(receiptDoc)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 hover:bg-emerald-100"
+            >
+              <FileText className="h-4 w-4" />
+              Xem ảnh biên lai đặt cọc
+            </button>
+          )}
         </div>
-        
+
         <div className="flex justify-end gap-3 border-t border-stone-200 p-6">
           <button onClick={onReject} className="rounded-lg bg-rose-100 px-4 py-2 text-sm font-bold text-rose-700 hover:bg-rose-200">
             Từ chối (Hủy GD)
@@ -707,17 +755,16 @@ function PaymentVerificationModal({ transaction, onClose, onVerified, onReject }
           </button>
         </div>
       </div>
-      <DocumentViewerModal 
-        isOpen={!!viewDoc} 
-        onClose={() => setViewDoc(null)} 
-        documentUrl={viewDoc?.url} 
-        documentName={viewDoc?.name} 
-        documentType={viewDoc?.type} 
+      <DocumentViewerModal
+        isOpen={!!viewDoc}
+        onClose={() => setViewDoc(null)}
+        documentUrl={viewDoc?.url}
+        documentName={viewDoc?.name}
+        documentType={viewDoc?.type}
       />
     </div>
   );
 }
-
 function DocumentVerificationModal({ transaction, onClose, onVerified }) {
   const [docs, setDocs] = useState(transaction.documents || []);
   const [loading, setLoading] = useState(false);

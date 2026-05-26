@@ -311,7 +311,7 @@ export default function CustomerDashboard({ mode = "overview" }) {
 function Overview({ appointments, transactions, activeTransactions, favorites, loadingTransactions }) {
   return (
     <div>
-      <PageTitle title="Tổng quan" description="Theo dõi các hoạt động và giao dịch của bạn." />
+      <PageTitle title="Tổng quan" description="Theo dõi hoạt động và giao dịch mới nhất." />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard icon={CalendarDays} label="Lịch hẹn sắp tới" value={appointments.length} tone="blue" />
@@ -467,7 +467,7 @@ function Profile({ user, onUpdateProfile, returnTo, initialMessage }) {
       setFiles({ cccdFront: null, cccdBack: null, residence: null });
       setMessage({
         type: result.success ? "success" : "error",
-        text: result.success ? "Đã cập nhật hồ sơ. Admin sẽ duyệt thông tin xác thực của bạn." : result.message,
+        text: result.success ? "Đã cập nhật hồ sơ. Hệ thống sẽ xác nhận thông tin." : result.message,
       });
     } catch (error) {
       setMessage({ type: "error", text: error.response?.data?.message || "Không thể tải hồ sơ lên." });
@@ -534,7 +534,7 @@ function Profile({ user, onUpdateProfile, returnTo, initialMessage }) {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-base font-black text-slate-950">Hồ sơ xác thực khách hàng</h3>
-              <p className="mt-1 text-sm font-bold text-slate-500">Cập nhật CCCD hai mặt và xác nhận cư trú để admin duyệt trước khi thanh toán.</p>
+              <p className="mt-1 text-sm font-bold text-slate-500">Cập nhật CCCD hai mặt và xác nhận cư trú để hệ thống xác nhận trước khi thanh toán.</p>
             </div>
             <IdentityStatus status={user?.identityVerificationStatus} />
           </div>
@@ -891,7 +891,7 @@ function BankSelect({ icon: Icon, label, banks, loading, value, onChange }) {
 function IdentityStatus({ status }) {
   const meta = {
     verified: "Đã duyệt",
-    pending_review: "Chờ admin duyệt",
+    pending_review: "Chờ hệ thống xác nhận",
     rejected: "Bị từ chối",
     not_submitted: "Chưa gửi",
   };

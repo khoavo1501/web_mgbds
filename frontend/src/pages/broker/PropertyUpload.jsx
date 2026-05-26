@@ -65,7 +65,7 @@ function useDebounce(value, delay = 400) {
 const statusLabel = (s) => {
   switch (s) {
     case 'published': return { text: 'Đã đăng', cls: 'bg-emerald-100 text-emerald-700' };
-    case 'pending':   return { text: 'Chờ duyệt', cls: 'bg-amber-100 text-amber-700' };
+    case 'pending':   return { text: 'Chờ kiểm tra', cls: 'bg-amber-100 text-amber-700' };
     case 'pending_review':
     case 'sold':      return { text: 'Đã bán', cls: 'bg-blue-100 text-blue-700' };
     case 'rejected':  return { text: 'Từ chối', cls: 'bg-rose-100 text-rose-700' };
@@ -122,7 +122,7 @@ function MyProperties({ onEdit, showToast }) {
         <List className="w-10 h-10 text-slate-300" />
       </div>
       <p className="font-bold text-lg text-slate-600">Chưa có bất động sản nào</p>
-      <p className="text-sm mt-2 text-slate-400">Hãy đăng tin đầu tiên của bạn để bắt đầu nhé!</p>
+      <p className="text-sm mt-2 text-slate-400">Đăng tin đầu tiên để bắt đầu quản lý nguồn hàng.</p>
     </div>
   );
 
@@ -366,7 +366,7 @@ export default function PropertyUpload() {
         : await api.post('/properties', payload);
 
       if (res.data.success) {
-        showToast('success', editingId ? 'Cập nhật BĐS thành công!' : 'Bất động sản đã được gửi và đang chờ Admin kiểm duyệt!');
+        showToast('success', editingId ? 'Cập nhật BĐS thành công.' : 'Bất động sản đã được gửi và đang chờ hệ thống xét duyệt.');
         // Reset form
         setEditingId(null);
         setFormData({

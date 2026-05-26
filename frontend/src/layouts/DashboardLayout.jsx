@@ -9,7 +9,6 @@ import {
   LogOut,
   Search,
   ShieldCheck,
-  FileCheck,
   User,
   Users,
   Wallet,
@@ -21,7 +20,6 @@ const navItems = [
   { name: "Tổng quan", path: "/admin", icon: LayoutDashboard },
   { name: "Quản lý BĐS", path: "/admin/properties", icon: Building2 },
   { name: "Duyệt", path: "/admin/reviews", icon: ClipboardList },
-  { name: "Giao dịch", path: "/admin/transactions", icon: FileCheck },
   { name: "Tài chính", path: "/admin/finance", icon: Wallet },
   { name: "Báo cáo", path: "/admin/reports", icon: FileBarChart },
   { name: "Người dùng", path: "/admin/users", icon: Users },
@@ -44,8 +42,8 @@ export default function DashboardLayout() {
             <Building2 className="h-6 w-6" />
           </div>
           <div>
-            <p className="text-lg font-black tracking-tight">MGBDS Admin</p>
-            <p className="text-xs font-medium text-stone-400">Trung tâm kiểm duyệt</p>
+            <p className="text-lg font-black tracking-tight">MGBDS</p>
+            <p className="text-xs font-medium text-stone-400">Trung tâm vận hành</p>
           </div>
         </div>
 
@@ -83,7 +81,7 @@ export default function DashboardLayout() {
               <ShieldCheck className="h-5 w-5 text-[#d7b56d]" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold">{user?.fullName || user?.email || "Admin"}</p>
+              <p className="truncate text-sm font-bold">{user?.fullName || user?.email || "Quản trị"}</p>
               <p className="text-xs text-stone-400">Quản trị viên</p>
             </div>
           </div>
@@ -116,7 +114,7 @@ export default function DashboardLayout() {
             </button>
             <div className="flex items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2 shadow-sm">
               <User className="h-5 w-5 text-stone-500" />
-              <span className="text-sm font-bold text-stone-800">{user?.fullName || "Admin"}</span>
+              <span className="text-sm font-bold text-stone-800">{user?.fullName || "Quản trị"}</span>
             </div>
           </div>
         </header>

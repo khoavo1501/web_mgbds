@@ -160,14 +160,14 @@ export default function UserManagement() {
           <p className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-[#8b6f2f]">Quyền truy cập</p>
           <h1 className="text-3xl font-black tracking-tight text-stone-950">Quản lý người dùng</h1>
           <p className="mt-2 max-w-2xl text-sm font-medium text-stone-500">
-            Admin kiểm soát tài khoản trong hệ thống và là vai trò duy nhất được tạo tài khoản môi giới.
+            Quản lý tài khoản người dùng và tạo tài khoản môi giới trong hệ thống.
           </p>
         </div>
       </section>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Metric title="Tổng tài khoản" value={summary.total} icon={Users} tone="dark" />
-        <Metric title="Admin" value={summary.admins} icon={ShieldCheck} tone="gold" />
+        <Metric title="Quản trị" value={summary.admins} icon={ShieldCheck} tone="gold" />
         <Metric title="Môi giới" value={summary.brokers} icon={UserCog} tone="brown" />
         <Metric title="Đang hoạt động" value={summary.active} icon={BadgeCheck} tone="green" />
       </section>
@@ -249,7 +249,7 @@ export default function UserManagement() {
                 className="h-11 rounded-lg border border-stone-200 bg-white px-3 text-sm font-black text-stone-800 outline-none transition-colors focus:border-[#d7b56d]"
               >
                 <option value="all">Tất cả vai trò</option>
-                <option value="admin">Admin</option>
+                <option value="admin">Quản trị viên</option>
                 <option value="broker">Broker</option>
                 <option value="customer">Customer</option>
               </select>

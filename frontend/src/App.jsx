@@ -38,7 +38,6 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import PropertyManagement from "./pages/admin/PropertyManagement";
 import FinancialManagement from "./pages/admin/FinancialManagement";
 import UserManagement from "./pages/admin/UserManagement";
-import AdminTransactionManagement from "./pages/admin/AdminTransactionManagement";
 import AdminReviewCenter from "./pages/admin/AdminReviewCenter";
 import AdminReports from "./pages/admin/AdminReports";
 
@@ -94,7 +93,7 @@ function App() {
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/properties" element={<PropertyManagement />} />
                 <Route path="/admin/approval" element={<Navigate to="/admin/reviews" replace />} />
-                <Route path="/admin/transactions" element={<AdminTransactionManagement />} />
+                <Route path="/admin/transactions" element={<Navigate to="/admin/reviews" replace />} />
                 <Route path="/admin/reviews" element={<AdminReviewCenter />} />
                 <Route path="/admin/finance" element={<FinancialManagement />} />
                 <Route path="/admin/reports" element={<AdminReports />} />

@@ -13,6 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import api from "../../services/api";
+import DocumentViewerModal from "../../components/DocumentViewerModal";
 
 const formatDate = (value) => {
   if (!value) return "Chưa rõ";
@@ -68,7 +69,7 @@ export default function AdminReviewCenter() {
       code: item.propertyCode,
       owner: item.ownerName || item.createdBy?.fullName || "Chưa rõ",
       createdAt: item.createdAt,
-      statusLabel: "BĐS chờ duyệt",
+      statusLabel: "BĐS chờ kiểm tra",
       icon: Building2,
       payload: item,
       priority: 1,
@@ -83,14 +84,14 @@ export default function AdminReviewCenter() {
         code: item.email,
         owner: item.phone || "Chưa có SĐT",
         createdAt: item.createdAt,
-        statusLabel: "Hồ sơ khách chờ duyệt",
+        statusLabel: "Hồ sơ khách chờ kiểm tra",
         icon: UserCheck,
         payload: item,
         priority: 2,
       }));
 
     const reviewStatuses = {
-      documents_submitted: "Hồ sơ giao dịch chờ duyệt",
+      documents_submitted: "Hồ sơ giao dịch chờ kiểm tra",
       payment_submitted: "Thanh toán cọc chờ xác nhận",
       refund_requested: "Yêu cầu hoàn cọc",
       broker_confirmed: "Bàn giao chờ hoàn tất",
@@ -144,7 +145,7 @@ export default function AdminReviewCenter() {
       const reason = status === "rejected" ? window.prompt("Lý do từ chối hồ sơ khách hàng:") || "Hồ sơ không hợp lệ" : "";
       const response = await api.patch(`/admin/users/${user.userId}/identity-status`, null, { params: { status, reason } });
       if (response.data.success) {
-        showToast(status === "verified" ? "success" : "error", status === "verified" ? "Đã duyệt hồ sơ khách hàng." : "Đã từ chối hồ sơ khách hàng.");
+        showToast(status === "verified" ? "success" : "error", status === "verified" ? "Đã xác nhận hồ sơ khách hàng." : "Đã từ chối hồ sơ khách hàng.");
         setSelected(null);
         await fetchQueue();
       } else {
@@ -185,7 +186,7 @@ export default function AdminReviewCenter() {
           <p className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-[#8b6f2f]">Hàng đợi kiểm duyệt</p>
           <h1 className="text-3xl font-black tracking-tight text-stone-950">Trung tâm duyệt</h1>
           <p className="mt-2 max-w-2xl text-sm font-medium text-stone-500">
-            Tất cả hồ sơ cần admin xử lý được gom tại đây và sắp theo thứ tự cũ nhất trước.
+            Tất cả hồ sơ cần xử lý được gom tại đây và sắp theo thứ tự cũ nhất trước.
           </p>
         </div>
         <button
@@ -198,7 +199,7 @@ export default function AdminReviewCenter() {
       </section>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <Metric label="Tổng chờ duyệt" value={queue.length} icon={Clock3} tone="dark" />
+        <Metric label="Tổng chờ xử lý" value={queue.length} icon={Clock3} tone="dark" />
         <Metric label="BĐS" value={properties.length} icon={Building2} tone="gold" />
         <Metric label="Hồ sơ khách" value={users.filter((item) => item.identityVerificationStatus === "pending_review").length} icon={UserCheck} tone="green" />
         <Metric label="Giao dịch" value={transactions.filter((item) => ["documents_submitted", "payment_submitted", "refund_requested", "broker_confirmed"].includes(item.status)).length} icon={FileCheck} tone="brown" />
@@ -214,7 +215,7 @@ export default function AdminReviewCenter() {
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
               <BadgeCheck className="h-7 w-7" />
             </div>
-            <p className="text-lg font-black text-stone-900">Không còn hồ sơ chờ duyệt</p>
+            <p className="text-lg font-black text-stone-900">Không còn hồ sơ chờ xử lý</p>
             <p className="mt-1 text-sm font-medium text-stone-500">Hàng đợi kiểm duyệt hiện đang trống.</p>
           </div>
         ) : (
@@ -353,41 +354,91 @@ function UserReview({ user }) {
 
 function TransactionReview({ transaction }) {
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-      <Info label="Khách hàng" value={transaction.customerName || "N/A"} />
-      <Info label="Môi giới" value={transaction.brokerName || "N/A"} />
-      <Info label="Tiền cọc" value={formatVnd(transaction.depositAmount)} />
-      <Info label="Tổng giá trị" value={formatVnd(transaction.totalPrice)} />
-      <Info label="Ngày giao dịch" value={formatDate(transaction.transactionDate)} />
-      <Info label="Trạng thái" value={transaction.status} />
-    </div>
+    <>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <Info label="Khách hàng" value={transaction.customerName || "N/A"} />
+        <Info label="Môi giới" value={transaction.brokerName || "N/A"} />
+        <Info label="Tiền cọc" value={formatVnd(transaction.depositAmount)} />
+        <Info label="Tổng giá trị" value={formatVnd(transaction.totalPrice)} />
+        <Info label="Ngày giao dịch" value={formatDate(transaction.transactionDate)} />
+        <Info label="Trạng thái" value={transaction.status} />
+      </div>
+      <DocumentGrid
+        docs={(transaction.documents || [])
+          .filter((doc) => doc.status !== "archived")
+          .map((doc) => ({
+            label: getDocumentLabel(doc.documentType),
+            url: doc.url,
+            fileName: doc.fileName,
+          }))}
+        emptyText="Chưa có giấy tờ hoặc biên lai được tải lên."
+      />
+    </>
   );
 }
 
-function DocumentGrid({ docs }) {
+function getDocumentLabel(type) {
+  const labels = {
+    cccd_front: "CCCD mặt trước",
+    cccd_back: "CCCD mặt sau",
+    residence: "Cư trú/Sổ hộ khẩu",
+    household: "Sổ hộ khẩu",
+    receipt: "Biên lai đặt cọc",
+    marriage: "Giấy xác nhận hôn nhân",
+  };
+  return labels[type] || type || "Tài liệu";
+}
+
+function DocumentGrid({ docs, emptyText = "Chưa tải lên" }) {
+  const [viewDoc, setViewDoc] = useState(null);
+  const openDocument = (doc) => {
+    if (!doc.url) return;
+    setViewDoc({
+      url: doc.url,
+      name: doc.fileName || doc.label,
+      type: doc.url.toLowerCase().endsWith(".pdf") ? "pdf" : "image",
+    });
+  };
+
   return (
     <div className="rounded-lg border border-stone-200 bg-stone-50/60 p-4">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-black text-stone-900">
         <ShieldCheck className="h-4 w-4" /> Giấy tờ cần kiểm tra
       </h3>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        {docs.map((doc) => (
-          <div key={doc.label} className="rounded-lg border border-stone-200 bg-white p-4">
-            <p className="text-xs font-black uppercase tracking-wider text-stone-400">{doc.label}</p>
-            {doc.url ? (
-              <a href={doc.url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-2 text-sm font-black text-blue-700 hover:underline">
-                <Eye className="h-4 w-4" /> Xem giấy tờ
-              </a>
-            ) : (
-              <p className="mt-2 text-sm font-bold text-rose-600">Chưa tải lên</p>
-            )}
-          </div>
-        ))}
-      </div>
+      {docs.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-stone-200 bg-white p-4 text-sm font-bold text-stone-500">
+          {emptyText}
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {docs.map((doc) => (
+            <div key={`${doc.label}-${doc.url || "empty"}`} className="rounded-lg border border-stone-200 bg-white p-4">
+              <p className="text-xs font-black uppercase tracking-wider text-stone-400">{doc.label}</p>
+              {doc.url ? (
+                <button
+                  type="button"
+                  onClick={() => openDocument(doc)}
+                  className="mt-2 inline-flex items-center gap-2 text-sm font-black text-blue-700 hover:underline"
+                >
+                  <Eye className="h-4 w-4" /> Xem giấy tờ
+                </button>
+              ) : (
+                <p className="mt-2 text-sm font-bold text-rose-600">Chưa tải lên</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <DocumentViewerModal
+        isOpen={!!viewDoc}
+        onClose={() => setViewDoc(null)}
+        documentUrl={viewDoc?.url}
+        documentName={viewDoc?.name}
+        documentType={viewDoc?.type}
+      />
     </div>
   );
 }
-
 function Info({ label, value }) {
   return (
     <div className="rounded-lg border border-stone-200 p-4">

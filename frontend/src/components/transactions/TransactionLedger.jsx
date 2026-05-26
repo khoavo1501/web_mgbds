@@ -511,9 +511,9 @@ function CustomerDealFlow({ transaction, onClose, showToast }) {
                   <ShieldCheck className="h-6 w-6" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-black text-amber-950">Chờ admin kiểm tra hồ sơ</h3>
+                  <h3 className="text-xl font-black text-amber-950">Chờ hệ thống kiểm tra hồ sơ</h3>
                   <p className="mt-2 text-sm font-bold text-amber-800">
-                    Hồ sơ đã được gửi. Khi admin xác minh hợp lệ, giao dịch sẽ tự chuyển sang bước thanh toán.
+                    Hồ sơ đã được gửi. Khi thông tin hợp lệ, giao dịch sẽ tự chuyển sang bước thanh toán.
                   </p>
                 </div>
               </div>

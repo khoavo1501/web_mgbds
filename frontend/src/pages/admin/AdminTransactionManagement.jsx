@@ -11,11 +11,11 @@ import api from "../../services/api";
 
 const statusMeta = {
   deposit_paid: { label: "Đã cọc", tone: "blue" },
-  documents_submitted: { label: "Chờ duyệt giấy tờ", tone: "gold" },
-  document_verifying: { label: "Đang duyệt giấy tờ", tone: "gold" },
-  documents_verified: { label: "Đã duyệt hợp lệ", tone: "green" },
+  documents_submitted: { label: "Chờ kiểm tra giấy tờ", tone: "gold" },
+  document_verifying: { label: "Đang kiểm tra giấy tờ", tone: "gold" },
+  documents_verified: { label: "Hồ sơ hợp lệ", tone: "green" },
   notarizing: { label: "Đang công chứng", tone: "purple" },
-  payment_submitted: { label: "Chờ duyệt thanh toán", tone: "blue" },
+  payment_submitted: { label: "Chờ xác nhận thanh toán", tone: "blue" },
   completed: { label: "Hoàn tất", tone: "green" },
   cancelled: { label: "Đã hủy", tone: "red" },
   refund_requested: { label: "Yêu cầu hoàn cọc", tone: "red" }
@@ -69,7 +69,7 @@ export default function AdminTransactionManagement() {
     try {
       const response = await api.patch(`/transactions/${txId}/documents/${docId}/verify`);
       if (response.data.success) {
-        showToast("success", "Đã duyệt giấy tờ");
+        showToast("success", "Đã xác nhận giấy tờ");
         const updatedTransaction = response.data.data;
         setSelectedTx(updatedTransaction); // Update modal with fresh data
         if (updatedTransaction?.status === "documents_verified") {
@@ -78,7 +78,7 @@ export default function AdminTransactionManagement() {
         fetchTransactions(); // Update background list
       }
     } catch (error) {
-      showToast("error", error.response?.data?.message || "Lỗi khi duyệt giấy tờ");
+      showToast("error", error.response?.data?.message || "Không thể kiểm tra giấy tờ");
     }
   };
 
@@ -104,12 +104,12 @@ export default function AdminTransactionManagement() {
         params: { status: "verified" },
       });
       if (response.data.success) {
-        showToast("success", "Đã duyệt hồ sơ xác thực khách hàng");
+        showToast("success", "Đã xác nhận hồ sơ khách hàng");
         setSelectedTx(null);
         fetchTransactions();
       }
     } catch (error) {
-      showToast("error", error.response?.data?.message || "Không thể duyệt hồ sơ khách hàng");
+      showToast("error", error.response?.data?.message || "Không thể xác nhận hồ sơ khách hàng");
     }
   };
 
@@ -168,11 +168,11 @@ export default function AdminTransactionManagement() {
             value={filterStatus}
             onChange={setFilterStatus}
             options={[
-              { value: "identity_pending", label: "Hồ sơ khách chờ duyệt" },
+              { value: "identity_pending", label: "Hồ sơ khách chờ kiểm tra" },
               { value: "all", label: "Tất cả trạng thái" },
-              { value: "documents_submitted", label: "Chờ duyệt giấy tờ" },
-              { value: "document_verifying", label: "Đang duyệt" },
-              { value: "documents_verified", label: "Đã duyệt hợp lệ" },
+              { value: "documents_submitted", label: "Chờ kiểm tra giấy tờ" },
+              { value: "document_verifying", label: "Đang kiểm tra" },
+              { value: "documents_verified", label: "Hồ sơ hợp lệ" },
               { value: "notarizing", label: "Đang công chứng" }
             ]}
           />
@@ -292,8 +292,8 @@ function StatusBadge({ status }) {
 
 function IdentityBadge({ status }) {
   const labels = {
-    pending_review: "Hồ sơ khách chờ duyệt",
-    verified: "Hồ sơ khách đã duyệt",
+    pending_review: "Hồ sơ khách chờ kiểm tra",
+    verified: "Hồ sơ khách đã xác nhận",
     rejected: "Hồ sơ khách bị từ chối",
     not_submitted: "Chưa có hồ sơ khách",
   };
@@ -357,7 +357,7 @@ function DocumentReviewModal({ transaction, onClose, onVerify, onReject, onVerif
           {isIdentityReview ? (
             <div className="space-y-6">
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
-                Khách hàng đã cập nhật hồ sơ xác thực trong trang cá nhân. Admin duyệt tại mục pháp lý này để mở bước thanh toán cọc.
+                Khách hàng đã cập nhật hồ sơ xác thực. Khi hồ sơ hợp lệ, hệ thống sẽ mở bước thanh toán cọc.
               </div>
               <div className="grid gap-4 md:grid-cols-3">
                 {identityDocuments.map((doc) => (
@@ -404,9 +404,9 @@ function DocumentReviewModal({ transaction, onClose, onVerify, onReject, onVerif
                     <div>
                       <h4 className="font-bold text-stone-900">{documentTypeMeta[doc.documentType] || doc.documentType}</h4>
                       <p className="text-xs font-medium text-stone-500 mt-0.5">Trạng thái: {
-                        doc.status === 'verified' ? <span className="text-emerald-600 font-bold">Đã duyệt</span> :
+                        doc.status === 'verified' ? <span className="text-emerald-600 font-bold">Đã xác nhận</span> :
                         doc.status === 'rejected' ? <span className="text-rose-600 font-bold">Đã từ chối</span> :
-                        <span className="text-amber-600 font-bold">Chờ duyệt</span>
+                        <span className="text-amber-600 font-bold">Chờ kiểm tra</span>
                       }</p>
                     </div>
                     {doc.status === 'pending_review' && (

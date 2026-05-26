@@ -22,7 +22,7 @@ const PendingDepositCard = ({ transaction, onDepositSubmitted }) => {
 
     try {
       await transactionService.submitDepositPayment(transaction.transactionId);
-      alert('Đã nộp tiền cọc thành công! Vui lòng chờ admin xác nhận.');
+      alert('Đã nộp tiền cọc thành công. Hệ thống sẽ xác nhận giao dịch.');
       if (onDepositSubmitted) {
         onDepositSubmitted();
       }
@@ -35,7 +35,7 @@ const PendingDepositCard = ({ transaction, onDepositSubmitted }) => {
   };
 
   const handleExpired = () => {
-    alert('Giao dịch đã hết hạn. Bạn cần đặt lịch xem nhà lại để mua BĐS này.');
+    alert('Giao dịch đã hết hạn. Đặt lịch xem nhà lại để tiếp tục.');
     if (onDepositSubmitted) {
       onDepositSubmitted(); // Refresh list
     }
@@ -134,7 +134,7 @@ const PendingDepositCard = ({ transaction, onDepositSubmitted }) => {
             <div className="text-sm text-yellow-800">
               <p className="font-medium mb-1">Lưu ý quan trọng:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Bạn cần đặt cọc trong vòng 24 giờ để giữ quyền mua BĐS này</li>
+                <li>Đặt cọc trong vòng 24 giờ để giữ quyền mua BĐS này</li>
                 <li>Nếu không đặt cọc, giao dịch sẽ tự động hủy</li>
                 <li>Sau khi hủy, bạn cần đặt lịch xem nhà lại để mua BĐS</li>
               </ul>

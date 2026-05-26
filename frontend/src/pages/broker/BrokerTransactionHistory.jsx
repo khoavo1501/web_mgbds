@@ -18,9 +18,9 @@ const activeStatuses = new Set([
 const statusLabels = {
   pending: "Chờ khách xác nhận",
   customer_confirmed: "Khách đã xác nhận",
-  documents_submitted: "Chờ admin kiểm hồ sơ",
+  documents_submitted: "Chờ hệ thống kiểm tra hồ sơ",
   documents_verified: "Hồ sơ hợp lệ",
-  payment_submitted: "Chờ admin xác nhận cọc",
+  payment_submitted: "Chờ hệ thống xác nhận cọc",
   deposit_confirmed: "Đã xác nhận cọc",
   commitment_signed: "Khách đã ký cam kết",
   deal_scheduled: "Đã đặt lịch giao dịch",

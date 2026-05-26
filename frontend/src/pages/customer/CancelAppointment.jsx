@@ -77,7 +77,7 @@ export default function CancelAppointment() {
       case 'critical':
         return {
           title: '⚠️ Cảnh báo nghiêm trọng',
-          message: 'Bạn đang hủy lịch hẹn ĐÃ XÁC NHẬN trong vòng 24 giờ. Hành động này sẽ ảnh hưởng NGHIÊM TRỌNG đến điểm uy tín của bạn và có thể bị hạn chế đặt lịch trong tương lai.',
+          message: 'Hủy lịch đã xác nhận trong vòng 24 giờ có thể ảnh hưởng đến điểm uy tín và quyền đặt lịch sau này.',
           bgColor: 'bg-red-50',
           borderColor: 'border-red-300',
           textColor: 'text-red-900',
@@ -87,7 +87,7 @@ export default function CancelAppointment() {
       case 'high':
         return {
           title: '⚠️ Cảnh báo quan trọng',
-          message: 'Lịch hẹn này đã được môi giới xác nhận. Việc hủy lịch sẽ ảnh hưởng đến điểm uy tín của bạn và gây bất tiện cho môi giới đã sắp xếp thời gian.',
+          message: 'Lịch hẹn đã được môi giới xác nhận. Việc hủy lịch có thể ảnh hưởng đến điểm uy tín.',
           bgColor: 'bg-orange-50',
           borderColor: 'border-orange-300',
           textColor: 'text-orange-900',
@@ -97,7 +97,7 @@ export default function CancelAppointment() {
       case 'medium':
         return {
           title: 'Lưu ý',
-          message: 'Bạn đang hủy lịch hẹn trong vòng 24 giờ. Điều này có thể gây bất tiện cho môi giới. Vui lòng cân nhắc kỹ trước khi hủy.',
+          message: 'Hủy lịch trong vòng 24 giờ có thể ảnh hưởng đến điểm uy tín.',
           bgColor: 'bg-yellow-50',
           borderColor: 'border-yellow-300',
           textColor: 'text-yellow-900',
@@ -140,7 +140,7 @@ export default function CancelAppointment() {
     let confirmMessage = 'Bạn có chắc chắn muốn hủy lịch hẹn này?';
     
     if (warningLevel === 'critical') {
-      confirmMessage = '⚠️ CẢNH BÁO: Hủy lịch trong 24h sẽ ảnh hưởng NGHIÊM TRỌNG đến uy tín của bạn. Bạn có CHẮC CHẮN muốn hủy?';
+      confirmMessage = 'Hủy lịch trong 24 giờ có thể ảnh hưởng đến điểm uy tín. Xác nhận hủy lịch?';
     } else if (warningLevel === 'high') {
       confirmMessage = 'Lịch đã được xác nhận. Hủy lịch sẽ ảnh hưởng đến điểm uy tín. Bạn có chắc chắn?';
     }

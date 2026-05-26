@@ -188,6 +188,7 @@ public class AppointmentService {
         appointment.setScheduledAt(request.getScheduledAt());
         appointment.setNote(request.getNote());
         appointment.setStatus("pending");
+        appointment.setAppointmentType("property_viewing");
 
         return convertToDTO(appointmentRepository.save(appointment));
     }
@@ -325,6 +326,9 @@ public class AppointmentService {
 
             appointment.setScheduledAt(request.getScheduledAt());
             appointment.setStatus("pending"); // Reset to pending - customer needs to confirm
+            if ("direct_payment".equalsIgnoreCase(appointment.getAppointmentType())) {
+                syncDirectPaymentTransactionSchedule(appointment, request.getScheduledAt());
+            }
         }
 
         return convertToDTO(appointmentRepository.save(appointment));
@@ -398,7 +402,19 @@ public class AppointmentService {
         dto.setAppointmentId(appointment.getAppointmentId());
         dto.setScheduledAt(appointment.getScheduledAt());
         dto.setStatus(appointment.getStatus());
+        dto.setAppointmentType(appointment.getAppointmentType() == null ? "property_viewing" : appointment.getAppointmentType());
         dto.setNote(appointment.getNote());
+        if ("direct_payment".equalsIgnoreCase(dto.getAppointmentType())) {
+            transactionRepository.findByProperty(appointment.getProperty()).stream()
+                    .filter(transaction -> transaction.getCustomer() != null
+                            && transaction.getCustomer().getUserId().equals(appointment.getCustomer().getUserId()))
+                    .filter(transaction -> transaction.getBroker() != null
+                            && transaction.getBroker().getUserId().equals(appointment.getBroker().getUserId()))
+                    .filter(transaction -> transaction.getDealScheduleAt() != null
+                            && transaction.getDealScheduleAt().equals(appointment.getScheduledAt()))
+                    .findFirst()
+                    .ifPresent(transaction -> dto.setTransactionId(transaction.getTransactionId()));
+        }
         
         // Property info
         dto.setPropertyId(appointment.getProperty().getPropertyId());
@@ -431,5 +447,19 @@ public class AppointmentService {
         dto.setContactEmail(appointment.getCustomer().getEmail());
         
         return dto;
+    }
+
+    private void syncDirectPaymentTransactionSchedule(Appointment appointment, java.time.LocalDateTime scheduledAt) {
+        transactionRepository.findByProperty(appointment.getProperty()).stream()
+                .filter(transaction -> "deal_scheduled".equalsIgnoreCase(transaction.getStatus()))
+                .filter(transaction -> transaction.getCustomer() != null
+                        && transaction.getCustomer().getUserId().equals(appointment.getCustomer().getUserId()))
+                .filter(transaction -> transaction.getBroker() != null
+                        && transaction.getBroker().getUserId().equals(appointment.getBroker().getUserId()))
+                .findFirst()
+                .ifPresent(transaction -> {
+                    transaction.setDealScheduleAt(scheduledAt);
+                    transactionRepository.save(transaction);
+                });
     }
 }

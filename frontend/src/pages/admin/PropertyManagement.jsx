@@ -37,7 +37,7 @@ const propertyTypes = [
 
 const statuses = [
   { value: "all", label: "Tất cả" },
-  { value: "pending_review", label: "Chờ duyệt" },
+  { value: "pending_review", label: "Chờ kiểm tra" },
   { value: "published", label: "Đang đăng" },
   { value: "in_transaction", label: "Đang giao dịch" },
   { value: "deposit_paid", label: "Đã cọc" },
@@ -47,7 +47,7 @@ const statuses = [
 ];
 
 const statusMeta = {
-  pending_review: { label: "Chờ duyệt", className: "bg-amber-100 text-amber-800" },
+  pending_review: { label: "Chờ kiểm tra", className: "bg-amber-100 text-amber-800" },
   published: { label: "Đang đăng", className: "bg-emerald-100 text-emerald-800" },
   deposit_paid: { label: "Đã cọc", className: "bg-amber-100 text-amber-800" },
   in_transaction: { label: "Đang giao dịch", className: "bg-cyan-100 text-cyan-800" },
@@ -242,7 +242,7 @@ export default function PropertyManagement() {
         : await api.post("/properties", payload);
 
       if (response.data.success) {
-        showToast("success", editingId ? "Đã cập nhật BĐS." : "Đã tạo BĐS mới, trạng thái chờ duyệt.");
+        showToast("success", editingId ? "Đã cập nhật BĐS." : "Đã tạo BĐS mới, trạng thái chờ kiểm tra.");
         closeModal();
         fetchProperties();
       } else {
@@ -308,7 +308,7 @@ export default function PropertyManagement() {
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Metric label="Tổng tin" value={summary.total} />
-        <Metric label="Chờ duyệt" value={summary.pending} tone="amber" />
+        <Metric label="Chờ kiểm tra" value={summary.pending} tone="amber" />
         <Metric label="Đang đăng" value={summary.published} tone="green" />
         <Metric label="Tổng giá trị" value={formatVnd(summary.totalValue)} tone="dark" />
       </section>

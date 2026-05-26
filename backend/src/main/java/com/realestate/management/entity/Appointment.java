@@ -30,6 +30,9 @@ public class Appointment {
     @Column(name = "status", length = 30)
     private String status = "scheduled"; // 'scheduled', 'completed', 'cancelled'
 
+    @Column(name = "appointment_type", length = 30)
+    private String appointmentType = "property_viewing";
+
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 

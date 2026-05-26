@@ -326,6 +326,10 @@ public class TransactionService {
             if (!"deal_scheduled".equals(beforeStatus)) {
                 throw new RuntimeException("Chi xac nhan giao dich sau khi khach hang da dat lich giao dich truc tiep");
             }
+            if (!hasConfirmedDirectPaymentAppointment(t)) {
+                throw new RuntimeException("Moi gioi can xac nhan lich giao dich truc tiep truoc khi xac nhan giao dich thanh cong");
+            }
+            markDirectPaymentAppointments(t, "completed");
             if (t.getProperty() != null) {
                 t.getProperty().setStatus("deposit_paid");
                 t.getProperty().setIsLocked(true);
@@ -536,6 +540,16 @@ public class TransactionService {
             throw new RuntimeException("Thoi gian giao dich phai nam trong tuong lai");
         }
 
+        Appointment dealAppointment = new Appointment();
+        dealAppointment.setProperty(transaction.getProperty());
+        dealAppointment.setCustomer(transaction.getCustomer());
+        dealAppointment.setBroker(transaction.getBroker());
+        dealAppointment.setScheduledAt(scheduledAt);
+        dealAppointment.setStatus("pending");
+        dealAppointment.setAppointmentType("direct_payment");
+        dealAppointment.setNote("Direct payment appointment for transaction " + transaction.getTransactionCode());
+        appointmentRepository.save(dealAppointment);
+
         transaction.setDealScheduleAt(scheduledAt);
         transaction.setStatus("deal_scheduled");
         return convertToDTO(transactionRepository.save(transaction));
@@ -555,6 +569,7 @@ public class TransactionService {
 
         String beforeStatus = transaction.getStatus();
         transaction.setStatus("cancelled");
+        markDirectPaymentAppointments(transaction, "cancelled");
         if (transaction.getProperty() != null) {
             transaction.getProperty().setStatus("published");
             transaction.getProperty().setIsLocked(false);
@@ -772,6 +787,35 @@ public class TransactionService {
         return transactionPaymentRepository.findByTransaction(transaction).stream()
                 .anyMatch(payment -> "confirmed".equalsIgnoreCase(payment.getPaymentStatus())
                         || payment.getConfirmedBy() != null);
+    }
+
+    private boolean hasConfirmedDirectPaymentAppointment(Transaction transaction) {
+        if (transaction.getProperty() == null || transaction.getCustomer() == null || transaction.getBroker() == null
+                || transaction.getDealScheduleAt() == null) {
+            return false;
+        }
+        return appointmentRepository.findByProperty(transaction.getProperty()).stream()
+                .filter(appointment -> "direct_payment".equalsIgnoreCase(appointment.getAppointmentType()))
+                .filter(appointment -> appointment.getCustomer().getUserId().equals(transaction.getCustomer().getUserId()))
+                .filter(appointment -> appointment.getBroker().getUserId().equals(transaction.getBroker().getUserId()))
+                .filter(appointment -> transaction.getDealScheduleAt().equals(appointment.getScheduledAt()))
+                .anyMatch(appointment -> "confirmed".equalsIgnoreCase(appointment.getStatus()));
+    }
+
+    private void markDirectPaymentAppointments(Transaction transaction, String status) {
+        if (transaction.getProperty() == null || transaction.getCustomer() == null || transaction.getBroker() == null
+                || transaction.getDealScheduleAt() == null) {
+            return;
+        }
+        appointmentRepository.findByProperty(transaction.getProperty()).stream()
+                .filter(appointment -> "direct_payment".equalsIgnoreCase(appointment.getAppointmentType()))
+                .filter(appointment -> appointment.getCustomer().getUserId().equals(transaction.getCustomer().getUserId()))
+                .filter(appointment -> appointment.getBroker().getUserId().equals(transaction.getBroker().getUserId()))
+                .filter(appointment -> transaction.getDealScheduleAt().equals(appointment.getScheduledAt()))
+                .forEach(appointment -> {
+                    appointment.setStatus(status);
+                    appointmentRepository.save(appointment);
+                });
     }
 
     private void validateRequiredFile(MultipartFile file, String label) {

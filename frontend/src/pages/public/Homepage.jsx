@@ -684,7 +684,7 @@ export default function Homepage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
             <div>
-              <p className="mb-2 text-sm font-black uppercase tracking-[0.18em] text-[#9b7932]">Vì sao chọn chúng tôi</p>
+              <p className="mb-2 text-sm font-black uppercase tracking-[0.18em] text-[#9b7932]">Lý do lựa chọn</p>
               <h2 className="text-3xl font-extrabold tracking-tight text-slate-950">
                 Nền tảng được thiết kế để giao dịch bất động sản rõ ràng hơn.
               </h2>

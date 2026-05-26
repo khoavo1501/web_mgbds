@@ -5,6 +5,8 @@ import {
   Building2,
   CalendarDays,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   ClipboardCopy,
   Clock3,
   CreditCard,
@@ -24,6 +26,7 @@ import api from "../../services/api";
 import AnimatedTimeline from "../../components/AnimatedTimeline";
 import { useAuth } from "../../context/AuthContext";
 import CountdownTimer from "../../components/common/CountdownTimer";
+import DocumentViewerModal from "../../components/DocumentViewerModal";
 
 const activeStatuses = new Set([
   "pending",
@@ -56,7 +59,7 @@ const statusLabels = {
 
 const paymentStatusLabels = {
   pending: "Chờ thanh toán",
-  submitted: "Chờ admin xác nhận",
+  submitted: "Chờ hệ thống xác nhận",
   confirmed: "Đã xác nhận",
   refund_requested: "Yêu cầu hoàn cọc",
   refunded: "Đã hoàn cọc",
@@ -104,6 +107,35 @@ const propertyTypeLabels = {
   land: "Đất nền",
   villa: "Biệt thự",
   shophouse: "Shophouse",
+};
+
+const dealMorningSlots = ["08:00 - 09:00", "09:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00"];
+const dealAfternoonSlots = ["14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00", "17:00 - 18:00"];
+
+const getDaysInMonth = (date) => {
+  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  const days = [];
+  for (let i = 0; i < firstDay.getDay(); i += 1) days.push(null);
+  for (let day = 1; day <= lastDay.getDate(); day += 1) {
+    days.push(new Date(date.getFullYear(), date.getMonth(), day));
+  }
+  return days;
+};
+
+const isPastDate = (date) => {
+  if (!date) return true;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date < today;
+};
+
+const toDateInputValue = (date) => {
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 const getStep = (status) => {
@@ -316,7 +348,9 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
   const [files, setFiles] = useState({ cccdFront: null, cccdBack: null, residence: null });
   const [dealDate, setDealDate] = useState("");
   const [dealTime, setDealTime] = useState("");
+  const [dealCalendarMonth, setDealCalendarMonth] = useState(new Date());
   const [submitting, setSubmitting] = useState(false);
+  const [viewDocument, setViewDocument] = useState(null);
   const step = getStep(transaction.status);
   const allFilesReady = !!files.cccdFront && !!files.cccdBack && !!files.residence;
   const hasRefundBankInfo = !!user?.bankName && !!user?.bankAccountNumber && !!user?.bankAccountHolder;
@@ -341,7 +375,7 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
         navigate("/customer/profile", {
           state: {
             returnTo: `/customer/transactions/${transaction.transactionId}`,
-            message: "Vui lòng cập nhật hồ sơ xác thực để admin duyệt trước khi thanh toán.",
+            message: "Cập nhật hồ sơ xác thực để hệ thống xác nhận trước khi thanh toán.",
           },
         });
       }
@@ -387,15 +421,16 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
 
       const response = await api.patch(`/transactions/${transaction.transactionId}/payment-submitted?receiptUrl=${encodeURIComponent(receiptUrl)}`);
       return response.data.data;
-    }, "Đã ghi nhận thanh toán, chờ admin xác nhận");
+    }, "Đã ghi nhận thanh toán, chờ hệ thống xác nhận");
 
   const scheduleDeal = () =>
     runAction(async () => {
       if (!dealDate || !dealTime) {
         throw new Error("Vui lòng chọn thời gian giao dịch trực tiếp");
       }
+      const startTime = dealTime.includes(" - ") ? dealTime.split(" - ")[0] : dealTime;
       const response = await api.patch(`/transactions/${transaction.transactionId}/schedule-deal`, {
-        scheduledAt: `${dealDate}T${dealTime}:00`,
+        scheduledAt: `${dealDate}T${startTime}:00`,
       });
       return response.data.data;
     }, "Đã đặt lịch giao dịch trực tiếp");
@@ -478,15 +513,15 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
               </p>
               
               <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <a href="/contracts/contract1.png" target="_blank" rel="noreferrer" className="block border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
+                <button type="button" onClick={() => setViewDocument({ url: "/contracts/contract1.png", name: "Contract 1", type: "image" })} className="block border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
                   <img src="/contracts/contract1.png" alt="Hợp đồng 1" className="w-full h-auto object-cover" />
-                </a>
-                <a href="/contracts/contract2.png" target="_blank" rel="noreferrer" className="block border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
+                </button>
+                <button type="button" onClick={() => setViewDocument({ url: "/contracts/contract2.png", name: "Contract 2", type: "image" })} className="block border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
                   <img src="/contracts/contract2.png" alt="Hợp đồng 2" className="w-full h-auto object-cover" />
-                </a>
-                <a href="/contracts/contract3.png" target="_blank" rel="noreferrer" className="block border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
+                </button>
+                <button type="button" onClick={() => setViewDocument({ url: "/contracts/contract3.png", name: "Contract 3", type: "image" })} className="block border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
                   <img src="/contracts/contract3.png" alt="Hợp đồng 3" className="w-full h-auto object-cover" />
-                </a>
+                </button>
               </div>
 
               <label className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900 cursor-pointer">
@@ -507,7 +542,7 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
           {transaction.status === "documents_submitted" && (
             <Panel icon={Upload} title="Chuẩn bị hồ sơ">
               <p className="text-sm font-medium text-slate-500">
-                Upload đầy đủ CCCD và Sổ hộ khẩu của bạn để hệ thống tạo thông tin trên hợp đồng điện tử.
+                Tải lên đầy đủ CCCD và sổ hộ khẩu để hệ thống tạo thông tin trên hợp đồng điện tử.
               </p>
               
               {/* Show rejection reasons if any */}
@@ -545,7 +580,7 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
             <Notice
               icon={FileClock}
               title="Hồ sơ khách hàng chưa được duyệt"
-              description="Vui lòng cập nhật hồ sơ cá nhân gồm CCCD hai mặt và xác nhận cư trú. Admin sẽ duyệt hồ sơ trước khi bạn thanh toán đặt cọc."
+              description="Cập nhật hồ sơ cá nhân gồm CCCD hai mặt và xác nhận cư trú để hệ thống xác nhận trước khi thanh toán đặt cọc."
               tone="amber"
             />
           )}
@@ -564,12 +599,19 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
           {transaction.status === "deposit_confirmed" && (
             <Panel icon={CalendarDays} title="Đặt lịch giao dịch trực tiếp">
               <p className="text-sm font-medium text-slate-500">
-                Tiền cọc đã được admin xác nhận. Chọn thời gian gặp môi giới để thanh toán phần còn lại trực tiếp với người bán.
+                Tiền cọc đã được hệ thống xác nhận. Chọn thời gian gặp môi giới để thanh toán phần còn lại trực tiếp với người bán.
               </p>
-              <div className="mt-5 grid max-w-lg gap-4 md:grid-cols-2">
-                <input type="date" value={dealDate} onChange={(event) => setDealDate(event.target.value)} className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-bold outline-none focus:border-slate-400" />
-                <input type="time" value={dealTime} onChange={(event) => setDealTime(event.target.value)} className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-bold outline-none focus:border-slate-400" />
-              </div>
+              <DealSchedulePicker
+                currentMonth={dealCalendarMonth}
+                selectedDate={dealDate}
+                selectedTime={dealTime}
+                onMonthChange={setDealCalendarMonth}
+                onDateChange={(date) => {
+                  setDealDate(toDateInputValue(date));
+                  setDealTime("");
+                }}
+                onTimeChange={setDealTime}
+              />
               <button
                 type="button"
                 onClick={scheduleDeal}
@@ -619,7 +661,7 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
             <Notice
               icon={CheckCircle2}
               title="Giao dịch đã hoàn tất"
-              description="Hồ sơ pháp lý và tiền cọc của bạn đã được admin xác nhận thành công. Bất động sản đã chuyển sang trạng thái đã bán."
+              description="Hồ sơ pháp lý và tiền cọc đã được xác nhận. Bất động sản đã chuyển sang trạng thái đã bán."
               tone="green"
             />
           )}
@@ -636,11 +678,17 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
 
         <aside className="space-y-4">
           <TimelinePanel transaction={transaction} />
-          <CommissionSplit transaction={transaction} />
           <PaymentHistory payments={transaction.payments || []} />
-          <DocumentList documents={transaction.documents || []} />
+          <DocumentList documents={transaction.documents || []} onView={setViewDocument} />
         </aside>
       </div>
+      <DocumentViewerModal
+        isOpen={!!viewDocument}
+        onClose={() => setViewDocument(null)}
+        documentUrl={viewDocument?.url}
+        documentName={viewDocument?.name}
+        documentType={viewDocument?.type}
+      />
     </main>
   );
 }
@@ -793,6 +841,104 @@ function UploadBox({ label, file, onChange }) {
   );
 }
 
+function DealSchedulePicker({ currentMonth, selectedDate, selectedTime, onMonthChange, onDateChange, onTimeChange }) {
+  return (
+    <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_360px]">
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <h4 className="text-sm font-black text-slate-950">
+            Tháng {currentMonth.getMonth() + 1}, {currentMonth.getFullYear()}
+          </h4>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => onMonthChange(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-950"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onMonthChange(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-950"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-7 gap-2">
+          {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((day) => (
+            <div key={day} className="py-2 text-center text-xs font-black text-slate-400">
+              {day}
+            </div>
+          ))}
+          {getDaysInMonth(currentMonth).map((date, index) => {
+            const value = toDateInputValue(date);
+            const disabled = isPastDate(date);
+            const active = selectedDate === value;
+            return (
+              <button
+                key={date ? value : `empty-${index}`}
+                type="button"
+                disabled={disabled}
+                onClick={() => onDateChange(date)}
+                className={`aspect-square rounded-lg text-sm font-black transition ${
+                  !date ? "invisible" : ""
+                } ${
+                  active
+                    ? "bg-slate-950 text-white"
+                    : disabled
+                      ? "cursor-not-allowed bg-white text-slate-300"
+                      : "bg-white text-slate-800 hover:bg-slate-100"
+                }`}
+              >
+                {date?.getDate() || ""}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <h4 className="text-sm font-black text-slate-950">Khung giờ giao dịch</h4>
+        {!selectedDate ? (
+          <p className="mt-4 text-sm font-bold text-slate-500">Chọn ngày trước để xem khung giờ.</p>
+        ) : (
+          <div className="mt-4 space-y-5">
+            <TimeSlotGroup label="Buổi sáng" slots={dealMorningSlots} selectedTime={selectedTime} onTimeChange={onTimeChange} />
+            <TimeSlotGroup label="Buổi chiều" slots={dealAfternoonSlots} selectedTime={selectedTime} onTimeChange={onTimeChange} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TimeSlotGroup({ label, slots, selectedTime, onTimeChange }) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-black uppercase tracking-wider text-slate-400">{label}</p>
+      <div className="grid grid-cols-2 gap-2">
+        {slots.map((slot) => (
+          <button
+            key={slot}
+            type="button"
+            onClick={() => onTimeChange(slot)}
+            className={`h-10 rounded-lg border px-3 text-sm font-black transition ${
+              selectedTime === slot
+                ? "border-slate-950 bg-slate-950 text-white"
+                : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
+            }`}
+          >
+            {slot}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PaymentPanel({ transaction, submitting, onCopy, files, setFiles, onSubmitPayment }) {
   const [checkedItems, setCheckedItems] = useState({ qr: false, account: false, content: false });
 
@@ -846,7 +992,7 @@ function PaymentPanel({ transaction, submitting, onCopy, files, setFiles, onSubm
         className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-950 px-5 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-        {isSubmitted ? "Đang chờ admin xác nhận" : "Tôi đã chuyển khoản"}
+        {isSubmitted ? "Đang chờ hệ thống xác nhận" : "Tôi đã chuyển khoản"}
       </button>
     </Panel>
   );
@@ -941,7 +1087,7 @@ function getDocumentTypeName(type) {
   }
 }
 
-function DocumentList({ documents }) {
+function DocumentList({ documents, onView }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="flex items-center gap-2">
@@ -953,15 +1099,18 @@ function DocumentList({ documents }) {
           <p className="text-sm font-bold text-slate-500">Chưa gửi hồ sơ.</p>
         ) : (
           documents.map((document) => (
-            <a
+            <button
+              type="button"
               key={document.documentId}
-              href={document.url}
-              target="_blank"
-              rel="noreferrer"
-              className="block rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
+              onClick={() => onView({
+                url: document.url,
+                name: document.fileName || getDocumentTypeName(document.documentType),
+                type: document.url?.toLowerCase().endsWith(".pdf") ? "pdf" : "image",
+              })}
+              className="block w-full rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100"
             >
               {getDocumentTypeName(document.documentType)}
-            </a>
+            </button>
           ))
         )}
       </div>

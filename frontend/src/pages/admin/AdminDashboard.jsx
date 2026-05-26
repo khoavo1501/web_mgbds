@@ -39,6 +39,37 @@ const MOCK_PREVIOUS_MONTH_REVENUE = {
   commission: 159_000_000,
 };
 
+const mockCashFlowData = (realByMonth = {}) => {
+  const deposits = [
+    420_000_000,
+    510_000_000,
+    480_000_000,
+    640_000_000,
+    590_000_000,
+    720_000_000,
+    680_000_000,
+    800_000_000,
+  ];
+  return deposits.map((deposit, index) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - (deposits.length - 1 - index));
+    const month = monthKey(date);
+    if (realByMonth[month]) {
+      return {
+        ...realByMonth[month],
+        isMock: false,
+      };
+    }
+    return {
+      month,
+      revenue: deposit * 0.4,
+      deposit,
+      commission: deposit * 0.6,
+      isMock: true,
+    };
+  });
+};
+
 const formatVnd = (value) =>
   new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(value || 0)) + " VNĐ";
 
@@ -127,54 +158,16 @@ export default function AdminDashboard() {
   const revenueData = useMemo(() => {
     const grouped = transactions.reduce((acc, item) => {
       const key = monthKey(item.transactionDate);
+      if (key === "Chưa rõ") return acc;
       if (!acc[key]) acc[key] = { month: key, revenue: 0, deposit: 0, commission: 0 };
-      if (item.status === "completed") acc[key].revenue += Number(item.totalPrice || 0);
-      acc[key].deposit += Number(item.depositAmount || 0);
+      const deposit = Number(item.depositAmount || 0);
+      acc[key].deposit += deposit;
+      acc[key].revenue += deposit * 0.4;
+      acc[key].commission += deposit * 0.6;
       return acc;
     }, {});
 
-    commissions.forEach((item) => {
-      const transaction = transactions.find((trx) => trx.transactionId === item.transactionId);
-      const key = monthKey(transaction?.transactionDate);
-      if (!grouped[key]) grouped[key] = { month: key, revenue: 0, deposit: 0, commission: 0 };
-      grouped[key].commission += Number(item.brokerAmount || item.amount || 0);
-    });
-
-    const rows = Object.values(grouped);
-    const hasRealCashFlow = rows.some((item) => item.revenue > 0 || item.deposit > 0 || item.commission > 0);
-    if (hasRealCashFlow) {
-      const latestRows = rows.slice(-8);
-      if (latestRows.length === 1) {
-        return [
-          {
-            month: previousMonthKey(),
-            revenue: MOCK_PREVIOUS_MONTH_REVENUE.revenue,
-            deposit: MOCK_PREVIOUS_MONTH_REVENUE.deposit,
-            commission: MOCK_PREVIOUS_MONTH_REVENUE.commission,
-            isMock: true,
-          },
-          ...latestRows,
-        ];
-      }
-      return latestRows;
-    }
-
-    return [
-      {
-        month: previousMonthKey(),
-        revenue: MOCK_PREVIOUS_MONTH_REVENUE.revenue,
-        deposit: MOCK_PREVIOUS_MONTH_REVENUE.deposit,
-        commission: MOCK_PREVIOUS_MONTH_REVENUE.commission,
-        isMock: true,
-      },
-      {
-        month: currentMonthKey(),
-        revenue: MOCK_MONTHLY_REVENUE.revenue,
-        deposit: MOCK_MONTHLY_REVENUE.deposit,
-        commission: MOCK_MONTHLY_REVENUE.commission,
-        isMock: true,
-      },
-    ];
+    return mockCashFlowData(grouped);
   }, [commissions, transactions]);
 
   const topDistricts = useMemo(() => {
@@ -207,13 +200,13 @@ export default function AdminDashboard() {
 
       {summary.usingMockRevenue && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
-          Đang dùng dữ liệu doanh thu mẫu của 1 tháng vì hệ thống chưa có giao dịch hoàn tất.
+          Đang dùng dữ liệu doanh thu mẫu 8 tháng vì hệ thống chưa có đủ giao dịch hoàn tất.
         </div>
       )}
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Metric title="Tổng BĐS" value={summary.totalProperties} icon={Building2} tone="dark" />
-        <Metric title="Chờ duyệt" value={summary.pendingReviews} icon={Clock3} tone="gold" />
+        <Metric title="Chờ xử lý" value={summary.pendingReviews} icon={Clock3} tone="gold" />
         <Metric title="Doanh thu hoàn tất" value={formatVnd(summary.completedRevenue)} icon={CheckCircle2} tone="green" />
         <Metric title="Tiền cọc ghi nhận" value={formatVnd(summary.depositValue)} icon={DollarSign} tone="brown" />
       </section>

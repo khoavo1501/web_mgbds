@@ -194,7 +194,7 @@ export default function PublicLayout() {
           <div>
             <h3 className="mb-4 text-sm font-bold">Hỗ trợ</h3>
             <ul className="space-y-2 text-sm text-slate-300">
-              <li><Link to="/" className="hover:text-white">Về chúng tôi</Link></li>
+              <li><Link to="/" className="hover:text-white">Giới thiệu</Link></li>
               <li><Link to="/" className="hover:text-white">Liên hệ</Link></li>
               <li><Link to="/" className="hover:text-white">Điều khoản sử dụng</Link></li>
               <li><Link to="/" className="hover:text-white">Chính sách bảo mật</Link></li>

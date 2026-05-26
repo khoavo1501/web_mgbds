@@ -108,7 +108,7 @@ const MyAppointments = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Lịch hẹn của tôi</h1>
-          <p className="text-gray-600">Quản lý các lịch hẹn xem bất động sản của bạn một cách dễ dàng.</p>
+          <p className="text-gray-600">Quản lý lịch hẹn xem bất động sản.</p>
         </div>
 
         {/* Filter Tabs */}
@@ -164,7 +164,7 @@ const MyAppointments = () => {
           <div className="text-center py-16 bg-white rounded-2xl shadow-sm">
             <Calendar className="mx-auto h-20 w-20 text-gray-300 mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Chưa có lịch hẹn nào</h3>
-            <p className="text-gray-500 mb-6">Hãy đặt lịch xem bất động sản yêu thích của bạn</p>
+            <p className="text-gray-500 mb-6">Chưa có lịch hẹn xem bất động sản.</p>
             <button
               onClick={() => navigate('/properties')}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
@@ -188,7 +188,7 @@ const MyAppointments = () => {
                       <div className="flex-1">
                         <h4 className="font-bold text-lg mb-1">⏳ Đang chờ môi giới xác nhận</h4>
                         <p className="text-sm text-amber-50">
-                          Lịch hẹn của bạn đang chờ môi giới xác nhận. Bạn sẽ nhận được thông báo khi lịch hẹn được xác nhận.
+                          Lịch hẹn đang chờ môi giới xác nhận.
                         </p>
                       </div>
                     </div>

@@ -17,4 +17,5 @@ public class AppointmentRequest {
     
     private String note;
     private String status; // Dùng khi update status
+    private String appointmentType;
 }

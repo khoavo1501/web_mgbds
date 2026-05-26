@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, CheckCircle2, Eye, Loader2, MapPin, ShieldCheck, X, XCircle } from "lucide-react";
 import api from "../../services/api";
+import DocumentViewerModal from "../../components/DocumentViewerModal";
 
 const formatVnd = (value) =>
   new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(value || 0)) + " VNĐ";
@@ -21,6 +22,7 @@ export default function PropertyApproval() {
   const [toast, setToast] = useState(null);
   const [processingId, setProcessingId] = useState(null);
   const [docStatuses, setDocStatuses] = useState({});
+  const [viewDocument, setViewDocument] = useState(null);
 
   useEffect(() => {
     if (selectedProperty) {
@@ -46,7 +48,7 @@ export default function PropertyApproval() {
       }
     } catch (error) {
       console.error("Failed to fetch pending properties", error);
-      showToast("error", "Không tải được danh sách tin chờ duyệt.");
+      showToast("error", "Không tải được danh sách tin chờ kiểm tra.");
     } finally {
       setLoading(false);
     }
@@ -132,7 +134,7 @@ export default function PropertyApproval() {
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
               <ShieldCheck className="h-7 w-7" />
             </div>
-            <p className="text-lg font-black text-stone-900">Không còn tin chờ duyệt</p>
+            <p className="text-lg font-black text-stone-900">Không còn tin chờ kiểm tra</p>
             <p className="mt-1 text-sm font-medium text-stone-500">Danh sách kiểm duyệt hiện đang trống.</p>
           </div>
         ) : (
@@ -145,11 +147,21 @@ export default function PropertyApproval() {
                 <div className="flex min-w-0 items-center gap-4">
                   <div className="h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-stone-100">
                     {property.images?.length ? (
-                      <img
-                        src={property.images.find((item) => item.isPrimary)?.url || property.images[0].url}
-                        alt={property.title}
-                        className="h-full w-full object-cover"
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setViewDocument({
+                          url: property.images.find((item) => item.isPrimary)?.url || property.images[0].url,
+                          name: property.title,
+                          type: "image",
+                        })}
+                        className="h-full w-full"
+                      >
+                        <img
+                          src={property.images.find((item) => item.isPrimary)?.url || property.images[0].url}
+                          alt={property.title}
+                          className="h-full w-full object-cover"
+                        />
+                      </button>
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-xs font-bold text-stone-400">
                         No image
@@ -162,7 +174,7 @@ export default function PropertyApproval() {
                         {property.propertyCode}
                       </span>
                       <span className="rounded bg-stone-100 px-2 py-0.5 text-[11px] font-black text-stone-500">
-                        Chờ duyệt
+                        Chờ kiểm tra
                       </span>
                     </div>
                     <h2 className="truncate text-sm font-black text-stone-950">{property.title}</h2>
@@ -228,7 +240,14 @@ export default function PropertyApproval() {
             {selectedProperty.images?.length > 0 && (
               <div className="grid grid-cols-3 gap-3 p-6">
                 {selectedProperty.images.slice(0, 3).map((image) => (
-                  <img key={image.imageId || image.url} src={image.url} alt="" className="h-44 w-full rounded-lg object-cover" />
+                  <button
+                    type="button"
+                    key={image.imageId || image.url}
+                    onClick={() => setViewDocument({ url: image.url, name: selectedProperty.title, type: "image" })}
+                    className="h-44 w-full overflow-hidden rounded-lg"
+                  >
+                    <img src={image.url} alt="" className="h-full w-full object-cover" />
+                  </button>
                 ))}
               </div>
             )}
@@ -259,7 +278,7 @@ export default function PropertyApproval() {
                     <div>
                       <p className="text-xs font-black uppercase tracking-wider text-stone-400">Sổ hồng/Sổ đỏ</p>
                       {selectedProperty.redBookUrl ? (
-                        <a href={selectedProperty.redBookUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
+                        <button type="button" onClick={() => setViewDocument({ url: selectedProperty.redBookUrl, name: "Red book", type: selectedProperty.redBookUrl.toLowerCase().endsWith(".pdf") ? "pdf" : "image" })} className="mt-1 block max-w-full truncate text-left text-sm font-bold text-blue-600 hover:underline">Xem tài liệu</button>
                       ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
                     </div>
                     {selectedProperty.redBookUrl && (
@@ -281,7 +300,7 @@ export default function PropertyApproval() {
                     <div>
                       <p className="text-xs font-black uppercase tracking-wider text-stone-400">Sổ hộ khẩu</p>
                       {selectedProperty.householdRegistrationUrl ? (
-                        <a href={selectedProperty.householdRegistrationUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
+                        <button type="button" onClick={() => setViewDocument({ url: selectedProperty.householdRegistrationUrl, name: "Household registration", type: selectedProperty.householdRegistrationUrl.toLowerCase().endsWith(".pdf") ? "pdf" : "image" })} className="mt-1 block max-w-full truncate text-left text-sm font-bold text-blue-600 hover:underline">Xem tài liệu</button>
                       ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
                     </div>
                     {selectedProperty.householdRegistrationUrl && (
@@ -303,7 +322,7 @@ export default function PropertyApproval() {
                     <div>
                       <p className="text-xs font-black uppercase tracking-wider text-stone-400">CCCD Chủ nhà</p>
                       {selectedProperty.ownerIdUrl ? (
-                        <a href={selectedProperty.ownerIdUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">Xem tài liệu</a>
+                        <button type="button" onClick={() => setViewDocument({ url: selectedProperty.ownerIdUrl, name: "Owner ID", type: selectedProperty.ownerIdUrl.toLowerCase().endsWith(".pdf") ? "pdf" : "image" })} className="mt-1 block max-w-full truncate text-left text-sm font-bold text-blue-600 hover:underline">Xem tài liệu</button>
                       ) : <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>}
                     </div>
                     {selectedProperty.ownerIdUrl && (
@@ -336,9 +355,9 @@ export default function PropertyApproval() {
                       <div>
                         <p className="text-xs font-black uppercase tracking-wider text-stone-400">Hợp đồng môi giới</p>
                         {selectedProperty.brokerageContractUrl ? (
-                          <a href={selectedProperty.brokerageContractUrl} target="_blank" rel="noreferrer" className="mt-1 block text-sm font-bold text-blue-600 hover:underline truncate">
+                          <button type="button" onClick={() => setViewDocument({ url: selectedProperty.brokerageContractUrl, name: "Brokerage contract", type: selectedProperty.brokerageContractUrl.toLowerCase().endsWith(".pdf") ? "pdf" : "image" })} className="mt-1 block max-w-full truncate text-left text-sm font-bold text-blue-600 hover:underline">
                             Xem hợp đồng
-                          </a>
+                          </button>
                         ) : (
                           <p className="mt-1 text-sm font-bold text-stone-500">Chưa tải lên</p>
                         )}
@@ -382,6 +401,13 @@ export default function PropertyApproval() {
           </div>
         </div>
       )}
+      <DocumentViewerModal
+        isOpen={!!viewDocument}
+        onClose={() => setViewDocument(null)}
+        documentUrl={viewDocument?.url}
+        documentName={viewDocument?.name}
+        documentType={viewDocument?.type}
+      />
     </div>
   );
 }

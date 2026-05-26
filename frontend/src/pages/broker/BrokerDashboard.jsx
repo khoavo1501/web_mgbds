@@ -362,7 +362,7 @@ export default function BrokerDashboard() {
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-1">Lịch trình sắp tới</h2>
-                  <p className="text-gray-500 text-sm">Quản lý lịch hẹn và giao dịch của bạn</p>
+                  <p className="text-gray-500 text-sm">Quản lý lịch hẹn và giao dịch</p>
                 </div>
                 <div className="flex gap-2">
                   <Link 
@@ -593,7 +593,7 @@ export default function BrokerDashboard() {
         {/* Top BĐS */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-900">Top BĐS của bạn</h3>
+            <h3 className="text-lg font-bold text-gray-900">BĐS nổi bật</h3>
             <Link to="/broker/properties" className="text-blue-600 hover:text-blue-700 text-sm font-semibold">
               Xem tất cả
             </Link>

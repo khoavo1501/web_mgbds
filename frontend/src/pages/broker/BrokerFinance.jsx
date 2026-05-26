@@ -78,7 +78,7 @@ export default function BrokerFinance() {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý Thu nhập</h1>
-          <p className="text-gray-600">Theo dõi dòng tiền và lịch sử hoa hồng từ các giao dịch thành công của bạn.</p>
+          <p className="text-gray-600">Theo dõi dòng tiền và lịch sử hoa hồng từ các giao dịch thành công.</p>
         </div>
 
         {/* Action Buttons */}

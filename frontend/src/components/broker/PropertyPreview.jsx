@@ -68,10 +68,10 @@ export default function PropertyPreview({ data, completionPercent }) {
                         <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-blue-700 text-[11px] font-bold rounded-lg uppercase tracking-wide shadow-sm">
                             {data.type || 'Chưa chọn'}
                         </span>
-                        {data.status === 'Chờ duyệt' && (
+                        {data.status === 'Chờ kiểm tra' && (
                             <span className="px-3 py-1 bg-amber-500 text-white text-[11px] font-bold rounded-lg shadow-sm flex items-center gap-1">
                                 <Sparkles className="w-3 h-3" />
-                                Chờ duyệt
+                                Chờ kiểm tra
                             </span>
                         )}
                     </div>
