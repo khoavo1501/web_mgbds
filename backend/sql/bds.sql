@@ -337,18 +337,18 @@ INSERT INTO property_images (property_id, url, is_primary) VALUES
 (1, 'https://picsum.photos/800/600?random=3',  false),
 (2, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779804022/2_tn5nkr.jpg',  true),
 (2, 'https://picsum.photos/800/600?random=5',  false),
-(3, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779804022/1_aiegq5.jpg',  true),
-(3, 'https://picsum.photos/800/600?random=7',  false),
+(3, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845929/3.1_si4skg.jpg',  true),
+(3, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845929/3.2_a6dw5d.jpg',  false),
 (3, 'https://picsum.photos/800/600?random=8',  false),
 (3, 'https://picsum.photos/800/600?random=9',  false),
-(4, 'https://picsum.photos/800/600?random=10', true),
-(4, 'https://picsum.photos/800/600?random=11', false),
-(5, 'https://picsum.photos/800/600?random=12', true),
-(6, 'https://picsum.photos/800/600?random=13', true),
-(6, 'https://picsum.photos/800/600?random=14', false),
-(7, 'https://picsum.photos/800/600?random=15', true),
-(8, 'https://picsum.photos/800/600?random=16', true),
-(8, 'https://picsum.photos/800/600?random=17', false);
+(4, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845172/5.2_hflvgu.jpg', true),
+(4, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845175/5.3_gstnra.jpg', false),
+(5, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845808/6_vdma1x.jpg', true),
+(6, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845806/6.1_j5om5x.jpg', true),
+(6, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845806/6.2_ca2mtu.jpg', false),
+(7, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845807/6.3_rjvzwx.jpg', true),
+(8, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', true),
+(8, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845808/8.2_u4ay2k.jpg', false);
 
 -- 5. Customers
 INSERT INTO customers (user_id, customer_type, address, budget_max) VALUES
