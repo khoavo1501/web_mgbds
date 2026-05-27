@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Calendar, AlertTriangle, Clock, Shield } from 'lucide-react';
 import api from '../../services/api';
-import { cancelAppointment } from '../../services/appointmentService';
+import { cancelAppointment, getCancellationInfo } from '../../services/appointmentService';
 import { useReputation } from '../../context/ReputationContext';
+import CancelWarningModal from '../../components/common/CancelWarningModal';
 
 export default function CancelAppointment() {
   const { id } = useParams();
@@ -14,6 +15,7 @@ export default function CancelAppointment() {
   const [selectedReason, setSelectedReason] = useState('');
   const [customReason, setCustomReason] = useState('');
   const [cancellationInfo, setCancellationInfo] = useState(null);
+  const [showWarningModal, setShowWarningModal] = useState(false);
 
   const cancelReasons = [
     'Tôi đã đổi ý',
@@ -30,14 +32,18 @@ export default function CancelAppointment() {
     try {
       setLoading(true);
       // Gọi API mới để lấy thông tin chi tiết về việc hủy
-      const response = await api.get(`/appointments/${id}/cancellation-info`);
-      if (response.data.success) {
-        const data = response.data.data;
+      const response = await getCancellationInfo(id);
+      console.log('Cancellation info response:', response);
+      
+      if (response.success) {
+        const data = response.data;
         setAppointment(data);
         setCancellationInfo({
           hoursUntilAppointment: data.hoursUntilAppointment,
           isWithin24Hours: data.isWithin24Hours,
-          status: data.status
+          status: data.status,
+          isConfirmed: data.isConfirmed,
+          cancelPointsPenalty: data.cancelPointsPenalty
         });
       }
     } catch (error) {
@@ -118,8 +124,6 @@ export default function CancelAppointment() {
   };
 
   const handleCancel = async () => {
-    const warningLevel = getWarningLevel();
-    
     // Bắt buộc phải chọn lý do nếu đã confirmed
     if (isConfirmedStatus() && !selectedReason) {
       alert('Vui lòng chọn lý do hủy lịch');
@@ -136,20 +140,17 @@ export default function CancelAppointment() {
       reason = customReason;
     }
 
-    // Confirmation message tùy theo mức độ nghiêm trọng
-    let confirmMessage = 'Bạn có chắc chắn muốn hủy lịch hẹn này?';
-    
-    if (warningLevel === 'critical') {
-      confirmMessage = 'Hủy lịch trong 24 giờ có thể ảnh hưởng đến điểm uy tín. Xác nhận hủy lịch?';
-    } else if (warningLevel === 'high') {
-      confirmMessage = 'Lịch đã được xác nhận. Hủy lịch sẽ ảnh hưởng đến điểm uy tín. Bạn có chắc chắn?';
-    }
+    // Hiển thị modal cảnh báo
+    setShowWarningModal(true);
+  };
 
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
-
+  const performCancel = async () => {
     try {
+      let reason = selectedReason;
+      if (reason === 'Lý do khác') {
+        reason = customReason;
+      }
+
       const response = await cancelAppointment(id, reason);
       if (response.success) {
         // Refresh điểm uy tín
@@ -160,6 +161,11 @@ export default function CancelAppointment() {
     } catch (error) {
       alert(error.response?.data?.message || 'Lỗi khi hủy lịch');
     }
+  };
+
+  const handleConfirmCancel = async () => {
+    setShowWarningModal(false);
+    await performCancel();
   };
 
   const formatDateTime = (dateTime) => {
@@ -198,6 +204,17 @@ export default function CancelAppointment() {
           <ArrowLeft className="w-5 h-5" />
           Quay lại danh sách
         </button>
+
+        {/* Cancel Warning Modal */}
+        <CancelWarningModal
+          isOpen={showWarningModal}
+          onClose={() => setShowWarningModal(false)}
+          onConfirm={handleConfirmCancel}
+          hoursUntil={cancellationInfo?.hoursUntilAppointment || 0}
+          pointsPenalty={cancellationInfo?.cancelPointsPenalty || 0}
+          isWithin24Hours={cancellationInfo?.isWithin24Hours || false}
+          isConfirmed={cancellationInfo?.isConfirmed || false}
+        />
 
         {/* Header */}
         <div className="mb-8">

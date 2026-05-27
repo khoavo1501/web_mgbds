@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, AlertCircle } from 'lucide-react';
 import api from '../../services/api';
-import { updateAppointment } from '../../services/appointmentService';
+import { updateAppointment, getRescheduleInfo } from '../../services/appointmentService';
 import { useAuth } from '../../context/AuthContext';
 import { useReputation } from '../../context/ReputationContext';
+import RescheduleWarningModal from '../../components/common/RescheduleWarningModal';
 
 export default function RescheduleAppointment() {
   const { id } = useParams();
@@ -13,6 +14,8 @@ export default function RescheduleAppointment() {
   const { refreshScore } = useReputation();
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [rescheduleInfo, setRescheduleInfo] = useState(null);
   
   const [rescheduleData, setRescheduleData] = useState({
     scheduledDate: '',
@@ -90,7 +93,39 @@ export default function RescheduleAppointment() {
       return;
     }
 
+    // Kiểm tra xem lịch hẹn đã được confirmed chưa
     try {
+      const infoResponse = await getRescheduleInfo(id);
+      console.log('Reschedule info response:', infoResponse);
+      
+      if (infoResponse.success && infoResponse.data) {
+        const info = infoResponse.data;
+        setRescheduleInfo(info);
+        
+        console.log('Is confirmed:', info.isConfirmed);
+        console.log('Points penalty:', info.reschedulePointsPenalty);
+        
+        // Nếu lịch hẹn đã confirmed và có penalty (số âm), hiển thị modal cảnh báo
+        if (info.isConfirmed && info.reschedulePointsPenalty !== null && info.reschedulePointsPenalty !== undefined) {
+          setShowWarningModal(true);
+          return;
+        }
+      }
+      
+      // Nếu chưa confirmed hoặc không có penalty, dời lịch trực tiếp
+      await performReschedule();
+    } catch (error) {
+      console.error('Error checking reschedule info:', error);
+      // Nếu có lỗi khi check, vẫn cho phép dời lịch
+      await performReschedule();
+    }
+  };
+
+  const performReschedule = async () => {
+    try {
+      const [startTime] = rescheduleData.scheduledTime.split(' - ');
+      const scheduledAt = `${rescheduleData.scheduledDate}T${startTime}:00`;
+
       const payload = {
         scheduledAt,
         note: rescheduleData.note,
@@ -109,6 +144,11 @@ export default function RescheduleAppointment() {
     } catch (error) {
       alert(error.response?.data?.message || 'Lỗi khi dời lịch');
     }
+  };
+
+  const handleConfirmReschedule = async () => {
+    setShowWarningModal(false);
+    await performReschedule();
   };
 
   const formatDateTime = (dateTime) => {
@@ -144,6 +184,16 @@ export default function RescheduleAppointment() {
           <ArrowLeft className="w-5 h-5" />
           Quay lại danh sách
         </button>
+
+        {/* Reschedule Warning Modal */}
+        <RescheduleWarningModal
+          isOpen={showWarningModal}
+          onClose={() => setShowWarningModal(false)}
+          onConfirm={handleConfirmReschedule}
+          hoursUntil={rescheduleInfo?.hoursUntilAppointment || 0}
+          pointsPenalty={rescheduleInfo?.reschedulePointsPenalty || 0}
+          isWithin24Hours={rescheduleInfo?.isWithin24Hours || false}
+        />
 
         {/* Header */}
         <div className="mb-8">

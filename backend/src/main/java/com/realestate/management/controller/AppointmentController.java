@@ -98,4 +98,14 @@ public class AppointmentController {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
+
+    @GetMapping("/{id}/reschedule-info")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<AppointmentDTO>> getRescheduleInfo(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Success", appointmentService.getRescheduleInfo(id)));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
 }

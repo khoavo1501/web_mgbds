@@ -42,4 +42,9 @@ public class AppointmentDTO {
     // Cancellation info
     private Long hoursUntilAppointment;
     private Boolean isWithin24Hours;
+    private Integer cancelPointsPenalty;
+    
+    // Reschedule info
+    private Boolean isConfirmed;
+    private Integer reschedulePointsPenalty;
 }

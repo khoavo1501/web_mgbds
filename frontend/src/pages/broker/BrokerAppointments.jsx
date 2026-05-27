@@ -465,23 +465,48 @@ export default function BrokerAppointments() {
                     )}
                     {appointment.appointmentType !== 'direct_payment' && appointment.status === 'completed' && (
                       <>
+                        <div className="flex-1 rounded-lg bg-emerald-50 px-4 py-3 text-center text-sm font-bold text-emerald-700 flex items-center justify-center gap-2">
+                          <CheckCircle className="w-4 h-4" />
+                          Lịch hẹn đã hoàn tất
+                        </div>
                         <button
                           onClick={() => navigate(`/broker/appointments/${appointment.appointmentId}`)}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-bold text-sm"
+                          className="px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                          title="Xem chi tiết"
                         >
-                          <CheckCircle className="w-4 h-4" />
-                          Chấp nhận
-                        </button>
-                        <button className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-colors font-bold text-sm border-2 border-red-300">
-                          <XCircle className="w-4 h-4" />
-                          Hủy yêu cầu
+                          <Eye className="w-4 h-4" />
                         </button>
                       </>
                     )}
                     {appointment.appointmentType === 'direct_payment' && appointment.status === 'completed' && (
-                      <div className="flex-1 rounded-lg bg-emerald-50 px-4 py-3 text-center text-sm font-bold text-emerald-700">
-                        Đã xác nhận giao dịch trực tiếp
-                      </div>
+                      <>
+                        <div className="flex-1 rounded-lg bg-emerald-50 px-4 py-3 text-center text-sm font-bold text-emerald-700 flex items-center justify-center gap-2">
+                          <CheckCircle className="w-4 h-4" />
+                          Đã xác nhận giao dịch trực tiếp
+                        </div>
+                        <button
+                          onClick={() => navigate(`/broker/appointments/${appointment.appointmentId}`)}
+                          className="px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                          title="Xem chi tiết"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                    {(appointment.status === 'cancelled' || appointment.status === 'rejected') && (
+                      <>
+                        <div className="flex-1 rounded-lg bg-gray-100 px-4 py-3 text-center text-sm font-bold text-gray-600 flex items-center justify-center gap-2">
+                          <XCircle className="w-4 h-4" />
+                          {appointment.status === 'cancelled' ? 'Lịch hẹn đã bị hủy' : 'Lịch hẹn đã bị từ chối'}
+                        </div>
+                        <button
+                          onClick={() => navigate(`/broker/appointments/${appointment.appointmentId}`)}
+                          className="px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                          title="Xem chi tiết"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>

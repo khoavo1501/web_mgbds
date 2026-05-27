@@ -394,6 +394,72 @@ public class AppointmentService {
         dto.setHoursUntilAppointment(hoursUntilAppointment);
         dto.setIsWithin24Hours(hoursUntilAppointment < 24 && hoursUntilAppointment > 0);
         
+        // Kiểm tra xem lịch hẹn đã được confirmed chưa
+        boolean isConfirmed = "confirmed".equalsIgnoreCase(appointment.getStatus()) ||
+                             "scheduled".equalsIgnoreCase(appointment.getStatus()) ||
+                             "viewed".equalsIgnoreCase(appointment.getStatus());
+        dto.setIsConfirmed(isConfirmed);
+        
+        // Debug log
+        System.out.println("=== CANCELLATION INFO DEBUG ===");
+        System.out.println("Appointment ID: " + appointment.getAppointmentId());
+        System.out.println("Status: " + appointment.getStatus());
+        System.out.println("Is Confirmed: " + isConfirmed);
+        System.out.println("Hours Until: " + hoursUntilAppointment);
+        
+        // Tính điểm sẽ bị trừ nếu hủy lịch
+        if (isConfirmed) {
+            if (hoursUntilAppointment < 24 && hoursUntilAppointment > 0) {
+                dto.setCancelPointsPenalty(ReputationService.POINTS_CANCEL_WITHIN_24H);
+            } else if (hoursUntilAppointment >= 24) {
+                dto.setCancelPointsPenalty(ReputationService.POINTS_CANCEL_AFTER_24H);
+            }
+        }
+        
+        return dto;
+    }
+
+    public AppointmentDTO getRescheduleInfo(Long id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        User currentUser = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+
+        // Check permission
+        if (!appointment.getCustomer().getUserId().equals(currentUser.getUserId()) &&
+            !appointment.getBroker().getUserId().equals(currentUser.getUserId()) &&
+            !"admin".equalsIgnoreCase(currentUser.getRole())) {
+            throw new RuntimeException("Không có quyền xem thông tin lịch hẹn này");
+        }
+
+        AppointmentDTO dto = convertToDTO(appointment);
+        
+        // Calculate hours until appointment
+        long hoursUntilAppointment = java.time.Duration.between(
+            java.time.LocalDateTime.now(),
+            appointment.getScheduledAt()
+        ).toHours();
+        
+        dto.setHoursUntilAppointment(hoursUntilAppointment);
+        dto.setIsWithin24Hours(hoursUntilAppointment < 24 && hoursUntilAppointment > 0);
+        
+        // Kiểm tra xem lịch hẹn đã được confirmed chưa
+        boolean isConfirmed = "confirmed".equalsIgnoreCase(appointment.getStatus()) ||
+                             "scheduled".equalsIgnoreCase(appointment.getStatus()) ||
+                             "viewed".equalsIgnoreCase(appointment.getStatus());
+        dto.setIsConfirmed(isConfirmed);
+        
+        // Tính điểm sẽ bị trừ nếu dời lịch
+        if (isConfirmed) {
+            if (hoursUntilAppointment < 24 && hoursUntilAppointment > 0) {
+                dto.setReschedulePointsPenalty(ReputationService.POINTS_RESCHEDULE_CONFIRMED_WITHIN_24H);
+            } else if (hoursUntilAppointment >= 24) {
+                dto.setReschedulePointsPenalty(ReputationService.POINTS_RESCHEDULE_CONFIRMED_AFTER_24H);
+            }
+        }
+        
         return dto;
     }
 

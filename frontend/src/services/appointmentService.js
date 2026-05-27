@@ -52,6 +52,22 @@ export const cancelAppointment = async (id, reason) => {
   return response.data;
 };
 
+/**
+ * Lấy thông tin về việc hủy lịch (để hiển thị cảnh báo)
+ */
+export const getCancellationInfo = async (id) => {
+  const response = await api.get(`/appointments/${id}/cancellation-info`);
+  return response.data;
+};
+
+/**
+ * Lấy thông tin về việc dời lịch (để hiển thị cảnh báo)
+ */
+export const getRescheduleInfo = async (id) => {
+  const response = await api.get(`/appointments/${id}/reschedule-info`);
+  return response.data;
+};
+
 // ============================================================================
 // BROKER APIs
 // ============================================================================
@@ -180,6 +196,8 @@ const appointmentService = {
   createAppointment,
   updateAppointment,
   cancelAppointment,
+  getCancellationInfo,
+  getRescheduleInfo,
   
   // Broker
   getBrokerAppointmentsByStatus,
