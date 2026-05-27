@@ -31,6 +31,7 @@ import BrokerTransactionHistory from "./pages/broker/BrokerTransactionHistory";
 import CreateTransaction from "./pages/broker/CreateTransaction";
 import BrokerAppointments from "./pages/broker/BrokerAppointments";
 import BrokerAppointmentDetail from "./pages/broker/BrokerAppointmentDetail";
+import AppointmentConfirmSuccess from "./pages/broker/AppointmentConfirmSuccess";
 import BrokerLayout from "./layouts/BrokerLayout";
 
 // Admin Pages
@@ -77,6 +78,7 @@ function App() {
               <Route element={<BrokerLayout />}>
                 <Route path="/broker" element={<BrokerDashboard />} />
                 <Route path="/broker/appointments" element={<BrokerAppointments />} />
+                <Route path="/broker/appointments/confirm-success" element={<AppointmentConfirmSuccess />} />
                 <Route path="/broker/appointments/:id" element={<BrokerAppointmentDetail />} />
                 <Route path="/broker/finance" element={<BrokerFinance />} />
                 <Route path="/broker/transaction" element={<Navigate to="/broker/transactions/history" replace />} />

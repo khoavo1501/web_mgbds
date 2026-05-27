@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import AppointmentWarningModal from '../../components/common/AppointmentWarningModal';
 
 export default function BookAppointmentNew() {
   const { propertyId } = useParams();
@@ -13,6 +14,10 @@ export default function BookAppointmentNew() {
   
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Warning modal state
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [canBook, setCanBook] = useState(true);
   
   // Calendar state
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -41,6 +46,7 @@ export default function BookAppointmentNew() {
       return;
     }
     fetchPropertyDetail();
+    checkCanBookAppointment();
   }, [propertyId, user]);
 
   const fetchPropertyDetail = async () => {
@@ -55,6 +61,25 @@ export default function BookAppointmentNew() {
       alert('Không thể tải thông tin bất động sản');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkCanBookAppointment = async () => {
+    try {
+      const response = await api.get(`/appointments/can-book/${propertyId}`);
+      if (response.data.success) {
+        const canBookResult = response.data.data;
+        setCanBook(canBookResult);
+        
+        // Hiển thị warning modal nếu không thể đặt lịch
+        if (!canBookResult) {
+          setShowWarningModal(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking can book:', error);
+      // Nếu API lỗi, vẫn cho phép đặt lịch (fail-safe)
+      setCanBook(true);
     }
   };
 
@@ -113,7 +138,13 @@ export default function BookAppointmentNew() {
       return;
     }
 
-    // Navigate sang BookAppointmentFlow với date/time đã chọn
+    // Kiểm tra lại trước khi submit
+    if (!canBook) {
+      setShowWarningModal(true);
+      return;
+    }
+
+    // Navigate sang BookAppointmentFlow (Bước 2: Điền thông tin)
     navigate(`/properties/${propertyId}/book-flow`, {
       state: {
         selectedDate: selectedDate,
@@ -152,10 +183,18 @@ export default function BookAppointmentNew() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Header */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5" />
+          <span className="font-medium">Quay lại chi tiết</span>
+        </button>
+        
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Chọn thời gian xem nhà</h1>
           <p className="text-gray-600">
-            Chọn ngày và khung giờ phù hợp để môi giới xác nhận lịch xem nhà.
+            Vui lòng chọn ngày và giờ phù hợp để chuyên viên tư vấn của chúng tôi có thể sắp xếp đón tiếp bạn tốt nhất.
           </p>
         </div>
 
@@ -284,10 +323,13 @@ export default function BookAppointmentNew() {
                   <textarea
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    rows={3}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none resize-none"
-                    placeholder="Ví dụ: Tôi muốn xem thêm phòng ngủ lớn..."
+                    rows={4}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none resize-none text-sm"
+                    placeholder="Ví dụ: Tôi muốn xem thêm phòng tiện ích của tòa nhà..."
                   />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Bằng cách nhấn xác nhận, bạn đồng ý với <span className="text-green-600 font-medium">Điều khoản sử dụng</span> và <span className="text-green-600 font-medium">Chính sách bảo mật</span> của EstateLink Pro.
+                  </p>
                 </div>
               </div>
             )}
@@ -397,6 +439,13 @@ export default function BookAppointmentNew() {
           </div>
         </div>
       </div>
+
+      {/* Warning Modal */}
+      <AppointmentWarningModal
+        isOpen={showWarningModal}
+        onClose={() => setShowWarningModal(false)}
+        onViewAppointments={() => navigate('/customer/appointments')}
+      />
     </div>
   );
 }

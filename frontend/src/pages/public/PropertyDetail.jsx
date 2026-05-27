@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Bath,
@@ -22,8 +22,6 @@ import { useFavorites } from "../../context/FavoritesContext";
 const PLACEHOLDER_IMAGE =
   "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1400&q=80";
 
-const TIME_SLOTS = ["08:30", "09:30", "10:30", "14:00", "15:00", "16:00"];
-
 const propertyTypeLabels = {
   apartment: "Căn hộ",
   house: "Nhà riêng",
@@ -43,13 +41,6 @@ const statusLabels = {
 };
 
 const hasValue = (value) => value !== undefined && value !== null && value !== "";
-
-const toDateKey = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
 
 const formatPrice = (price) => {
   if (!hasValue(price)) return "";
@@ -89,20 +80,6 @@ const getPropertyImage = (property) => {
   return primaryImage?.url || property?.images?.[0]?.url || PLACEHOLDER_IMAGE;
 };
 
-const getNextDays = (count = 14) => {
-  const days = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  for (let index = 0; index < count; index += 1) {
-    const day = new Date(today);
-    day.setDate(today.getDate() + index);
-    days.push(day);
-  }
-
-  return days;
-};
-
 function RelatedPropertyCard({ property }) {
   return (
     <Link
@@ -139,12 +116,6 @@ export default function PropertyDetail() {
   const navigate = useNavigate();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [bookedAppointments, setBookedAppointments] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(toDateKey(new Date()));
-  const [selectedTime, setSelectedTime] = useState("");
-  const [showScheduler, setShowScheduler] = useState(false);
-  const [bookingStatus, setBookingStatus] = useState({ type: "", message: "" });
-  const [currentTime] = useState(() => Date.now());
   const [relatedProperties, setRelatedProperties] = useState([]);
   const [favoriteToast, setFavoriteToast] = useState("");
   const { user } = useAuth();
@@ -177,74 +148,24 @@ export default function PropertyDetail() {
     fetchProperty();
   }, [id]);
 
-  const fetchBookedAppointments = useCallback(async () => {
-    try {
-      const response = await api.get(`/appointments/property/${id}`);
-      if (response.data.success) {
-        setBookedAppointments(response.data.data || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch property appointments", error);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    fetchBookedAppointments();
-  }, [fetchBookedAppointments]);
-
   const images = useMemo(() => {
     if (!property?.images?.length) return [PLACEHOLDER_IMAGE];
     return property.images.map((image) => image.url).filter(Boolean);
   }, [property]);
 
-  const days = useMemo(() => getNextDays(14), []);
-
-  const bookedSlots = useMemo(() => {
-    const slots = new Set();
-    bookedAppointments.forEach((appointment) => {
-      const date = new Date(appointment.scheduledAt);
-      if (!Number.isNaN(date.getTime())) {
-        slots.add(`${toDateKey(date)}T${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`);
-      }
-    });
-    return slots;
-  }, [bookedAppointments]);
-
-  const isPastSlot = (dateKey, time) => {
-    const slotDate = new Date(`${dateKey}T${time}:00`);
-    return slotDate.getTime() <= currentTime;
-  };
-
-  const isSlotBooked = (dateKey, time) => bookedSlots.has(`${dateKey}T${time}`);
-
-  const isDayFull = (dateKey) => TIME_SLOTS.every((time) => isPastSlot(dateKey, time) || isSlotBooked(dateKey, time));
-
   const handleBookAppointment = () => {
-    setBookingStatus({ type: "", message: "" });
-
     if (!user) {
       navigate("/auth");
       return;
     }
 
     if (user.role !== "customer") {
-      setBookingStatus({ type: "error", message: "Chỉ tài khoản khách hàng mới có thể đặt lịch xem nhà." });
+      alert("Chỉ tài khoản khách hàng mới có thể đặt lịch xem nhà.");
       return;
     }
 
-    if (!selectedDate || !selectedTime) {
-      setBookingStatus({ type: "error", message: "Vui lòng chọn ngày và giờ xem nhà." });
-      return;
-    }
-
-    // Navigate sang BookAppointmentFlow với date/time đã chọn
-    navigate(`/properties/${property.propertyId}/book`, {
-      state: {
-        selectedDate: selectedDate,
-        selectedTime: selectedTime,
-        note: "",
-      },
-    });
+    // Navigate sang trang chọn ngày giờ mới
+    navigate(`/properties/${property.propertyId}/book-appointment`);
   };
 
   const handleToggleFavorite = () => {
@@ -515,94 +436,15 @@ export default function PropertyDetail() {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowScheduler((value) => !value);
-                    setBookingStatus({ type: "", message: "" });
-                  }}
-                  className="flex h-12 w-full animate-pulse items-center justify-center rounded-lg bg-[#d7b56d] px-4 text-sm font-black text-slate-950 shadow-lg shadow-[#d7b56d]/25 transition hover:bg-[#edcd82]"
+                  onClick={handleBookAppointment}
+                  className="flex h-12 w-full items-center justify-center rounded-lg bg-[#d7b56d] px-4 text-sm font-black text-slate-950 shadow-lg shadow-[#d7b56d]/25 transition hover:bg-[#edcd82] hover:scale-105"
                 >
-                  {showScheduler ? "Ẩn lịch đặt hẹn" : "Đặt lịch xem nhà"}
+                  {user ? "Đặt lịch xem nhà" : "Đăng nhập để đặt lịch"}
                 </button>
 
-                {showScheduler && (
-                  <div className="mt-5">
-                    <p className="mb-3 text-xs font-semibold text-slate-500">
-                      Chọn ngày còn trống trong 14 ngày tới
-                    </p>
-                    <div className="grid grid-cols-7 gap-2">
-                      {days.map((day) => {
-                        const dateKey = toDateKey(day);
-                        const disabled = isDayFull(dateKey);
-                        const selected = selectedDate === dateKey;
-                        return (
-                          <button
-                            key={dateKey}
-                            type="button"
-                            disabled={disabled}
-                            onClick={() => {
-                              setSelectedDate(dateKey);
-                              setSelectedTime("");
-                              setBookingStatus({ type: "", message: "" });
-                            }}
-                            className={`rounded-md border px-1 py-2 text-center transition disabled:cursor-not-allowed disabled:opacity-35 ${
-                              selected ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white hover:bg-slate-50"
-                            }`}
-                          >
-                            <span className="block text-[10px] font-bold uppercase">
-                              {day.toLocaleDateString("vi-VN", { weekday: "short" })}
-                            </span>
-                            <span className="mt-1 block text-sm font-extrabold">{day.getDate()}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <p className="mb-3 mt-5 text-xs font-semibold text-slate-500">Khung giờ còn trống</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {TIME_SLOTS.map((time) => {
-                        const disabled = isPastSlot(selectedDate, time) || isSlotBooked(selectedDate, time);
-                        const selected = selectedTime === time;
-                        return (
-                          <button
-                            key={time}
-                            type="button"
-                            disabled={disabled}
-                            onClick={() => {
-                              setSelectedTime(time);
-                              setBookingStatus({ type: "", message: "" });
-                            }}
-                            className={`h-10 rounded-md border text-sm font-bold transition disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 ${
-                              selected ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
-                            }`}
-                          >
-                            {time}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {bookingStatus.message && (
-                      <div
-                        className={`mt-4 rounded-md border px-3 py-2 text-sm font-semibold ${
-                          bookingStatus.type === "success"
-                            ? "border-green-200 bg-green-50 text-green-700"
-                            : "border-red-200 bg-red-50 text-red-700"
-                        }`}
-                      >
-                        {bookingStatus.message}
-                      </div>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleBookAppointment}
-                      disabled={!selectedTime}
-                      className="mt-4 flex h-11 w-full items-center justify-center rounded-md border border-slate-950 bg-white px-4 text-sm font-extrabold text-slate-950 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {user ? "Xác nhận đặt lịch" : "Đăng nhập để đặt lịch"}
-                    </button>
-                  </div>
-                )}
+                <p className="mt-4 text-xs font-medium leading-5 text-slate-500">
+                  Chọn ngày và giờ phù hợp để chuyên viên tư vấn sắp xếp đón tiếp bạn tốt nhất.
+                </p>
 
                 {broker?.email && (
                   <a
@@ -614,10 +456,6 @@ export default function PropertyDetail() {
                   </a>
                 )}
               </div>
-
-              <p className="mt-5 text-xs font-medium leading-5 text-slate-500">
-                Lịch hẹn sẽ ở trạng thái chờ xác nhận sau khi đặt thành công.
-              </p>
             </div>
           </aside>
         </section>

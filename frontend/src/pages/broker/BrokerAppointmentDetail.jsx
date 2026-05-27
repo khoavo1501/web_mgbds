@@ -45,24 +45,44 @@ export default function BrokerAppointmentDetail() {
 
   const handleUpdateStatus = async (newStatus) => {
     try {
+      console.log('Updating status to:', newStatus);
+      
       const response = await api.put(`/appointments/${id}`, {
         status: newStatus,
         note: brokerNote || appointment.note
       });
       
+      console.log('Update response:', response.data);
+      
       if (response.data.success) {
-        const actionLabels = {
-          confirmed: 'xác nhận',
-          viewed: 'xác nhận đã dẫn xem nhà',
-          completed: 'hoàn tất',
-          rejected: 'từ chối'
-        };
-        alert(`Đã ${actionLabels[newStatus] || 'cập nhật'} lịch hẹn`);
-        fetchAppointmentDetail();
+        const updatedAppointment = response.data.data;
+        console.log('Updated appointment status:', updatedAppointment?.status);
+        
+        // Nếu xác nhận lịch hẹn → navigate sang trang success
+        if (newStatus.toLowerCase() === 'confirmed') {
+          const appointmentData = updatedAppointment || appointment;
+          console.log('Navigating to success page with:', appointmentData);
+          
+          // Lưu appointment data vào sessionStorage
+          sessionStorage.setItem('confirmedAppointment', JSON.stringify(appointmentData));
+          
+          // Force navigate bằng window.location
+          window.location.href = '/broker/appointments/confirm-success';
+          
+          return; // Dừng execution
+        } else {
+          const actionLabels = {
+            viewed: 'xác nhận đã dẫn xem nhà',
+            completed: 'hoàn tất',
+            rejected: 'từ chối'
+          };
+          alert(`Đã ${actionLabels[newStatus] || 'cập nhật'} lịch hẹn`);
+          fetchAppointmentDetail();
+        }
       }
     } catch (error) {
       console.error('Error updating appointment:', error);
-      alert('Không thể cập nhật lịch hẹn');
+      alert('Không thể cập nhật lịch hẹn: ' + (error.response?.data?.message || error.message));
     }
   };
 
