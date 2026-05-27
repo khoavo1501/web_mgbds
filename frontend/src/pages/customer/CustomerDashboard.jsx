@@ -16,10 +16,14 @@ import {
   Square,
   UserRound,
   X,
+  ShieldCheck,
+  FileText,
+  CheckCircle2,
 } from "lucide-react";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useFavorites } from "../../context/FavoritesContext";
+import { useToast } from "../../context/ToastContext";
 
 const PLACEHOLDER_IMAGE =
   "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=900&q=80";
@@ -150,6 +154,7 @@ export default function CustomerDashboard({ mode = "overview" }) {
   const [rescheduleId, setRescheduleId] = useState(null);
   const { favorites } = useFavorites();
   const { user, updateProfile } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -222,10 +227,11 @@ export default function CustomerDashboard({ mode = "overview" }) {
       if (res.data.success) {
         resetBookingForm();
         fetchAppointments();
+        toast.success("Đặt lịch xem nhà thành công!");
         navigate("/customer/appointments");
       }
     } catch (err) {
-      alert(`Lỗi khi đặt lịch: ${err.response?.data?.message || err.message}`);
+      toast.error(`Lỗi khi đặt lịch: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -242,9 +248,10 @@ export default function CustomerDashboard({ mode = "overview" }) {
       if (res.data.success) {
         resetBookingForm();
         fetchAppointments();
+        toast.success("Dời lịch hẹn thành công!");
       }
     } catch (err) {
-      alert(`Lỗi khi dời lịch hẹn: ${err.response?.data?.message || err.message}`);
+      toast.error(`Lỗi khi dời lịch hẹn: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -261,10 +268,11 @@ export default function CustomerDashboard({ mode = "overview" }) {
     try {
       const res = await api.delete(`/appointments/${id}`);
       if (res.data.success) {
+        toast.success("Hủy lịch hẹn thành công!");
         fetchAppointments();
       }
     } catch (err) {
-      alert(`Lỗi khi hủy lịch hẹn: ${err.response?.data?.message || err.message}`);
+      toast.error(`Lỗi khi hủy lịch hẹn: ${err.response?.data?.message || err.message}`);
     }
   };
   return (
@@ -279,7 +287,7 @@ export default function CustomerDashboard({ mode = "overview" }) {
         />
       )}
 
-      {mode === "profile" && <Profile user={user} onUpdateProfile={updateProfile} returnTo={location.state?.returnTo} initialMessage={location.state?.message} />}
+      {mode === "profile" && <Profile user={user} onUpdateProfile={updateProfile} returnTo={location.state?.returnTo} initialMessage={location.state?.message} appointments={appointments} transactions={transactions} />}
 
       {mode === "appointments" && (
         <Appointments
@@ -394,7 +402,7 @@ function Overview({ appointments, transactions, activeTransactions, favorites, l
   );
 }
 
-function Profile({ user, onUpdateProfile, returnTo, initialMessage }) {
+function Profile({ user, onUpdateProfile, returnTo, initialMessage, appointments, transactions }) {
   const [form, setForm] = useState({
     fullName: user?.fullName || "",
     phone: user?.phone || "",
@@ -476,107 +484,210 @@ function Profile({ user, onUpdateProfile, returnTo, initialMessage }) {
     }
   };
 
+  const recentActivities = useMemo(() => {
+    const list = [];
+    if (appointments && appointments.length > 0) {
+      appointments.slice(0, 3).forEach(apt => {
+        list.push({
+          id: `apt-${apt.appointmentId}`,
+          title: `Đặt lịch xem nhà ${apt.propertyTitle || ''}`,
+          time: apt.scheduledAt ? new Date(apt.scheduledAt).toLocaleDateString("vi-VN") : "Gần đây",
+          isNew: apt.status === 'pending',
+          type: 'appointment'
+        });
+      });
+    }
+    return list.slice(0, 3);
+  }, [appointments]);
+
   return (
-    <div>
-      <PageTitle title="Thông tin cá nhân" description="Quản lý thông tin tài khoản khách hàng." />
-      <form onSubmit={handleSubmit} className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-950 text-xl font-black text-white">
+    <div className="relative pb-16">
+      {/* Dark Header Background */}
+      <div className="absolute inset-x-0 -top-6 h-64 bg-[#111827] -mx-4 sm:-mx-6 lg:-mx-8 pattern-dots pattern-slate-800 pattern-opacity-40 pattern-size-4 z-0" />
+
+      <div className="relative z-10 pt-6">
+        <div className="mb-8 flex items-center gap-5">
+          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#111827] text-2xl font-black text-white shadow-xl ring-4 ring-[#1f2937]">
             {(user?.fullName || user?.email || "KH").slice(0, 2).toUpperCase()}
           </div>
           <div>
-            <h2 className="text-xl font-black text-slate-950">{user?.fullName || "Khách hàng"}</h2>
-            <p className="mt-1 text-sm font-semibold text-slate-500">Customer</p>
+            <h1 className="text-3xl sm:text-4xl font-black text-white">{user?.fullName || "Khách hàng"}</h1>
+            <p className="mt-1 text-sm font-medium text-slate-400">Thành viên từ {user?.createdAt ? new Date(user.createdAt).toLocaleDateString("vi-VN") : "Hôm nay"}</p>
           </div>
         </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-8">
+          {/* Left Column */}
+          <div className="space-y-6">
+            {/* Membership Card */}
+            <div className="bg-gradient-to-br from-[#111827] to-[#1f2937] rounded-3xl p-6 sm:p-8 text-white premium-shadow border border-slate-700/50 relative overflow-hidden group">
+              {/* Background accent */}
+              <div className="absolute -top-12 -right-12 w-40 h-40 bg-gold-500/20 rounded-full blur-3xl transition-transform duration-700 group-hover:scale-150"></div>
+              
+              <div className="flex justify-between items-start mb-10 relative z-10">
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Thẻ thành viên điện tử</p>
+                  <p className="font-black text-lg tracking-wide">EstateLink Elite</p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-md">
+                   <UserRound className="w-5 h-5 text-gold-400" />
+                </div>
+              </div>
 
-        <div className="mt-6 grid gap-5 md:grid-cols-2">
-          <ProfileField
-            icon={UserRound}
-            label="Họ tên"
-            value={form.fullName}
-            onChange={(value) => setForm((current) => ({ ...current, fullName: value }))}
-            required
-          />
-          <ProfileReadonly icon={Mail} label="Email" value={user?.email || "Chưa cập nhật"} />
-          <ProfileField
-            icon={Phone}
-            label="Số điện thoại"
-            value={form.phone}
-            onChange={(value) => setForm((current) => ({ ...current, phone: value }))}
-            placeholder="Nhập số điện thoại"
-          />
-          <BankSelect
-            icon={Landmark}
-            label="Ngân hàng hoàn cọc"
-            banks={banks}
-            loading={loadingBanks}
-            value={form.bankName}
-            onChange={(value) => setForm((current) => ({ ...current, bankName: value }))}
-          />
-          <ProfileField
-            icon={Landmark}
-            label="Số tài khoản"
-            value={form.bankAccountNumber}
-            onChange={(value) => setForm((current) => ({ ...current, bankAccountNumber: value }))}
-            placeholder="Nhập số tài khoản"
-          />
-          <ProfileField
-            icon={UserRound}
-            label="Chủ tài khoản"
-            value={form.bankAccountHolder}
-            onChange={(value) => setForm((current) => ({ ...current, bankAccountHolder: value }))}
-            placeholder="Tên trên tài khoản"
-          />
-        </div>
+              <div className="mb-8 relative z-10">
+                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Mã khách hàng</p>
+                <p className="font-mono text-xl tracking-[0.25em]">{user?.email ? user.email.substring(0, 8).toUpperCase() : `EL-8829`}</p>
+              </div>
 
-        <section className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="text-base font-black text-slate-950">Hồ sơ xác thực khách hàng</h3>
-              <p className="mt-1 text-sm font-bold text-slate-500">Cập nhật CCCD hai mặt và xác nhận cư trú để hệ thống xác nhận trước khi thanh toán.</p>
+              <div className="flex justify-between items-end relative z-10">
+                <div>
+                   <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Hạng thẻ</p>
+                   <p className="font-black text-gold-400 text-2xl tracking-wide">{user?.rank || "PLATINUM"}</p>
+                </div>
+              </div>
             </div>
-            <IdentityStatus status={user?.identityVerificationStatus} />
-          </div>
-          {user?.identityRejectReason && (
-            <div className="mt-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">
-              Lý do từ chối: {user.identityRejectReason}
+
+            {/* Activities */}
+            <div className="bg-white rounded-3xl premium-shadow p-6 sm:p-8 border border-slate-100">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="font-black text-slate-950 text-sm uppercase tracking-wider">Hoạt động gần đây</h3>
+                <span className="text-xs font-bold text-slate-500">Tất cả</span>
+              </div>
+              
+              <div className="space-y-4">
+                {recentActivities && recentActivities.length > 0 ? (
+                  recentActivities.map((activity) => (
+                    <div key={activity.id} className="flex gap-4 items-start group">
+                      <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100 group-hover:bg-gold-50 group-hover:border-gold-100 transition-colors">
+                        <CalendarDays className="w-4 h-4 text-slate-500 group-hover:text-gold-600" />
+                      </div>
+                      <div className="flex-1 min-w-0 pt-0.5">
+                        <p className="text-sm font-bold text-slate-900 truncate">{activity.title}</p>
+                        <p className="text-[11px] text-slate-500 font-medium mt-0.5">{activity.time}</p>
+                      </div>
+                      {activity.isNew && (
+                        <span className="shrink-0 px-2 py-0.5 rounded text-[10px] font-black bg-emerald-100 text-emerald-700 uppercase tracking-wider">Mới</span>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm font-medium text-slate-500 text-center py-4">Chưa có hoạt động nào</p>
+                )}
+              </div>
             </div>
-          )}
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
-            <ProfileUpload label="CCCD mặt trước" file={files.cccdFront} currentUrl={form.cccdFrontUrl} onChange={(file) => setFiles((current) => ({ ...current, cccdFront: file }))} />
-            <ProfileUpload label="CCCD mặt sau" file={files.cccdBack} currentUrl={form.cccdBackUrl} onChange={(file) => setFiles((current) => ({ ...current, cccdBack: file }))} />
-            <ProfileUpload label="Sổ hộ khẩu / Xác nhận cư trú" file={files.residence} currentUrl={form.residenceUrl} onChange={(file) => setFiles((current) => ({ ...current, residence: file }))} />
           </div>
-        </section>
 
-        {message && (
-          <div
-            className={`mt-5 rounded-md px-4 py-3 text-sm font-bold ${
-              message.type === "success"
-                ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border border-rose-200 bg-rose-50 text-rose-700"
-            }`}
-          >
-            {message.text}
+          {/* Right Column */}
+          <div className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              
+              {/* Basic Info */}
+              <div className="bg-white rounded-[2rem] premium-shadow p-6 sm:p-8 border border-slate-100">
+                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-100">
+                   <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
+                     <UserRound className="w-5 h-5 text-slate-700" />
+                   </div>
+                   <h3 className="text-lg font-black text-slate-950">Thông tin cơ bản</h3>
+                </div>
+                <div className="grid gap-5 md:grid-cols-2">
+                  <ProfileField icon={UserRound} label="Họ và tên" value={form.fullName} onChange={(value) => setForm((current) => ({ ...current, fullName: value }))} required />
+                  <ProfileReadonly icon={Mail} label="Email liên hệ" value={user?.email || "Chưa cập nhật"} />
+                  <ProfileField icon={Phone} label="Số điện thoại" value={form.phone} onChange={(value) => setForm((current) => ({ ...current, phone: value }))} placeholder="Nhập số điện thoại" />
+                </div>
+              </div>
+
+              {/* Payment Info */}
+              <div className="bg-white rounded-[2rem] premium-shadow p-6 sm:p-8 border border-slate-100">
+                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-100">
+                   <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
+                     <Landmark className="w-5 h-5 text-slate-700" />
+                   </div>
+                   <h3 className="text-lg font-black text-slate-950">Thông tin thanh toán</h3>
+                </div>
+                <div className="grid gap-5 md:grid-cols-2">
+                  <BankSelect icon={Landmark} label="Ngân hàng thụ hưởng" banks={banks} loading={loadingBanks} value={form.bankName} onChange={(value) => setForm((current) => ({ ...current, bankName: value }))} />
+                  <ProfileField icon={Landmark} label="Số tài khoản" value={form.bankAccountNumber} onChange={(value) => setForm((current) => ({ ...current, bankAccountNumber: value }))} placeholder="Nhập số tài khoản" />
+                  <div className="md:col-span-2">
+                    <ProfileField icon={UserRound} label="Tên chủ tài khoản (In hoa không dấu)" value={form.bankAccountHolder} onChange={(value) => setForm((current) => ({ ...current, bankAccountHolder: value }))} placeholder="VD: NGUYEN VAN A" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Identity Verification */}
+              <div className="bg-white rounded-[2rem] premium-shadow p-6 sm:p-8 border border-slate-100">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-slate-100">
+                   <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
+                       <ShieldCheck className="w-5 h-5 text-slate-700" />
+                     </div>
+                     <div>
+                       <h3 className="text-lg font-black text-slate-950">Xác thực danh tính</h3>
+                       <p className="text-[11px] uppercase tracking-wider font-bold text-slate-500 mt-1">Hoàn thành để kích hoạt tất cả đặc quyền VIP</p>
+                     </div>
+                   </div>
+                   <IdentityStatus status={user?.identityVerificationStatus} />
+                </div>
+
+                {/* Progress Tracker Simulation */}
+                <div className="mb-8 hidden sm:flex items-center justify-center max-w-lg mx-auto">
+                   <div className="flex flex-col items-center gap-2">
+                     <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white"><CheckCircle2 className="w-5 h-5" /></div>
+                     <span className="text-[10px] font-black uppercase text-slate-950">Thông tin</span>
+                   </div>
+                   <div className="flex-1 h-0.5 bg-emerald-500 mx-2 -mt-4" />
+                   <div className="flex flex-col items-center gap-2">
+                     <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white"><CheckCircle2 className="w-5 h-5" /></div>
+                     <span className="text-[10px] font-black uppercase text-slate-950">Liên hệ</span>
+                   </div>
+                   <div className="flex-1 h-0.5 bg-slate-200 mx-2 -mt-4" />
+                   <div className="flex flex-col items-center gap-2">
+                     <div className="w-8 h-8 rounded-full bg-white border-2 border-slate-900 flex items-center justify-center text-slate-900 font-bold text-xs">3</div>
+                     <span className="text-[10px] font-black uppercase text-slate-950">Giấy tờ</span>
+                   </div>
+                   <div className="flex-1 h-0.5 bg-slate-200 mx-2 -mt-4" />
+                   <div className="flex flex-col items-center gap-2 opacity-50">
+                     <div className="w-8 h-8 rounded-full bg-white border-2 border-slate-200 flex items-center justify-center text-slate-400 font-bold text-xs">4</div>
+                     <span className="text-[10px] font-black uppercase text-slate-400">Khuôn mặt</span>
+                   </div>
+                </div>
+
+                {user?.identityRejectReason && (
+                  <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+                    Lý do từ chối: {user.identityRejectReason}
+                  </div>
+                )}
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <ProfileUpload label="CCCD mặt trước" file={files.cccdFront} currentUrl={form.cccdFrontUrl} onChange={(file) => setFiles((current) => ({ ...current, cccdFront: file }))} />
+                  <ProfileUpload label="CCCD mặt sau" file={files.cccdBack} currentUrl={form.cccdBackUrl} onChange={(file) => setFiles((current) => ({ ...current, cccdBack: file }))} />
+                  <ProfileUpload label="Xác nhận cư trú" file={files.residence} currentUrl={form.residenceUrl} onChange={(file) => setFiles((current) => ({ ...current, residence: file }))} />
+                </div>
+              </div>
+
+              {message && (
+                <div className={`rounded-xl px-4 py-3 text-sm font-bold ${message.type === "success" ? "border border-emerald-200 bg-emerald-50 text-emerald-700" : "border border-rose-200 bg-rose-50 text-rose-700"}`}>
+                  {message.text}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-4 pt-4 sticky bottom-6 z-20">
+                {returnTo && user?.identityVerificationStatus === "verified" && (
+                  <Link to={returnTo} className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-black text-slate-700 hover:bg-slate-50 transition shadow-sm">
+                    Quay lại giao dịch
+                  </Link>
+                )}
+                <button type="button" className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-black text-slate-700 hover:bg-slate-50 transition shadow-sm" onClick={() => window.location.reload()}>
+                  Thiết lập lại
+                </button>
+                <button type="submit" disabled={saving || !form.fullName.trim()} className="inline-flex h-12 items-center justify-center rounded-xl bg-[#111827] px-8 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-50 transition shadow-xl hover:shadow-2xl hover:-translate-y-0.5">
+                  {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                </button>
+              </div>
+
+            </form>
           </div>
-        )}
-
-        <div className="mt-6 flex justify-end">
-          {returnTo && user?.identityVerificationStatus === "verified" && (
-            <Link to={returnTo} className="mr-3 inline-flex h-11 items-center justify-center rounded-md border border-slate-200 px-5 text-sm font-black text-slate-700 hover:bg-slate-50">
-              Quay lại giao dịch
-            </Link>
-          )}
-          <button
-            type="submit"
-            disabled={saving || !form.fullName.trim()}
-            className="inline-flex h-11 items-center justify-center rounded-md bg-slate-950 px-5 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {saving ? "Đang lưu..." : "Cập nhật thông tin"}
-          </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
@@ -866,24 +977,26 @@ function BankSelect({ icon: Icon, label, banks, loading, value, onChange }) {
   const hasCurrentValue = value && !banks.some((bank) => bank.shortName === value || bank.name === value);
 
   return (
-    <label className="block rounded-lg border border-slate-200 bg-slate-50 p-4">
-      <span className="flex items-center gap-2 text-sm font-bold text-slate-500">
-        <Icon className="h-4 w-4" />
+    <label className="block rounded-xl border border-slate-200 bg-white p-3 hover:border-slate-300 transition-colors focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
+      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">
         {label}
       </span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-3 h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-950 outline-none transition focus:border-slate-400"
-      >
-        <option value="">{loading ? "Đang tải danh sách ngân hàng..." : "Chọn ngân hàng"}</option>
-        {hasCurrentValue && <option value={value}>{value}</option>}
-        {banks.map((bank) => (
-          <option key={bank.id || bank.code || bank.shortName} value={bank.shortName || bank.name}>
-            {[bank.shortName, bank.name].filter(Boolean).join(" - ")}
-          </option>
-        ))}
-      </select>
+      <div className="flex items-center gap-3 px-1">
+        <Icon className="h-4 w-4 text-slate-400 shrink-0" />
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full text-sm font-bold text-slate-900 outline-none bg-transparent cursor-pointer"
+        >
+          <option value="">{loading ? "Đang tải danh sách ngân hàng..." : "Chọn ngân hàng"}</option>
+          {hasCurrentValue && <option value={value}>{value}</option>}
+          {banks.map((bank) => (
+            <option key={bank.id || bank.code || bank.shortName} value={bank.shortName || bank.name}>
+              {[bank.shortName, bank.name].filter(Boolean).join(" - ")}
+            </option>
+          ))}
+        </select>
+      </div>
     </label>
   );
 }
@@ -891,31 +1004,41 @@ function BankSelect({ icon: Icon, label, banks, loading, value, onChange }) {
 function IdentityStatus({ status }) {
   const meta = {
     verified: "Đã duyệt",
-    pending_review: "Chờ hệ thống xác nhận",
+    pending_review: "Chờ duyệt",
     rejected: "Bị từ chối",
     not_submitted: "Chưa gửi",
   };
   const styles = {
-    verified: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-    pending_review: "bg-amber-50 text-amber-700 ring-amber-200",
-    rejected: "bg-rose-50 text-rose-700 ring-rose-200",
-    not_submitted: "bg-slate-100 text-slate-600 ring-slate-200",
+    verified: "bg-emerald-100 text-emerald-800",
+    pending_review: "bg-amber-100 text-amber-800",
+    rejected: "bg-rose-100 text-rose-800",
+    not_submitted: "bg-slate-100 text-slate-600",
   };
   const key = status || "not_submitted";
-  return <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[key] || styles.not_submitted}`}>{meta[key] || key}</span>;
+  return (
+    <div className="flex items-center gap-3">
+      <span className={`inline-flex rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${styles[key] || styles.not_submitted}`}>
+        {meta[key] || key}
+      </span>
+      <span className="text-xs font-bold text-slate-400 hidden sm:inline-block">60% HOÀN THÀNH</span>
+    </div>
+  );
 }
 
 function ProfileUpload({ label, file, currentUrl, onChange }) {
   return (
-    <label className="block rounded-lg border border-dashed border-slate-300 bg-white p-4">
-      <span className="text-sm font-black text-slate-800">{label}</span>
-      <span className="mt-2 block truncate text-xs font-bold text-slate-500">
-        {file?.name || (currentUrl ? "Đã có hồ sơ" : "Chọn file")}
+    <label className="block rounded-2xl border border-dashed border-slate-300 bg-[#f8f6f2] p-6 text-center cursor-pointer hover:border-slate-500 transition-colors group">
+      <div className="mx-auto w-12 h-12 bg-white rounded-xl flex items-center justify-center premium-shadow mb-4 group-hover:scale-110 transition-transform">
+         <FileText className="w-5 h-5 text-slate-400" />
+      </div>
+      <span className="text-sm font-black text-slate-900 block">{label}</span>
+      <span className="mt-2 block truncate text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+        {file?.name || (currentUrl ? "Đã tải lên thành công" : "Định dạng JPG, PNG")}
       </span>
-      <input type="file" className="mt-3 block w-full text-xs font-bold text-slate-600" onChange={(event) => onChange(event.target.files?.[0] || null)} />
+      <input type="file" className="hidden" onChange={(event) => onChange(event.target.files?.[0] || null)} />
       {currentUrl && (
-        <a href={currentUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-black text-slate-950 hover:text-slate-700">
-          Xem hồ sơ hiện tại
+        <a href={currentUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-[10px] font-black text-slate-700 hover:text-slate-950 uppercase underline">
+          Xem tài liệu
         </a>
       )}
     </label>
@@ -924,31 +1047,33 @@ function ProfileUpload({ label, file, currentUrl, onChange }) {
 
 function ProfileField({ icon: Icon, label, value, onChange, placeholder, required = false }) {
   return (
-    <label className="block rounded-lg border border-slate-200 bg-slate-50 p-4">
-      <span className="flex items-center gap-2 text-sm font-bold text-slate-500">
-        <Icon className="h-4 w-4" />
+    <label className="block rounded-xl border border-slate-200 bg-white p-3 hover:border-slate-300 transition-colors focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
+      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">
         {label}
       </span>
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        required={required}
-        className="mt-3 h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-950 outline-none transition focus:border-slate-400"
-      />
+      <div className="flex items-center gap-3 px-1">
+        <Icon className="h-4 w-4 text-slate-400 shrink-0" />
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          required={required}
+          className="w-full text-sm font-bold text-slate-900 outline-none bg-transparent placeholder-slate-300"
+        />
+      </div>
     </label>
   );
 }
 
 function ProfileReadonly({ icon: Icon, label, value }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-      <div className="flex items-center gap-2 text-sm font-bold text-slate-500">
-        <Icon className="h-4 w-4" />
+    <div className="block rounded-xl border border-slate-100 bg-slate-50 p-3 opacity-80 cursor-not-allowed">
+      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">
         {label}
-      </div>
-      <div className="mt-3 flex h-11 items-center rounded-md border border-slate-200 bg-white px-3 text-sm font-bold text-slate-500">
-        {value}
+      </span>
+      <div className="flex items-center gap-3 px-1">
+        <Icon className="h-4 w-4 text-slate-400 shrink-0" />
+        <span className="w-full text-sm font-bold text-slate-500 truncate">{value}</span>
       </div>
     </div>
   );

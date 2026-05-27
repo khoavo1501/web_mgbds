@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Home, MapPin, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
 import CountdownTimer from '../common/CountdownTimer';
 import transactionService from '../../services/transactionService';
+import { useToast } from '../../context/ToastContext';
 
 /**
  * Card hiển thị giao dịch pending_deposit với countdown 24h
  */
 const PendingDepositCard = ({ transaction, onDepositSubmitted }) => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -22,7 +24,7 @@ const PendingDepositCard = ({ transaction, onDepositSubmitted }) => {
 
     try {
       await transactionService.submitDepositPayment(transaction.transactionId);
-      alert('Đã nộp tiền cọc thành công. Hệ thống sẽ xác nhận giao dịch.');
+      toast.success('Đã nộp tiền cọc thành công. Hệ thống sẽ xác nhận giao dịch.');
       if (onDepositSubmitted) {
         onDepositSubmitted();
       }
@@ -35,7 +37,7 @@ const PendingDepositCard = ({ transaction, onDepositSubmitted }) => {
   };
 
   const handleExpired = () => {
-    alert('Giao dịch đã hết hạn. Đặt lịch xem nhà lại để tiếp tục.');
+    toast.error('Giao dịch đã hết hạn. Đặt lịch xem nhà lại để tiếp tục.');
     if (onDepositSubmitted) {
       onDepositSubmitted(); // Refresh list
     }

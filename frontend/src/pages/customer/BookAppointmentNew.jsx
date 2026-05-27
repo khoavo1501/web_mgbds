@@ -6,14 +6,17 @@ import {
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import AppointmentWarningModal from '../../components/common/AppointmentWarningModal';
+import { useToast } from '../../context/ToastContext';
 
 export default function BookAppointmentNew() {
   const { propertyId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const { user } = useAuth();
   
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [bookedAppointments, setBookedAppointments] = useState([]);
   
   // Warning modal state
   const [showWarningModal, setShowWarningModal] = useState(false);
@@ -47,7 +50,19 @@ export default function BookAppointmentNew() {
     }
     fetchPropertyDetail();
     checkCanBookAppointment();
+    fetchBookedAppointments();
   }, [propertyId, user]);
+
+  const fetchBookedAppointments = async () => {
+    try {
+      const response = await api.get(`/appointments/property/${propertyId}`);
+      if (response.data.success) {
+        setBookedAppointments(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching property appointments:', error);
+    }
+  };
 
   const fetchPropertyDetail = async () => {
     try {
@@ -58,7 +73,7 @@ export default function BookAppointmentNew() {
       }
     } catch (error) {
       console.error('Error fetching property:', error);
-      alert('Không thể tải thông tin bất động sản');
+      toast.error('Không thể tải thông tin bất động sản');
     } finally {
       setLoading(false);
     }
@@ -113,6 +128,21 @@ export default function BookAppointmentNew() {
     return date < today;
   };
 
+  const isTimeSlotBooked = (date, timeSlot) => {
+    if (!date) return false;
+    const [startTime] = timeSlot.split(' - ');
+    const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const timeString = `${startTime}:00`;
+    
+    return bookedAppointments.some(app => {
+       if (['cancelled', 'rejected'].includes(app.status)) return false;
+       if (!app.scheduledAt) return false;
+       const appDateStr = app.scheduledAt.split('T')[0];
+       const appTimeStr = app.scheduledAt.split('T')[1]?.substring(0, 8);
+       return appDateStr === dateString && appTimeStr === timeString;
+    });
+  };
+
   const previousMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
   };
@@ -134,7 +164,7 @@ export default function BookAppointmentNew() {
 
   const handleSubmit = async () => {
     if (!selectedDate || !selectedTime) {
-      alert('Vui lòng chọn ngày và giờ');
+      toast.error('Vui lòng chọn ngày và giờ');
       return;
     }
 
@@ -156,21 +186,22 @@ export default function BookAppointmentNew() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      <div className="flex justify-center items-center h-screen bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold-500"></div>
       </div>
     );
   }
 
   if (!property) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <Building2 className="mx-auto h-16 w-16 text-gray-400" />
-          <h3 className="mt-4 text-lg font-medium text-gray-900">Không tìm thấy bất động sản</h3>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="text-center bg-white p-10 rounded-3xl premium-shadow max-w-md w-full">
+          <Building2 className="mx-auto h-16 w-16 text-slate-300" />
+          <h3 className="mt-5 text-xl font-bold text-slate-900">Không tìm thấy bất động sản</h3>
+          <p className="mt-2 text-sm text-slate-500">Bất động sản này có thể đã bị gỡ hoặc không tồn tại.</p>
           <button
             onClick={() => navigate('/properties')}
-            className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="mt-6 w-full px-4 py-3 bg-gradient-to-r from-gold-400 to-gold-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:from-gold-300 hover:to-gold-500 transition-all"
           >
             Quay lại danh sách
           </button>
@@ -180,52 +211,47 @@ export default function BookAppointmentNew() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-7xl">
-        {/* Header */}
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5" />
-          <span className="font-medium">Quay lại chi tiết</span>
-        </button>
-        
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Chọn thời gian xem nhà</h1>
-          <p className="text-gray-600">
-            Vui lòng chọn ngày và giờ phù hợp để chuyên viên tư vấn của chúng tôi có thể sắp xếp đón tiếp bạn tốt nhất.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="min-h-screen bg-[#f7f4ef] py-10 font-sans text-slate-900 relative">
+      <div className="absolute top-0 inset-x-0 h-[500px] bg-gradient-to-b from-white to-transparent pointer-events-none" />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
           {/* Left - Calendar & Time Selection */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="text-center sm:text-left mb-2">
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center justify-center sm:justify-start gap-2 text-slate-500 hover:text-gold-600 mb-6 transition-colors font-bold w-full sm:w-auto text-sm"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Quay lại chi tiết</span>
+              </button>
+              
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-950 mb-3 tracking-tight">Chọn thời gian xem nhà</h1>
+              <p className="text-slate-600 text-sm font-medium">
+                Vui lòng chọn ngày và giờ phù hợp để chuyên viên tư vấn có thể sắp xếp đón tiếp bạn chu đáo nhất.
+              </p>
+            </div>
             {/* Calendar */}
-            <div className="bg-white rounded-2xl shadow-sm p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-gray-900">
+            <div className="bg-white/90 backdrop-blur-xl rounded-2xl p-6 premium-shadow border border-slate-100 max-w-2xl mx-auto lg:mx-0 w-full">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                <h3 className="text-xl font-black text-slate-900 capitalize flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-gold-500" />
                   Tháng {currentMonth.getMonth() + 1}, {currentMonth.getFullYear()}
                 </h3>
                 <div className="flex gap-2">
-                  <button
-                    onClick={previousMonth}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <ChevronLeft className="w-6 h-6" />
+                  <button onClick={previousMonth} className="p-2 hover:bg-gold-50 text-slate-600 hover:text-gold-600 rounded-lg transition-colors border border-slate-200 hover:border-gold-200">
+                    <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={nextMonth}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <ChevronRight className="w-6 h-6" />
+                  <button onClick={nextMonth} className="p-2 hover:bg-gold-50 text-slate-600 hover:text-gold-600 rounded-lg transition-colors border border-slate-200 hover:border-gold-200">
+                    <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2">
                 {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map(day => (
-                  <div key={day} className="text-center font-bold text-gray-600 py-3 text-sm">
+                  <div key={day} className="text-center font-extrabold text-slate-600 py-2 text-sm uppercase tracking-wider">
                     {day}
                   </div>
                 ))}
@@ -236,15 +262,15 @@ export default function BookAppointmentNew() {
                     onClick={() => handleDateSelect(date)}
                     disabled={isDateDisabled(date)}
                     className={`
-                      aspect-square rounded-xl flex items-center justify-center text-base font-bold
-                      transition-all
+                      h-10 sm:h-12 w-full rounded-xl flex items-center justify-center text-sm font-bold
+                      transition-all duration-300
                       ${!date ? 'invisible' : ''}
                       ${isDateDisabled(date) 
-                        ? 'text-gray-300 cursor-not-allowed bg-gray-50' 
-                        : 'hover:bg-green-50 hover:scale-105'}
+                        ? 'text-slate-300 cursor-not-allowed bg-slate-50' 
+                        : 'hover:bg-gold-50 hover:text-gold-600 hover:-translate-y-0.5 hover:shadow-sm'}
                       ${selectedDate && date && selectedDate.toDateString() === date.toDateString() 
-                        ? 'bg-green-600 text-white hover:bg-green-700 scale-105 shadow-lg' 
-                        : 'text-gray-900'}
+                        ? 'bg-gradient-to-br from-gold-400 to-gold-600 text-white hover:bg-gold-500 scale-105 shadow-md shadow-gold-500/30' 
+                        : (date && !isDateDisabled(date) ? 'text-slate-700 bg-white border border-slate-100' : '')}
                     `}
                   >
                     {date ? date.getDate() : ''}
@@ -255,35 +281,44 @@ export default function BookAppointmentNew() {
 
             {/* Time Slots */}
             {selectedDate && (
-              <div className="bg-white rounded-2xl shadow-sm p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">
-                  {selectedDate.toLocaleDateString('vi-VN', { 
-                    weekday: 'long', 
-                    day: 'numeric', 
-                    month: 'long', 
-                    year: 'numeric' 
-                  })}
-                </h3>
+              <div className="bg-white/90 backdrop-blur-xl rounded-2xl p-6 premium-shadow border border-slate-100 animate-fade-in max-w-2xl mx-auto lg:mx-0 w-full">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                  <div className="p-2.5 bg-gold-50 rounded-lg">
+                    <Clock className="w-5 h-5 text-gold-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Thời gian dự kiến</p>
+                    <h3 className="text-lg font-black text-slate-900">
+                      {selectedDate.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    </h3>
+                  </div>
+                </div>
                 
                 {/* Morning */}
-                <div className="mb-8">
-                  <h4 className="text-lg font-bold text-gray-900 mb-4">Buổi Sáng</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="mb-6">
+                  <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400"></div> Buổi Sáng
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     {morningSlots.map(timeSlot => {
                       const isSelected = selectedTime === timeSlot;
-                      
+                      const isBooked = isTimeSlotBooked(selectedDate, timeSlot);
                       return (
                         <button
                           key={timeSlot}
+                          disabled={isBooked}
                           onClick={() => handleTimeSelect(timeSlot)}
                           className={`
-                            py-3 px-4 rounded-xl text-sm font-bold transition-all border-2
+                            py-2.5 px-2 rounded-lg text-sm font-bold transition-all duration-300
                             ${isSelected 
-                              ? 'bg-green-600 text-white border-green-600 scale-105 shadow-lg' 
-                              : 'bg-white border-gray-200 hover:bg-green-50 hover:border-green-300'}
+                              ? 'bg-gradient-to-r from-gold-400 to-gold-600 text-white shadow-md shadow-gold-500/30' 
+                              : isBooked 
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-60' 
+                                : 'bg-white text-slate-700 border border-slate-200 hover:border-gold-300 hover:bg-gold-50 hover:text-gold-600'}
                           `}
                         >
                           {timeSlot}
+                          {isBooked && <span className="block text-[10px] font-normal">Đã đặt</span>}
                         </button>
                       );
                     })}
@@ -291,24 +326,30 @@ export default function BookAppointmentNew() {
                 </div>
 
                 {/* Afternoon */}
-                <div className="mb-8">
-                  <h4 className="text-lg font-bold text-gray-900 mb-4">Buổi Chiều</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="mb-6">
+                  <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-400"></div> Buổi Chiều
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     {afternoonSlots.map(timeSlot => {
                       const isSelected = selectedTime === timeSlot;
-                      
+                      const isBooked = isTimeSlotBooked(selectedDate, timeSlot);
                       return (
                         <button
                           key={timeSlot}
+                          disabled={isBooked}
                           onClick={() => handleTimeSelect(timeSlot)}
                           className={`
-                            py-3 px-4 rounded-xl text-sm font-bold transition-all border-2
+                            py-2.5 px-2 rounded-lg text-sm font-bold transition-all duration-300
                             ${isSelected 
-                              ? 'bg-green-600 text-white border-green-600 scale-105 shadow-lg' 
-                              : 'bg-white border-gray-200 hover:bg-green-50 hover:border-green-300'}
+                              ? 'bg-gradient-to-r from-gold-400 to-gold-600 text-white shadow-md shadow-gold-500/30' 
+                              : isBooked 
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-60' 
+                                : 'bg-white text-slate-700 border border-slate-200 hover:border-gold-300 hover:bg-gold-50 hover:text-gold-600'}
                           `}
                         >
                           {timeSlot}
+                          {isBooked && <span className="block text-[10px] font-normal">Đã đặt</span>}
                         </button>
                       );
                     })}
@@ -316,19 +357,22 @@ export default function BookAppointmentNew() {
                 </div>
 
                 {/* Note */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-3">
+                <div className="pt-4 border-t border-slate-100">
+                  <label className="block text-sm font-bold text-slate-800 mb-2">
                     Ghi chú cho chuyên viên (Tùy chọn)
                   </label>
                   <textarea
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    rows={4}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none resize-none text-sm"
-                    placeholder="Ví dụ: Tôi muốn xem thêm phòng tiện ích của tòa nhà..."
+                    rows={3}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-gold-400 focus:bg-white focus:ring-4 focus:ring-gold-400/20 outline-none transition-all resize-none text-sm font-medium text-slate-900"
+                    placeholder="Ví dụ: Tôi muốn xem thêm phòng tiện ích..."
                   />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Bằng cách nhấn xác nhận, bạn đồng ý với <span className="text-green-600 font-medium">Điều khoản sử dụng</span> và <span className="text-green-600 font-medium">Chính sách bảo mật</span> của EstateLink Pro.
+                  <p className="text-xs font-medium text-slate-500 mt-2 flex items-start gap-1">
+                    <div className="mt-0.5 text-gold-500">*</div>
+                    <span>
+                      Bằng cách nhấn tiếp tục, bạn đồng ý với <span className="text-gold-600 hover:underline cursor-pointer">Điều khoản sử dụng</span> của NhaDatPro.
+                    </span>
                   </p>
                 </div>
               </div>
@@ -337,64 +381,68 @@ export default function BookAppointmentNew() {
 
           {/* Right - Property Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden sticky top-8">
+            <div className="bg-slate-950 text-white rounded-2xl premium-shadow overflow-hidden sticky top-8 border border-slate-800 relative">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/10 blur-[80px] rounded-full pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none" />
+              
               {/* Property Image */}
-              <div className="relative aspect-video bg-gray-200">
+              <div className="relative h-56 bg-slate-800">
                 {property.images && property.images.length > 0 ? (
                   <img
                     src={property.images.find(img => img.isPrimary)?.url || property.images[0]?.url}
                     alt={property.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover opacity-80"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Building2 className="w-16 h-16 text-gray-400" />
+                    <Building2 className="w-16 h-16 text-slate-600" />
                   </div>
                 )}
-                {property.status === 'published' && (
-                  <span className="absolute top-3 right-3 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                    ĐANG BÁN
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                <div className="absolute bottom-4 left-6 right-6">
+                  <span className="inline-block px-3 py-1 rounded-lg bg-white/20 backdrop-blur-md text-xs font-bold text-white mb-3">
+                    THÔNG TIN BẤT ĐỘNG SẢN
                   </span>
-                )}
+                </div>
               </div>
 
               {/* Property Info */}
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">{property.title}</h3>
-                <p className="text-gray-600 flex items-center gap-2 mb-4 text-sm">
-                  <MapPin className="w-4 h-4 flex-shrink-0" />
-                  {property.address || `${property.district}, ${property.province}`}
+              <div className="p-6 pt-0 relative z-10">
+                <h3 className="text-xl font-black text-white mb-3 leading-tight line-clamp-2">{property.title}</h3>
+                <p className="text-slate-400 flex items-start gap-2 mb-6 text-sm font-medium">
+                  <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold-400" />
+                  <span className="leading-relaxed">{property.address || `${property.district}, ${property.province}`}</span>
                 </p>
                 
                 {/* Property Details */}
-                <div className="flex items-center gap-4 mb-4 text-sm text-gray-600">
+                <div className="flex flex-wrap items-center gap-3 mb-6 text-sm font-bold text-slate-300">
                   {property.bedrooms && (
-                    <div className="flex items-center gap-1">
-                      <Bed className="w-4 h-4" />
+                    <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">
+                      <Bed className="w-4 h-4 text-slate-400" />
                       <span>{property.bedrooms} PN</span>
                     </div>
                   )}
                   {property.bathrooms && (
-                    <div className="flex items-center gap-1">
-                      <Bath className="w-4 h-4" />
+                    <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">
+                      <Bath className="w-4 h-4 text-slate-400" />
                       <span>{property.bathrooms} WC</span>
                     </div>
                   )}
                   {property.area && (
-                    <div className="flex items-center gap-1">
-                      <Maximize className="w-4 h-4" />
+                    <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">
+                      <Maximize className="w-4 h-4 text-slate-400" />
                       <span>{property.area}m²</span>
                     </div>
                   )}
                 </div>
 
-                <div className="border-t pt-4 mb-6">
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 mb-6">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Giá dự kiến</span>
-                    <span className="text-2xl font-bold text-green-600">
+                    <span className="text-sm font-bold text-slate-400">Giá dự kiến</span>
+                    <span className="text-2xl font-black text-gold-400">
                       {property.price ? 
                         (property.price >= 1000000000 ? 
-                          `${(property.price / 1000000000).toFixed(1)} tỷ` : 
+                          `${(property.price / 1000000000).toFixed(1).replace('.0', '')} tỷ` : 
                           `${(property.price / 1000000).toFixed(0)} triệu`
                         ) : 
                         'Liên hệ'
@@ -405,19 +453,23 @@ export default function BookAppointmentNew() {
 
                 {/* Selected Time Summary */}
                 {selectedDate && selectedTime && (
-                  <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-6">
-                    <h4 className="text-sm font-bold text-gray-900 mb-3">Thời gian đã chọn</h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="w-4 h-4 text-green-600" />
-                        <span className="font-semibold text-gray-900">
-                          Ngày xem: {selectedDate.toLocaleDateString('vi-VN')}
+                  <div className="p-5 rounded-2xl bg-gold-500/10 border border-gold-500/20 mb-6 animate-fade-in">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-gold-400 mb-3">Lịch hẹn của bạn</h4>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 text-sm">
+                        <div className="p-2 rounded-lg bg-gold-500/20">
+                          <Calendar className="w-4 h-4 text-gold-400" />
+                        </div>
+                        <span className="font-bold text-white">
+                          {selectedDate.toLocaleDateString('vi-VN')}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Clock className="w-4 h-4 text-green-600" />
-                        <span className="font-semibold text-gray-900">
-                          Giờ xem: {selectedTime.split(' - ')[0]}
+                      <div className="flex items-center gap-3 text-sm">
+                        <div className="p-2 rounded-lg bg-gold-500/20">
+                          <Clock className="w-4 h-4 text-gold-400" />
+                        </div>
+                        <span className="font-bold text-white">
+                          {selectedTime.split(' - ')[0]}
                         </span>
                       </div>
                     </div>
@@ -428,12 +480,11 @@ export default function BookAppointmentNew() {
                 <button
                   onClick={handleSubmit}
                   disabled={!selectedDate || !selectedTime}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 font-bold transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-base shadow-lg hover:shadow-xl"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-gold-400 to-gold-600 text-white rounded-xl font-black transition-all disabled:from-slate-700 disabled:to-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-base shadow-lg shadow-gold-500/20 hover:shadow-gold-500/40 hover:-translate-y-1 hover:from-gold-300 hover:to-gold-500"
                 >
-                  Xác nhận đặt lịch
+                  Tiếp tục điền thông tin
                   <ArrowRight className="w-5 h-5" />
                 </button>
-                
               </div>
             </div>
           </div>

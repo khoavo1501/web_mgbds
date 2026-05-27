@@ -8,33 +8,33 @@ export default function BrokerLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
-        <div className="flex h-screen bg-zinc-50 overflow-hidden font-sans">
+        <div className="flex h-screen bg-[#f7f4ef] overflow-hidden font-sans">
             <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Top Header */}
-                <header className="flex h-14 shrink-0 items-center gap-4 bg-white/80 backdrop-blur-md px-6 border-b border-zinc-100 z-10">
+                <header className="flex h-14 shrink-0 items-center gap-4 bg-white/90 backdrop-blur-md px-6 border-b border-slate-200/60 z-10">
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="lg:hidden text-zinc-500 hover:text-zinc-700 transition-colors"
+                        className="lg:hidden text-slate-500 hover:text-slate-800 transition-colors"
                     >
                         <Menu className="h-5 w-5" />
                     </button>
 
                     <div className="flex-1 flex justify-between items-center">
                         {/* Search */}
-                        <div className="hidden md:flex items-center gap-2 bg-zinc-50 rounded-xl px-3.5 py-2 border border-zinc-100 w-72 transition-all focus-within:border-blue-200 focus-within:ring-2 focus-within:ring-blue-50">
-                            <Search className="h-4 w-4 text-zinc-400" />
+                        <div className="hidden md:flex items-center gap-2 bg-[#f7f4ef] rounded-xl px-3.5 py-2 border border-slate-200/60 w-72 transition-all focus-within:border-gold-300 focus-within:ring-2 focus-within:ring-gold-500/20">
+                            <Search className="h-4 w-4 text-slate-400" />
                             <input
                                 type="text"
                                 placeholder="Tìm kiếm..."
-                                className="bg-transparent text-sm text-zinc-600 placeholder:text-zinc-400 outline-none w-full"
+                                className="bg-transparent text-sm text-slate-900 font-medium placeholder:text-slate-400 outline-none w-full"
                             />
                         </div>
 
                         <div className="flex items-center gap-3">
                             <NotificationDropdown />
-                            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-md">
+                            <div className="h-8 w-8 rounded-full bg-slate-950 flex items-center justify-center text-gold-400 font-black text-xs font-bold shadow-md">
                                 NV
                             </div>
                         </div>

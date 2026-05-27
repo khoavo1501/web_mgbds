@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import DocumentViewerModal from "../../components/DocumentViewerModal";
+import { useToast } from "../../context/ToastContext";
 
 const statusLabels = {
   pending: "Chờ khách xác nhận",
@@ -766,6 +767,7 @@ function PaymentVerificationModal({ transaction, onClose, onVerified, onReject }
   );
 }
 function DocumentVerificationModal({ transaction, onClose, onVerified }) {
+  const toast = useToast();
   const [docs, setDocs] = useState(transaction.documents || []);
   const [loading, setLoading] = useState(false);
   const [rejectReasons, setRejectReasons] = useState({});
@@ -782,10 +784,10 @@ function DocumentVerificationModal({ transaction, onClose, onVerified }) {
       if (res.data.success) {
         setDocs(current => current.map(d => d.documentId === docId ? { ...d, status: action === 'verify' ? 'verified' : 'rejected' } : d));
       } else {
-        alert(res.data.message || "Thao tác thất bại");
+        toast.error(res.data.message || "Thao tác thất bại");
       }
     } catch (err) {
-      alert("Lỗi khi cập nhật trạng thái tài liệu");
+      toast.error("Lỗi khi cập nhật trạng thái tài liệu");
     } finally {
       setLoading(false);
     }

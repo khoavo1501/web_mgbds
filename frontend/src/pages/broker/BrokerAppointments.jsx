@@ -5,9 +5,11 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 
 export default function BrokerAppointments() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -30,25 +32,29 @@ export default function BrokerAppointments() {
     }
   };
 
-  const handleUpdateStatus = async (appointmentId, newStatus) => {
+  const handleUpdateStatus = async (appointment, newStatus) => {
     try {
-      const response = await api.put(`/appointments/${appointmentId}`, {
+      const response = await api.put(`/appointments/${appointment.appointmentId}`, {
         status: newStatus
       });
       
       if (response.data.success) {
-        const actionLabels = {
-          confirmed: 'xác nhận',
-          viewed: 'xác nhận đã dẫn xem nhà',
-          completed: 'hoàn tất',
-          rejected: 'từ chối'
-        };
-        alert(`Đã ${actionLabels[newStatus] || 'cập nhật'} lịch hẹn`);
-        fetchAppointments();
+        if (newStatus === 'confirmed') {
+          navigate('/broker/appointments/confirm-success', { state: { appointment: appointment } });
+        } else {
+          const actionLabels = {
+            confirmed: 'xác nhận',
+            viewed: 'xác nhận đã dẫn xem nhà',
+            completed: 'hoàn tất',
+            rejected: 'từ chối'
+          };
+          toast.success(`Đã ${actionLabels[newStatus] || 'cập nhật'} lịch hẹn`);
+          fetchAppointments();
+        }
       }
     } catch (error) {
       console.error('Error updating appointment:', error);
-      alert('Không thể cập nhật lịch hẹn');
+      toast.error('Không thể cập nhật lịch hẹn');
     }
   };
 
@@ -62,44 +68,44 @@ export default function BrokerAppointments() {
         note: 'Môi giới đề xuất dời lịch giao dịch trực tiếp',
       });
       if (response.data.success) {
-        alert('Đã dời lịch giao dịch trực tiếp, chờ xác nhận lại lịch');
+        toast.success('Đã dời lịch giao dịch trực tiếp, chờ xác nhận lại lịch');
         fetchAppointments();
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Không thể dời lịch giao dịch trực tiếp');
+      toast.error(error.response?.data?.message || 'Không thể dời lịch giao dịch trực tiếp');
     }
   };
 
   const handleConfirmDirectPayment = async (appointment) => {
     if (!appointment.transactionId) {
-      alert('Không tìm thấy giao dịch liên kết với lịch giao dịch trực tiếp này');
+      toast.error('Không tìm thấy giao dịch liên kết với lịch giao dịch trực tiếp này');
       return;
     }
     try {
       const response = await api.patch(`/transactions/${appointment.transactionId}/broker-confirm`);
       if (response.data.success) {
-        alert('Đã xác nhận giao dịch trực tiếp thành công');
+        toast.success('Đã xác nhận giao dịch trực tiếp thành công');
         fetchAppointments();
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Không thể xác nhận giao dịch trực tiếp');
+      toast.error(error.response?.data?.message || 'Không thể xác nhận giao dịch trực tiếp');
     }
   };
 
   const handleRejectDirectPayment = async (appointment) => {
     if (!appointment.transactionId) {
-      alert('Không tìm thấy giao dịch liên kết với lịch giao dịch trực tiếp này');
+      toast.error('Không tìm thấy giao dịch liên kết với lịch giao dịch trực tiếp này');
       return;
     }
     if (!window.confirm('Xác nhận giao dịch trực tiếp thất bại?')) return;
     try {
       const response = await api.patch(`/transactions/${appointment.transactionId}/broker-reject`);
       if (response.data.success) {
-        alert('Đã xác nhận giao dịch trực tiếp thất bại');
+        toast.success('Đã xác nhận giao dịch trực tiếp thất bại');
         fetchAppointments();
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Không thể cập nhật giao dịch trực tiếp');
+      toast.error(error.response?.data?.message || 'Không thể cập nhật giao dịch trực tiếp');
     }
   };
 
@@ -183,69 +189,52 @@ export default function BrokerAppointments() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý Lịch hẹn</h1>
-          <p className="text-gray-600">Theo dõi và quản lý lịch xem nhà, lịch giao dịch trực tiếp của khách hàng.</p>
+          <h1 className="text-3xl font-bold text-slate-950 mb-2">Quản lý Lịch hẹn</h1>
+          <p className="text-slate-600">Theo dõi và quản lý lịch xem nhà, lịch giao dịch trực tiếp của khách hàng.</p>
         </div>
 
         {/* Filter Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1.5 mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-1">
+        <div className="bg-white rounded-2xl premium-shadow border border-slate-100 p-2 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
             <button
               onClick={() => setFilter('all')}
-              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+              className={`px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${
                 filter === 'all' 
-                  ? 'bg-gray-900 text-white' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'bg-slate-950 text-gold-400 shadow-md shadow-slate-950/20' 
+                  : 'text-slate-500 hover:text-slate-950 hover:bg-slate-100'
               }`}
             >
               Tất cả ({appointments.length})
             </button>
-            <button
-              onClick={() => setFilter('upcoming')}
-              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${
-                filter === 'upcoming' 
-                  ? 'bg-gray-900 text-white' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              Sắp tới ({appointments.filter(a => ['pending', 'confirmed', 'scheduled', 'deal_scheduled'].includes(a.status)).length})
-            </button>
+
             <button
               onClick={() => setFilter('pending')}
-              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+              className={`px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${
                 filter === 'pending' 
-                  ? 'bg-gray-900 text-white' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'bg-slate-950 text-gold-400 shadow-md shadow-slate-950/20' 
+                  : 'text-slate-500 hover:text-slate-950 hover:bg-slate-100'
               }`}
             >
               Chờ xác nhận ({appointments.filter(a => a.status === 'pending').length})
             </button>
+
             <button
               onClick={() => setFilter('confirmed')}
-              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+              className={`px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${
                 filter === 'confirmed' 
-                  ? 'bg-gray-900 text-white' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'bg-slate-950 text-gold-400 shadow-md shadow-slate-950/20' 
+                  : 'text-slate-500 hover:text-slate-950 hover:bg-slate-100'
               }`}
             >
               Đã xác nhận ({appointments.filter(a => ['confirmed', 'scheduled'].includes(a.status)).length})
             </button>
-            <button
-              onClick={() => setFilter('viewed')}
-              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${
-                filter === 'viewed' 
-                  ? 'bg-gray-900 text-white' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              Đã dẫn xem nhà ({appointments.filter(a => a.status === 'viewed').length})
-            </button>
+
             <button
               onClick={() => setFilter('completed')}
-              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+              className={`px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${
                 filter === 'completed' 
-                  ? 'bg-gray-900 text-white' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? 'bg-slate-950 text-gold-400 shadow-md shadow-slate-950/20' 
+                  : 'text-slate-500 hover:text-slate-950 hover:bg-slate-100'
               }`}
             >
               Hoàn tất ({appointments.filter(a => a.status === 'completed').length})
@@ -253,11 +242,11 @@ export default function BrokerAppointments() {
           </div>
           
           <div className="flex items-center gap-2">
-            <button className="p-2.5 rounded-lg hover:bg-gray-50 transition-colors">
-              <Filter className="w-5 h-5 text-gray-600" />
+            <button className="p-3 rounded-xl hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-900">
+              <Filter className="w-5 h-5" />
             </button>
-            <button className="p-2.5 rounded-lg hover:bg-gray-50 transition-colors">
-              <Calendar className="w-5 h-5 text-gray-600" />
+            <button className="p-3 rounded-xl hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-900">
+              <Calendar className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -266,10 +255,10 @@ export default function BrokerAppointments() {
         {filteredAppointments.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Calendar className="w-8 h-8 text-gray-400" />
+              <Calendar className="w-8 h-8 text-slate-400" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Không có lịch hẹn</h3>
-            <p className="text-gray-600 text-sm">Chưa có lịch hẹn nào trong danh mục này</p>
+            <h3 className="text-lg font-semibold text-slate-950 mb-2">Không có lịch hẹn</h3>
+            <p className="text-slate-600 text-sm">Chưa có lịch hẹn nào trong danh mục này</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -284,7 +273,7 @@ export default function BrokerAppointments() {
                     <div className="flex items-center gap-3">
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-white text-lg ${
                         appointment.status === 'pending' ? 'bg-yellow-500' :
-                        appointment.status === 'confirmed' || appointment.status === 'scheduled' ? 'bg-green-500' :
+                        appointment.status === 'confirmed' || appointment.status === 'scheduled' ? 'bg-emerald-500' :
                         appointment.status === 'deal_scheduled' ? 'bg-indigo-500' :
                         appointment.status === 'viewed' ? 'bg-blue-500' :
                         appointment.status === 'completed' ? 'bg-gray-500' :
@@ -293,11 +282,11 @@ export default function BrokerAppointments() {
                         {appointment.customerName?.charAt(0).toUpperCase() || 'K'}
                       </div>
                       <div>
-                        <h3 className="font-bold text-gray-900 text-base">{appointment.customerName}</h3>
+                        <h3 className="font-bold text-slate-950 text-base">{appointment.customerName}</h3>
                         {appointment.appointmentType === 'direct_payment' && (
                           <p className="mt-0.5 text-xs font-bold uppercase tracking-wider text-indigo-700">Giao dịch trực tiếp</p>
                         )}
-                        <p className="text-sm text-gray-600 flex items-center gap-1.5 mt-0.5">
+                        <p className="text-sm text-slate-600 flex items-center gap-1.5 mt-0.5">
                           <Phone className="w-3.5 h-3.5" />
                           {appointment.customerPhone}
                         </p>
@@ -318,14 +307,14 @@ export default function BrokerAppointments() {
                       />
                     )}
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-gray-900 text-base mb-2 line-clamp-2">
+                      <h4 className="font-bold text-slate-950 text-base mb-2 line-clamp-2">
                         {appointment.propertyTitle}
                       </h4>
-                      <p className="text-sm text-gray-600 flex items-start gap-1.5 mb-2">
+                      <p className="text-sm text-slate-600 flex items-start gap-1.5 mb-2">
                         <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
                         <span className="line-clamp-1">{appointment.propertyAddress}</span>
                       </p>
-                      <div className="flex items-center gap-3 text-sm text-gray-600">
+                      <div className="flex items-center gap-3 text-sm text-slate-600">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="w-4 h-4" />
                           <span>
@@ -351,8 +340,8 @@ export default function BrokerAppointments() {
 
                   {/* Note */}
                   {appointment.note && (
-                    <div className="mb-4 p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
-                      <p className="text-sm text-gray-700 italic line-clamp-2">
+                    <div className="mb-4 p-3 bg-emerald-50 rounded-lg border-l-4 border-green-500">
+                      <p className="text-sm text-slate-700 italic line-clamp-2">
                         "{appointment.note}"
                       </p>
                     </div>
@@ -363,7 +352,7 @@ export default function BrokerAppointments() {
                     {appointment.appointmentType === 'direct_payment' && appointment.status === 'pending' && (
                       <>
                         <button
-                          onClick={() => handleUpdateStatus(appointment.appointmentId, 'confirmed')}
+                          onClick={() => handleUpdateStatus(appointment, 'confirmed')}
                           className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-bold text-sm"
                         >
                           <CheckCircle className="w-4 h-4" />
@@ -382,20 +371,20 @@ export default function BrokerAppointments() {
                     {appointment.appointmentType !== 'direct_payment' && appointment.status === 'pending' && (
                       <>
                         <button
-                          onClick={() => handleUpdateStatus(appointment.appointmentId, 'confirmed')}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-bold text-sm"
+                          onClick={() => handleUpdateStatus(appointment, 'confirmed')}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-bold text-sm"
                         >
                           <CheckCircle className="w-4 h-4" />
                           Xác nhận
                         </button>
                         <button
-                          onClick={() => handleUpdateStatus(appointment.appointmentId, 'rejected')}
+                          onClick={() => handleUpdateStatus(appointment, 'rejected')}
                           className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-colors font-bold text-sm border-2 border-red-300"
                         >
                           <XCircle className="w-4 h-4" />
                           Từ chối
                         </button>
-                        <button className="px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                        <button className="px-4 py-3 bg-gray-50 text-slate-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
                           <MoreVertical className="w-4 h-4" />
                         </button>
                       </>
@@ -435,13 +424,13 @@ export default function BrokerAppointments() {
                           Chi tiết & Liên hệ lại
                         </button>
                         <button
-                          onClick={() => handleUpdateStatus(appointment.appointmentId, 'viewed')}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-bold text-sm"
+                          onClick={() => handleUpdateStatus(appointment, 'viewed')}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gold-500 text-white rounded-lg hover:bg-gold-600 transition-colors font-bold text-sm"
                         >
                           <CheckCircle className="w-4 h-4" />
                           Đã dẫn xem nhà
                         </button>
-                        <button className="px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                        <button className="px-4 py-3 bg-gray-50 text-slate-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
                           <Edit className="w-4 h-4" />
                         </button>
                       </>
@@ -457,7 +446,7 @@ export default function BrokerAppointments() {
                         </button>
                         <button
                           onClick={() => navigate(`/broker/appointments/${appointment.appointmentId}`)}
-                          className="px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                          className="px-4 py-3 bg-gray-50 text-slate-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -471,7 +460,7 @@ export default function BrokerAppointments() {
                         </div>
                         <button
                           onClick={() => navigate(`/broker/appointments/${appointment.appointmentId}`)}
-                          className="px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                          className="px-4 py-3 bg-gray-50 text-slate-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
                           title="Xem chi tiết"
                         >
                           <Eye className="w-4 h-4" />
@@ -486,7 +475,7 @@ export default function BrokerAppointments() {
                         </div>
                         <button
                           onClick={() => navigate(`/broker/appointments/${appointment.appointmentId}`)}
-                          className="px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                          className="px-4 py-3 bg-gray-50 text-slate-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
                           title="Xem chi tiết"
                         >
                           <Eye className="w-4 h-4" />
@@ -495,13 +484,13 @@ export default function BrokerAppointments() {
                     )}
                     {(appointment.status === 'cancelled' || appointment.status === 'rejected') && (
                       <>
-                        <div className="flex-1 rounded-lg bg-gray-100 px-4 py-3 text-center text-sm font-bold text-gray-600 flex items-center justify-center gap-2">
+                        <div className="flex-1 rounded-lg bg-gray-100 px-4 py-3 text-center text-sm font-bold text-slate-600 flex items-center justify-center gap-2">
                           <XCircle className="w-4 h-4" />
                           {appointment.status === 'cancelled' ? 'Lịch hẹn đã bị hủy' : 'Lịch hẹn đã bị từ chối'}
                         </div>
                         <button
                           onClick={() => navigate(`/broker/appointments/${appointment.appointmentId}`)}
-                          className="px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                          className="px-4 py-3 bg-gray-50 text-slate-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
                           title="Xem chi tiết"
                         >
                           <Eye className="w-4 h-4" />

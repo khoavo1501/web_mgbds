@@ -1,21 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, AlertCircle, UserRound } from 'lucide-react';
 import api from '../../services/api';
 import { updateAppointment, getRescheduleInfo } from '../../services/appointmentService';
 import { useAuth } from '../../context/AuthContext';
 import { useReputation } from '../../context/ReputationContext';
 import RescheduleWarningModal from '../../components/common/RescheduleWarningModal';
+import { useToast } from '../../context/ToastContext';
 
 export default function RescheduleAppointment() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const { user } = useAuth();
   const { refreshScore } = useReputation();
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [rescheduleInfo, setRescheduleInfo] = useState(null);
+  const [bookedAppointments, setBookedAppointments] = useState([]);
   
   const [rescheduleData, setRescheduleData] = useState({
     scheduledDate: '',
@@ -26,13 +29,18 @@ export default function RescheduleAppointment() {
     contactEmail: ''
   });
 
-  const timeSlots = [
+  const morningSlots = [
+    '08:00 - 09:00',
     '09:00 - 10:00',
-    '10:30 - 11:30',
+    '10:00 - 11:00',
+    '11:00 - 12:00'
+  ];
+
+  const afternoonSlots = [
     '14:00 - 15:00',
-    '15:30 - 16:30',
-    '17:00 - 18:00',
-    '19:00 - 20:00'
+    '15:00 - 16:00',
+    '16:00 - 17:00',
+    '17:00 - 18:00'
   ];
 
   useEffect(() => {
@@ -54,32 +62,60 @@ export default function RescheduleAppointment() {
       const response = await api.get(`/appointments/${id}`);
       if (response.data.success) {
         setAppointment(response.data.data);
+        fetchBookedAppointments(response.data.data.propertyId);
       }
     } catch (error) {
       console.error('Error fetching appointment:', error);
-      alert('Không thể tải thông tin lịch hẹn');
+      toast.error('Không thể tải thông tin lịch hẹn');
       navigate('/customer/appointments');
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchBookedAppointments = async (propertyId) => {
+    try {
+      const response = await api.get(`/appointments/property/${propertyId}`);
+      if (response.data.success) {
+        setBookedAppointments(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching property appointments:', error);
+    }
+  };
+
+  const isTimeSlotBooked = (dateStr, timeSlot) => {
+    if (!dateStr) return false;
+    const [startTime] = timeSlot.split(' - ');
+    const timeString = `${startTime}:00`;
+    
+    return bookedAppointments.some(app => {
+       if (app.appointmentId === parseInt(id)) return false;
+       if (['cancelled', 'rejected'].includes(app.status)) return false;
+       if (!app.scheduledAt) return false;
+       const appDateStr = app.scheduledAt.split('T')[0];
+       const appTimeStr = app.scheduledAt.split('T')[1]?.substring(0, 8);
+       return appDateStr === dateStr && appTimeStr === timeString;
+    });
+  };
+
   const handleSubmit = async () => {
     // Validation
     if (!rescheduleData.scheduledDate) {
-      alert('Vui lòng chọn ngày xem nhà mới');
+      toast.error('Vui lòng chọn ngày xem nhà mới');
       return;
     }
 
     if (!rescheduleData.scheduledTime) {
-      alert('Vui lòng chọn khung giờ');
+      toast.error('Vui lòng chọn khung giờ');
       return;
     }
 
-    if (!rescheduleData.note || !rescheduleData.note.trim()) {
-      alert('Vui lòng nhập lý do thay đổi');
-      return;
-    }
+    // Note is optional
+    // if (!rescheduleData.note || !rescheduleData.note.trim()) {
+    //   toast.error('Vui lòng nhập lý do thay đổi');
+    //   return;
+    // }
 
     // Combine date and time
     const [startTime] = rescheduleData.scheduledTime.split(' - ');
@@ -89,7 +125,7 @@ export default function RescheduleAppointment() {
     const selectedDateTime = new Date(scheduledAt);
     const now = new Date();
     if (selectedDateTime <= now) {
-      alert('Vui lòng chọn thời gian trong tương lai');
+      toast.error('Vui lòng chọn thời gian trong tương lai');
       return;
     }
 
@@ -138,11 +174,11 @@ export default function RescheduleAppointment() {
       if (response.success) {
         // Refresh điểm uy tín
         refreshScore();
-        alert('Dời lịch thành công! Vui lòng chờ môi giới xác nhận lại.');
+        toast.success('Dời lịch thành công! Vui lòng chờ môi giới xác nhận lại.');
         navigate('/customer/appointments');
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'Lỗi khi dời lịch');
+      toast.error(error.response?.data?.message || 'Lỗi khi dời lịch');
     }
   };
 
@@ -174,12 +210,12 @@ export default function RescheduleAppointment() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-[#f7f4ef] py-10 font-sans">
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Back Button */}
         <button
           onClick={() => navigate('/customer/appointments')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 font-medium"
+          className="flex items-center gap-2 text-slate-500 hover:text-slate-950 mb-8 font-bold transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
           Quay lại danh sách
@@ -197,9 +233,9 @@ export default function RescheduleAppointment() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-3">Dời lịch hẹn</h1>
-          <p className="text-gray-600">
-            Vui lòng điều chỉnh thông tin thời gian để dời lịch xem bất động sản.
+          <h1 className="text-3xl sm:text-4xl font-black text-slate-950 mb-3 tracking-tight">Dời lịch hẹn</h1>
+          <p className="text-slate-600 font-medium">
+            Vui lòng chọn thời gian mới phù hợp với bạn.
           </p>
         </div>
 
@@ -207,30 +243,30 @@ export default function RescheduleAppointment() {
           {/* Left Column - Form */}
           <div className="lg:col-span-2 space-y-6">
             {/* Current Appointment Info */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border-2 border-gray-100">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <AlertCircle className="w-5 h-5 text-blue-600" />
+            <div className="bg-white rounded-[2rem] premium-shadow p-6 sm:p-8 border border-slate-100">
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-100">
+                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
+                  <AlertCircle className="w-5 h-5 text-slate-500" />
                 </div>
-                <h2 className="text-lg font-bold text-gray-900">Thông tin lịch hẹn tại</h2>
+                <h2 className="text-xl font-black text-slate-950">Lịch xem hiện tại</h2>
               </div>
               
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1 font-medium">THỜI GIAN</p>
-                  <p className="text-base font-bold text-gray-900">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-4 bg-[#f8f6f2] rounded-2xl border border-slate-200/60">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">THỜI GIAN</p>
+                  <p className="text-sm font-bold text-slate-950 leading-tight">
                     {new Date(appointment.scheduledAt).toLocaleTimeString('vi-VN', { 
                       hour: '2-digit', 
                       minute: '2-digit' 
-                    })}, Thứ Ba - {new Date(appointment.scheduledAt).toLocaleDateString('vi-VN')}
+                    })} - {new Date(appointment.scheduledAt).toLocaleDateString('vi-VN')}
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500 mb-1 font-medium">DỰ ÁN</p>
-                  <p className="text-base font-bold text-gray-900">
-                    {appointment.propertyTitle.split(' - ')[0]}
+                <div className="p-4 bg-[#f8f6f2] rounded-2xl border border-slate-200/60">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">DỰ ÁN</p>
+                  <p className="text-sm font-bold text-slate-950 leading-tight line-clamp-1 mb-1">
+                    {appointment.propertyTitle}
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-xs font-medium text-slate-500 line-clamp-1">
                     {appointment.propertyAddress}
                   </p>
                 </div>
@@ -238,93 +274,142 @@ export default function RescheduleAppointment() {
             </div>
 
             {/* New Schedule Selection */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-blue-600" />
+            <div className="bg-white rounded-[2rem] premium-shadow p-6 sm:p-8 border border-slate-100">
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-100">
+                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
+                  <Calendar className="w-5 h-5 text-slate-500" />
                 </div>
-                <h2 className="text-lg font-bold text-gray-900">Chọn lịch mới</h2>
+                <h2 className="text-xl font-black text-slate-950">Chọn lịch trình mới</h2>
               </div>
 
               {/* Date Picker */}
               <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
                   Ngày xem nhà mới
                 </label>
-                <input
-                  type="date"
-                  value={rescheduleData.scheduledDate}
-                  onChange={(e) => setRescheduleData({ ...rescheduleData, scheduledDate: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium"
-                />
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={rescheduleData.scheduledDate}
+                    onChange={(e) => setRescheduleData({ ...rescheduleData, scheduledDate: e.target.value })}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-5 py-4 bg-[#f8f6f2] border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-950 focus:border-slate-950 text-sm font-bold text-slate-900 outline-none transition-all appearance-none cursor-pointer uppercase tracking-wider"
+                  />
+                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                     <Calendar className="w-5 h-5 text-slate-400" />
+                  </div>
+                </div>
               </div>
 
               {/* Time Slots */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Khung giờ khả dụng
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
+                  Khung giờ đề xuất
                 </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {timeSlots.map((slot) => (
-                    <button
-                      key={slot}
-                      onClick={() => setRescheduleData({ ...rescheduleData, scheduledTime: slot })}
-                      className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${
-                        rescheduleData.scheduledTime === slot
-                          ? 'bg-green-500 text-white shadow-md'
-                          : 'bg-gray-50 text-gray-700 border-2 border-gray-200 hover:border-green-300 hover:bg-green-50'
-                      }`}
-                    >
-                      {slot}
-                    </button>
-                  ))}
+                
+                {/* Morning */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400"></div> Buổi Sáng
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {morningSlots.map((slot) => {
+                      const isBooked = isTimeSlotBooked(rescheduleData.scheduledDate, slot);
+                      return (
+                      <button
+                        key={slot}
+                        disabled={isBooked}
+                        onClick={() => setRescheduleData({ ...rescheduleData, scheduledTime: slot })}
+                        className={`px-4 py-3 rounded-2xl font-bold text-sm transition-all duration-300 ${
+                          rescheduleData.scheduledTime === slot
+                            ? 'bg-slate-950 text-white shadow-lg scale-[1.02]'
+                            : isBooked
+                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-60'
+                              : 'bg-[#f8f6f2] text-slate-700 hover:bg-slate-100 border border-slate-200/60'
+                        }`}
+                      >
+                        {slot}
+                        {isBooked && <span className="block text-[10px] font-normal">Đã đặt</span>}
+                      </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Afternoon */}
+                <div>
+                  <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-400"></div> Buổi Chiều
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {afternoonSlots.map((slot) => {
+                      const isBooked = isTimeSlotBooked(rescheduleData.scheduledDate, slot);
+                      return (
+                      <button
+                        key={slot}
+                        disabled={isBooked}
+                        onClick={() => setRescheduleData({ ...rescheduleData, scheduledTime: slot })}
+                        className={`px-4 py-3 rounded-2xl font-bold text-sm transition-all duration-300 ${
+                          rescheduleData.scheduledTime === slot
+                            ? 'bg-slate-950 text-white shadow-lg scale-[1.02]'
+                            : isBooked
+                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-60'
+                              : 'bg-[#f8f6f2] text-slate-700 hover:bg-slate-100 border border-slate-200/60'
+                        }`}
+                      >
+                        {slot}
+                        {isBooked && <span className="block text-[10px] font-normal">Đã đặt</span>}
+                      </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Reason for Change */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-white rounded-[2rem] premium-shadow p-6 sm:p-8 border border-slate-100">
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-100">
+                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
+                  <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </div>
-                <h2 className="text-lg font-bold text-gray-900">Lý do thay đổi</h2>
+                <h2 className="text-xl font-black text-slate-950">Ghi chú thêm</h2>
               </div>
 
               <textarea
                 value={rescheduleData.note}
                 onChange={(e) => setRescheduleData({ ...rescheduleData, note: e.target.value })}
                 rows="4"
-                placeholder="Nhập chi tiết lý do (không bắt buộc)..."
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700 resize-none"
+                placeholder="Nhập chi tiết yêu cầu thay đổi (không bắt buộc)..."
+                className="w-full px-5 py-4 bg-[#f8f6f2] border border-slate-200 rounded-2xl focus:ring-2 focus:ring-slate-950 focus:border-slate-950 text-sm font-medium text-slate-900 outline-none transition-all resize-none"
               />
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-4">
-              <button
-                onClick={handleSubmit}
-                className="flex-1 px-8 py-4 bg-gray-900 text-white rounded-xl hover:bg-gray-800 font-bold text-lg shadow-lg hover:shadow-xl transition-all"
-              >
-                Xác nhận dời lịch
-              </button>
+            <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <button
                 onClick={() => navigate('/customer/appointments')}
-                className="px-8 py-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold text-lg transition-all"
+                className="px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-2xl hover:bg-slate-50 font-black transition-all premium-shadow order-2 sm:order-1 sm:w-1/3"
               >
                 Hủy bỏ
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-8 py-4 bg-slate-950 text-white rounded-2xl hover:bg-slate-800 font-black transition-all shadow-xl hover:shadow-2xl hover:-translate-y-0.5 order-1 sm:order-2 sm:w-2/3 flex items-center justify-center gap-2"
+              >
+                <Calendar className="w-5 h-5 text-white/80" />
+                Xác nhận dời lịch hẹn
               </button>
             </div>
           </div>
 
           {/* Right Column - Property Info */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden sticky top-8">
+            <div className="bg-white rounded-[2rem] premium-shadow border border-slate-100 overflow-hidden sticky top-8">
               {/* Property Image */}
-              <div className="relative h-48 bg-gray-200">
+              <div className="relative h-56 bg-slate-100">
                 {appointment.propertyImage ? (
                   <img
                     src={appointment.propertyImage}
@@ -333,45 +418,52 @@ export default function RescheduleAppointment() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <MapPin className="w-16 h-16 text-gray-400" />
+                    <MapPin className="w-16 h-16 text-slate-300" />
                   </div>
                 )}
-                <span className="absolute top-4 left-4 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+                
+                <span className="absolute top-4 left-4 bg-amber-500 text-white shadow-lg shadow-amber-500/30 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider">
                   Đang xem xét
                 </span>
+
+                <div className="absolute bottom-4 left-4 right-4">
+                  <p className="text-[10px] text-white/80 font-bold uppercase tracking-widest mb-1">Mã yêu cầu dời</p>
+                  <p className="text-white font-mono text-lg tracking-wider">#{appointment.appointmentId}</p>
+                </div>
               </div>
 
               {/* Property Details */}
               <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                <h3 className="text-lg font-black text-slate-950 mb-3 line-clamp-2 leading-tight">
                   {appointment.propertyTitle}
                 </h3>
-                <p className="text-gray-600 flex items-start gap-2 mb-4">
-                  <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
-                  <span className="text-sm">{appointment.propertyAddress}</span>
-                </p>
-
-                <div className="border-t border-gray-100 pt-4 space-y-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Khách hàng</p>
-                    <p className="text-sm font-bold text-gray-900">{appointment.customerName}</p>
+                <div className="flex items-start gap-2 mb-6">
+                  <div className="p-1.5 bg-slate-50 rounded-lg shrink-0">
+                    <MapPin className="w-4 h-4 text-slate-500" />
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Mã yêu cầu</p>
-                    <p className="text-sm font-bold text-gray-900">#{appointment.appointmentId}</p>
+                  <span className="text-sm font-medium text-slate-600 leading-relaxed">{appointment.propertyAddress}</span>
+                </div>
+
+                <div className="space-y-4 pt-6 border-t border-slate-100">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
+                      <UserRound className="w-4 h-4 text-slate-600" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Khách hàng</p>
+                      <p className="text-sm font-bold text-slate-950">{appointment.customerName}</p>
+                    </div>
                   </div>
                 </div>
 
                 {/* Warning Box */}
-                <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-200">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-bold text-amber-900 mb-1">
-                        Việc dời lịch cần được khách hàng xác nhận lại trong vòng 2 giờ kể từ khi yêu cầu được gửi đi
-                      </p>
-                    </div>
-                  </div>
+                <div className="mt-6 p-4 bg-amber-50 rounded-2xl border border-amber-200/50 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                  <p className="text-xs font-bold text-amber-800 leading-relaxed">
+                    Yêu cầu dời lịch của bạn sẽ được gửi tới chuyên viên tư vấn để xác nhận lại.
+                  </p>
                 </div>
               </div>
             </div>

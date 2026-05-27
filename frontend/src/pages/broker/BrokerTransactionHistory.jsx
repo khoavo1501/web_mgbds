@@ -38,7 +38,7 @@ const statusStyles = {
   refund_requested: "bg-orange-100 text-orange-700 border-orange-200",
   completed: "bg-green-100 text-green-700 border-green-200",
   cancelled: "bg-red-100 text-red-700 border-red-200",
-  default: "bg-gray-100 text-gray-700 border-gray-200",
+  default: "bg-gray-100 text-slate-700 border-gray-200",
 };
 
 const formatVnd = (value) =>
@@ -121,63 +121,63 @@ export default function BrokerTransactionHistory() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-[#f7f4ef] font-sans p-6">
       <div className="max-w-7xl mx-auto">
         {toast && (
-          <div className="fixed right-6 top-6 z-50 rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-900 shadow-xl">
+          <div className="fixed right-6 top-6 z-50 rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-slate-950 shadow-xl">
             {toast}
           </div>
         )}
 
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">BĐS đang giao dịch</h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold text-slate-950 mb-2">BĐS đang giao dịch</h1>
+          <p className="text-slate-600">
             Theo dõi các bất động sản đang trong giao dịch, chờ khách ký cam kết và xác nhận thanh toán cho người bán.
           </p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid gap-5 md:grid-cols-3 mb-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
             <div className="flex items-center justify-between mb-3">
-              <Building2 className="h-6 w-6 text-gray-400" />
+              <Building2 className="h-6 w-6 text-slate-400" />
               <button
                 type="button"
                 onClick={fetchTransactions}
-                className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                className="p-2 rounded-lg hover:bg-[#f7f4ef] font-sans transition-colors"
               >
-                <RefreshCcw className="h-4 w-4 text-gray-600" />
+                <RefreshCcw className="h-4 w-4 text-slate-600" />
               </button>
             </div>
-            <p className="text-sm font-semibold text-gray-600 mb-1">BĐS đang giao dịch</p>
-            <p className="text-3xl font-bold text-gray-900">{summary.total}</p>
+            <p className="text-sm font-semibold text-slate-600 mb-1">BĐS đang giao dịch</p>
+            <p className="text-3xl font-bold text-slate-950">{summary.total}</p>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <Clock3 className="h-6 w-6 text-gray-400 mb-3" />
-            <p className="text-sm font-semibold text-gray-600 mb-1">Chờ xác nhận thanh toán</p>
-            <p className="text-3xl font-bold text-gray-900">{summary.waitingBroker}</p>
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <Clock3 className="h-6 w-6 text-slate-400 mb-3" />
+            <p className="text-sm font-semibold text-slate-600 mb-1">Chờ xác nhận thanh toán</p>
+            <p className="text-3xl font-bold text-slate-950">{summary.waitingBroker}</p>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <Banknote className="h-6 w-6 text-gray-400 mb-3" />
-            <p className="text-sm font-semibold text-gray-600 mb-1">Tổng tiền cọc</p>
-            <p className="text-3xl font-bold text-gray-900">{formatVnd(summary.deposits)}</p>
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <Banknote className="h-6 w-6 text-slate-400 mb-3" />
+            <p className="text-sm font-semibold text-slate-600 mb-1">Tổng tiền cọc</p>
+            <p className="text-3xl font-bold text-slate-950">{formatVnd(summary.deposits)}</p>
           </div>
         </div>
 
         {/* Transactions List */}
         {loading ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-gray-900 mx-auto mb-4"></div>
-            <p className="text-gray-600 font-medium">Đang tải giao dịch...</p>
+            <p className="text-slate-600 font-medium">Đang tải giao dịch...</p>
           </div>
         ) : activeTransactions.length === 0 ? (
           <div className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-12 text-center">
             <FileText className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-            <p className="text-lg font-semibold text-gray-900 mb-2">Chưa có bất động sản nào đang giao dịch</p>
-            <p className="text-sm text-gray-500">Các giao dịch mới sẽ xuất hiện ở đây</p>
+            <p className="text-lg font-semibold text-slate-950 mb-2">Chưa có bất động sản nào đang giao dịch</p>
+            <p className="text-sm text-slate-500">Các giao dịch mới sẽ xuất hiện ở đây</p>
           </div>
         ) : (
           <div className="grid gap-5 xl:grid-cols-2">
@@ -186,20 +186,20 @@ export default function BrokerTransactionHistory() {
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
                       {item.propertyCode || item.transactionCode}
                     </p>
-                    <h2 className="text-lg font-bold text-gray-900 line-clamp-2 mb-2">
+                    <h2 className="text-lg font-bold text-slate-950 line-clamp-2 mb-2">
                       {item.propertyTitle || "Bất động sản"}
                     </h2>
-                    <p className="text-sm text-gray-600 mb-1">
+                    <p className="text-sm text-slate-600 mb-1">
                       <span className="font-semibold">Khách hàng:</span> {item.customerName || "Chưa cập nhật"}
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-slate-600">
                       <span className="font-semibold">Ngày giao dịch:</span> {formatDate(item.transactionDate)}
                     </p>
                     {item.dealScheduleAt && (
-                      <p className="text-sm text-blue-600 font-semibold mt-2">
+                      <p className="text-sm text-gold-600 font-semibold mt-2">
                         📅 Lịch giao dịch: {new Date(item.dealScheduleAt).toLocaleString("vi-VN")}
                       </p>
                     )}
@@ -209,9 +209,9 @@ export default function BrokerTransactionHistory() {
 
                 {/* Money Info */}
                 <div className="grid gap-3 md:grid-cols-3 mb-4">
-                  <div className="bg-gray-50 rounded-lg border border-gray-200 p-3">
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Giá trị</p>
-                    <p className="text-sm font-bold text-gray-900">{formatVnd(item.totalPrice)}</p>
+                  <div className="bg-[#f7f4ef] font-sans rounded-lg border border-gray-200 p-3">
+                    <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Giá trị</p>
+                    <p className="text-sm font-bold text-slate-950">{formatVnd(item.totalPrice)}</p>
                   </div>
                   <div className="bg-green-50 rounded-lg border border-green-200 p-3">
                     <p className="text-xs font-semibold text-green-700 uppercase mb-1">Tiền cọc</p>
@@ -279,7 +279,7 @@ function StatusPill({ status }) {
     refund_requested: "bg-orange-100 text-orange-700 border-orange-200",
     completed: "bg-green-100 text-green-700 border-green-200",
     cancelled: "bg-red-100 text-red-700 border-red-200",
-    default: "bg-gray-100 text-gray-700 border-gray-200",
+    default: "bg-gray-100 text-slate-700 border-gray-200",
   };
 
   return (

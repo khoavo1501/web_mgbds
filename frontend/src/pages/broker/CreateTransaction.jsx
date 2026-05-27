@@ -3,9 +3,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Input from "../../components/Input";
 import Button from "../../components/Button";
 import api from "../../services/api";
+import { useToast } from "../../context/ToastContext";
 
 export default function CreateTransaction() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [searchParams] = useSearchParams();
   const [appointments, setAppointments] = useState([]);
   const [selectedAppId, setSelectedAppId] = useState("");
@@ -107,15 +109,15 @@ export default function CreateTransaction() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.propertyId) {
-      alert("Vui lòng chọn lịch hẹn/bất động sản.");
+      toast.error("Vui lòng chọn lịch hẹn/bất động sản.");
       return;
     }
     if (!formData.customerId) {
-      alert("Lịch hẹn không có thông tin khách hàng hợp lệ.");
+      toast.error("Lịch hẹn không có thông tin khách hàng hợp lệ.");
       return;
     }
     if (Number(formData.depositAmount) > Number(formData.price)) {
-      alert("Tiền cọc không được lớn hơn giá trị giao dịch.");
+      toast.error("Tiền cọc không được lớn hơn giá trị giao dịch.");
       return;
     }
 
@@ -133,11 +135,11 @@ export default function CreateTransaction() {
 
       const response = await api.post("/transactions", payload);
       if (!response.data.success) {
-        alert(response.data.message || "Tạo giao dịch thất bại.");
+        toast.error(response.data.message || "Tạo giao dịch thất bại.");
         return;
       }
 
-      alert(`Tạo giao dịch đặt cọc thành công: ${response.data.data.transactionCode}`);
+      toast.success(`Tạo giao dịch đặt cọc thành công: ${response.data.data.transactionCode}`);
       navigate("/broker/transactions/history");
       
       setSelectedAppId("");
@@ -147,7 +149,7 @@ export default function CreateTransaction() {
         depositAmount: '', paymentMethod: 'transfer', note: ''
       });
     } catch (error) {
-      alert(error.response?.data?.message || "Có lỗi xảy ra khi tạo giao dịch.");
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi tạo giao dịch.");
     } finally {
       setSubmitting(false);
     }
@@ -155,7 +157,7 @@ export default function CreateTransaction() {
 
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6">Tạo Giao dịch Đặt cọc</h1>
+      <h1 className="text-2xl font-black tracking-tight text-slate-800 mb-6">Tạo Giao dịch Đặt cọc</h1>
       
       <form onSubmit={handleSubmit} className="space-y-8 bg-white p-8 rounded-xl shadow-sm border border-slate-200">
         
@@ -180,7 +182,7 @@ export default function CreateTransaction() {
               Chưa có lịch hẹn hợp lệ cho broker này. Hãy xác nhận lịch hẹn hoặc tạo lịch xem nhà trước.
             </p>
           )}
-          <p className="mt-2 text-xs text-blue-600">Việc chọn lịch hẹn sẽ tự động điền thông tin khách hàng và bất động sản tương ứng.</p>
+          <p className="mt-2 text-xs text-gold-600">Việc chọn lịch hẹn sẽ tự động điền thông tin khách hàng và bất động sản tương ứng.</p>
         </div>
 
         {/* Thông tin khách hàng */}

@@ -42,7 +42,7 @@ const InputField = ({ label, required, icon: Icon, className = '', ...props }) =
 const SectionCard = ({ num, title, icon: SIcon, children }) => (
   <section className="bg-white/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 relative overflow-hidden transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
     <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-purple-50/30 -z-10"></div>
-    <h3 className="text-xl font-bold text-slate-900 mb-8 flex items-center gap-4">
+    <h3 className="text-xl font-black tracking-tight text-slate-900 mb-8 flex items-center gap-4">
       <div className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white text-base font-black shadow-lg shadow-blue-500/30">
         {num}
         <div className="absolute -inset-1 bg-blue-500 rounded-2xl opacity-20 blur-sm"></div>
@@ -143,7 +143,7 @@ function MyProperties({ onEdit, showToast }) {
             </div>
 
             <div className="flex-1 min-w-0 flex flex-col">
-              <h4 className="text-base font-bold text-slate-900 line-clamp-1 mb-1 group-hover:text-blue-600 transition-colors">{p.title}</h4>
+              <h4 className="text-base font-bold text-slate-900 line-clamp-1 mb-1 group-hover:text-gold-600 transition-colors">{p.title}</h4>
               <p className="text-sm text-slate-400 mb-3">{p.propertyCode} · {p.propertyType}</p>
               
               <div className="flex items-center gap-2 text-sm text-slate-500 mb-4 mt-auto">
@@ -153,11 +153,11 @@ function MyProperties({ onEdit, showToast }) {
               
               <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="font-black text-blue-600 text-lg">{formatPrice(p.price)}</span>
+                  <span className="font-black text-gold-600 text-lg">{formatPrice(p.price)}</span>
                   <span className="text-xs text-slate-400 font-medium">/ {p.area}m²</span>
                 </div>
                 <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
-                  <button onClick={() => onEdit(p)} className="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition-colors" title="Xem / Sửa">
+                  <button onClick={() => onEdit(p)} className="text-gold-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition-colors" title="Xem / Sửa">
                     <PenSquare className="w-4 h-4" />
                   </button>
                   {['pending', 'pending_review'].includes(p.status) && (
@@ -415,7 +415,7 @@ export default function PropertyUpload() {
 
       {/* Page Header */}
       <div className="mb-10 relative">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-xs font-black uppercase tracking-wider mb-4">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-100 text-gold-600 text-xs font-black uppercase tracking-wider mb-4">
           <Sparkles className="w-4 h-4" /> Bất động sản
         </div>
         <h2 className="text-4xl font-black text-slate-900 mb-3 tracking-tight">Đăng tin Bất động sản</h2>
@@ -429,7 +429,7 @@ export default function PropertyUpload() {
           className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-sm font-bold transition-all duration-300 ${
             activeTab === 'new' 
               ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 scale-105 border-transparent' 
-              : 'bg-white/70 backdrop-blur-md shadow-sm border border-slate-200/60 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:shadow-blue-100/50 hover:bg-white'
+              : 'bg-white/70 backdrop-blur-md shadow-sm border border-slate-200/60 text-slate-600 hover:text-gold-600 hover:border-blue-200 hover:shadow-blue-100/50 hover:bg-white'
           }`}>
           <PenSquare className="w-5 h-5" /> {editingId ? 'Cập nhật tin' : 'Đăng tin mới'}
         </button>
@@ -438,7 +438,7 @@ export default function PropertyUpload() {
           className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-sm font-bold transition-all duration-300 ${
             activeTab === 'list' 
               ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 scale-105 border-transparent' 
-              : 'bg-white/70 backdrop-blur-md shadow-sm border border-slate-200/60 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:shadow-blue-100/50 hover:bg-white'
+              : 'bg-white/70 backdrop-blur-md shadow-sm border border-slate-200/60 text-slate-600 hover:text-gold-600 hover:border-blue-200 hover:shadow-blue-100/50 hover:bg-white'
           }`}>
           <List className="w-5 h-5" /> BĐS của tôi
         </button>
@@ -661,7 +661,7 @@ export default function PropertyUpload() {
                   <div className="space-y-5 relative z-10">
                     <div className="text-sm font-medium text-slate-600 leading-relaxed">
                       <span className="font-black text-slate-900 block mb-2 text-base flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-blue-600" /> Bất động sản độc quyền (Exclusive)
+                        <Sparkles className="w-5 h-5 text-gold-600" /> Bất động sản độc quyền (Exclusive)
                       </span>
                       Là hình thức mà bạn (Broker) là người đại diện duy nhất được quyền phân phối và bán bất động sản này trong một thời gian nhất định, đảm bảo quyền lợi và hoa hồng cao nhất.
                     </div>
@@ -742,7 +742,7 @@ export default function PropertyUpload() {
             <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Tiến độ nhập liệu</h3>
-                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                <span className="text-xs font-bold text-gold-600 bg-blue-50 px-3 py-1 rounded-full">
                   {Math.round(((isBasicInfoComplete ? 1 : 0) + (isDescComplete ? 1 : 0) + (isImagesComplete ? 1 : 0) + (formData.commitment ? 1 : 0)) / 4 * 100)}%
                 </span>
               </div>

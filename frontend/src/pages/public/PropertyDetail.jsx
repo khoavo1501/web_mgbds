@@ -18,6 +18,7 @@ import {
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useFavorites } from "../../context/FavoritesContext";
+import { useToast } from "../../context/ToastContext";
 
 const PLACEHOLDER_IMAGE =
   "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1400&q=80";
@@ -120,6 +121,7 @@ export default function PropertyDetail() {
   const [favoriteToast, setFavoriteToast] = useState("");
   const { user } = useAuth();
   const { toggleFavorite, isFavorite } = useFavorites();
+  const toast = useToast();
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -160,7 +162,7 @@ export default function PropertyDetail() {
     }
 
     if (user.role !== "customer") {
-      alert("Chỉ tài khoản khách hàng mới có thể đặt lịch xem nhà.");
+      toast.error("Chỉ tài khoản khách hàng mới có thể đặt lịch xem nhà.");
       return;
     }
 

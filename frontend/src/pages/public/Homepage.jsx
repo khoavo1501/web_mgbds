@@ -196,17 +196,17 @@ const getPostedTime = (property, index = 0) => {
 
 function PropertySpecs({ property, compact = false }) {
   return (
-    <div className={`flex items-center ${compact ? "gap-2" : "gap-3"} text-xs font-semibold text-slate-700`}>
-      <span className="flex items-center gap-1">
-        <Square className="h-3.5 w-3.5" />
+    <div className={`flex items-center ${compact ? "gap-2" : "gap-3"} text-xs font-medium text-slate-500`}>
+      <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+        <Square className="h-3.5 w-3.5 text-slate-400" />
         {formatArea(property.area)}
       </span>
-      <span className="flex items-center gap-1">
-        <BedDouble className="h-3.5 w-3.5" />
+      <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+        <BedDouble className="h-3.5 w-3.5 text-slate-400" />
         {property.bedrooms || "-"}
       </span>
-      <span className="flex items-center gap-1">
-        <Bath className="h-3.5 w-3.5" />
+      <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+        <Bath className="h-3.5 w-3.5 text-slate-400" />
         {property.bathrooms || "-"}
       </span>
     </div>
@@ -217,40 +217,40 @@ function PropertyCard({ property, large = false, badge, postedTime }) {
   return (
     <Link
       to={`/properties/${property.propertyId}`}
-      className={`group overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl ${
+      className={`group overflow-hidden rounded-2xl border border-slate-100 bg-white transition-all duration-300 hover:-translate-y-1.5 hover:premium-shadow ${
         large ? "lg:row-span-2" : ""
       }`}
     >
-      <div className={`relative overflow-hidden ${large ? "h-80 lg:h-[430px]" : "h-48"}`}>
+      <div className={`relative overflow-hidden ${large ? "h-80 lg:h-[430px]" : "h-52"}`}>
         <img
           src={getPropertyImage(property)}
           alt={property.title}
-          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
-        <span className="absolute left-3 top-3 rounded-sm bg-white/92 px-3 py-1 text-xs font-bold text-slate-900">
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent opacity-60 transition-opacity group-hover:opacity-80" />
+        <span className="absolute left-3 top-3 rounded-lg bg-white/90 backdrop-blur-md px-3 py-1 text-xs font-bold text-slate-800 shadow-sm">
           {badge || getPropertyTypeLabel(property.propertyType)}
         </span>
         {postedTime && (
-          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-sm bg-[#d7b56d] px-2.5 py-1 text-xs font-black text-slate-950">
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-gold-400 to-gold-500 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
             <Clock3 className="h-3.5 w-3.5" />
             {postedTime}
           </span>
         )}
-        <span className="absolute bottom-3 left-3 rounded-sm bg-white px-2.5 py-1 text-xs font-semibold text-slate-900">
+        <span className="absolute bottom-3 left-3 flex items-center gap-1 rounded-lg bg-slate-900/60 backdrop-blur-md px-2.5 py-1 text-xs font-medium text-white">
+          <MapPin className="h-3 w-3" />
           {property.province || "Hồ Chí Minh"}
         </span>
       </div>
-      <div className={large ? "p-5" : "p-4"}>
-        <h3 className={`${large ? "text-xl" : "text-base"} line-clamp-2 font-extrabold leading-snug text-slate-950`}>
+      <div className={large ? "p-6" : "p-5"}>
+        <h3 className={`${large ? "text-xl" : "text-base"} line-clamp-2 font-bold leading-snug text-slate-800 group-hover:text-gold-600 transition-colors`}>
           {property.title}
         </h3>
-        <p className="mt-3 flex items-center gap-1.5 text-sm font-medium text-slate-600">
-          <MapPin className="h-4 w-4 shrink-0" />
+        <p className="mt-2.5 flex items-center gap-1.5 text-sm text-slate-500">
           <span className="line-clamp-1">{property.address || `${property.district || ""}, ${property.province || ""}`}</span>
         </p>
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-lg font-extrabold text-slate-950">{formatPrice(property.price)}</p>
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-slate-100">
+          <p className="text-lg font-bold text-gold-600">{formatPrice(property.price)}</p>
           <PropertySpecs property={property} compact={!large} />
         </div>
       </div>
@@ -290,7 +290,7 @@ export default function Homepage() {
     const fetchProperties = async () => {
       try {
         const response = await api.get(
-          "/properties?status=published&size=10&sortBy=createdAt&sortDirection=DESC"
+          "/properties?status=approved&size=10&sortBy=createdAt&sortDirection=DESC"
         );
         if (response.data.success) {
           setFeaturedProperties(response.data.data.content || []);
@@ -368,7 +368,7 @@ export default function Homepage() {
         <input
           value={filters.keyword}
           onChange={(event) => updateFilter("keyword", event.target.value)}
-          className="h-14 w-full rounded-lg border border-white/70 bg-white/[0.92] pl-12 pr-4 text-base font-bold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
+          className="h-14 w-full rounded-xl border border-white/70 bg-white/90 pl-12 pr-4 text-base font-bold text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-gold-400 focus:bg-white focus:ring-4 focus:ring-gold-400/20"
           placeholder="Nhập địa điểm, dự án hoặc từ khóa"
         />
       </label>
@@ -376,7 +376,7 @@ export default function Homepage() {
       <select
         value={filters.propertyType}
         onChange={(event) => updateFilter("propertyType", event.target.value)}
-        className="h-14 rounded-lg border border-white/70 bg-white/[0.92] px-4 text-base font-bold text-slate-800 outline-none transition focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
+        className="h-14 rounded-xl border border-white/70 bg-white/90 px-4 text-base font-bold text-slate-800 outline-none transition-all focus:border-gold-400 focus:bg-white focus:ring-4 focus:ring-gold-400/20"
       >
         <option value="">Tất cả loại hình</option>
         {propertyTypes.map((type) => (
@@ -389,7 +389,7 @@ export default function Homepage() {
       <select
         value={filters.priceRange}
         onChange={(event) => updateFilter("priceRange", event.target.value)}
-        className="h-14 rounded-lg border border-white/70 bg-white/[0.92] px-4 text-base font-bold text-slate-800 outline-none transition focus:border-[#d7b56d] focus:ring-4 focus:ring-[#d7b56d]/20"
+        className="h-14 rounded-xl border border-white/70 bg-white/90 px-4 text-base font-bold text-slate-800 outline-none transition-all focus:border-gold-400 focus:bg-white focus:ring-4 focus:ring-gold-400/20"
       >
         {priceRanges.map((range, index) => (
           <option key={range.label} value={index}>
@@ -400,7 +400,7 @@ export default function Homepage() {
 
       <button
         type="submit"
-        className="inline-flex h-14 items-center justify-center gap-2 rounded-lg bg-[#d7b56d] px-7 text-base font-black text-slate-950 shadow-lg shadow-black/15 transition hover:-translate-y-0.5 hover:bg-[#edcd82]"
+        className="inline-flex h-14 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-gold-400 to-gold-600 px-7 text-base font-bold text-white shadow-lg shadow-gold-500/30 transition-all hover:-translate-y-1 hover:shadow-xl hover:from-gold-300 hover:to-gold-500"
       >
         Tìm kiếm
         <ArrowRight className="h-4 w-4" />
@@ -416,7 +416,7 @@ export default function Homepage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed left-0 right-0 top-16 z-40 hidden border-b border-slate-200 bg-white/92 shadow-lg shadow-slate-950/10 backdrop-blur-xl lg:block"
+            className="fixed left-0 right-0 top-16 z-40 hidden border-b border-white/40 bg-white/70 shadow-md backdrop-blur-2xl lg:block"
           >
             <form onSubmit={handleSearch} className="mx-auto grid max-w-7xl grid-cols-[1.5fr_1fr_1fr_auto] gap-3 px-8 py-3">
               {searchFields}
@@ -453,8 +453,9 @@ export default function Homepage() {
               NhaDatPro Signature
             </div>
 
-            <h1 className="mt-7 max-w-4xl text-4xl font-black leading-[1.04] text-white sm:text-6xl lg:text-7xl">
-              Tìm đúng bất động sản, chạm đúng chuẩn sống.
+            <h1 className="mt-7 max-w-4xl text-4xl font-black leading-[1.1] text-white sm:text-6xl lg:text-7xl tracking-tight">
+              Tìm đúng bất động sản, <br className="hidden sm:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-300 to-gold-500">chạm đúng chuẩn sống.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base font-semibold leading-8 text-white/80 sm:text-xl">
               Khám phá căn hộ, villa và nhà riêng được chọn lọc với dữ liệu minh bạch, hình ảnh rõ nét và kết nối môi giới nhanh chóng.
@@ -471,7 +472,7 @@ export default function Homepage() {
 
             <form
               onSubmit={handleSearch}
-              className="mt-9 grid w-full max-w-5xl gap-3 rounded-2xl border border-white/25 bg-white/[0.16] p-3 shadow-2xl shadow-black/30 backdrop-blur-xl md:grid-cols-[1.5fr_1fr_1fr_auto]"
+              className="mt-9 grid w-full max-w-5xl gap-3 rounded-3xl border border-white/30 bg-white/10 p-3 shadow-2xl shadow-black/40 backdrop-blur-2xl md:grid-cols-[1.5fr_1fr_1fr_auto]"
             >
               {searchFields}
             </form>
@@ -633,20 +634,20 @@ export default function Homepage() {
             </Link>
           </div>
 
-          <div className="flex gap-5 overflow-x-auto pb-3">
+          <div className="flex gap-5 overflow-x-auto pb-6 pt-2 snap-x">
             {premiumProjects.map((project) => (
               <Link
                 key={project.title}
                 to={`/properties?keyword=${encodeURIComponent(project.type)}`}
-                className="group relative h-[360px] min-w-[290px] overflow-hidden rounded-lg bg-slate-900 shadow-sm sm:min-w-[360px]"
+                className="group relative h-[400px] min-w-[300px] snap-center overflow-hidden rounded-2xl bg-slate-900 premium-shadow sm:min-w-[380px]"
               >
-                <img src={project.image} alt={project.title} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/88 via-slate-950/18 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-5 text-white">
-                  <span className="rounded-sm bg-[#d7b56d] px-3 py-1 text-xs font-black text-slate-950">{project.type}</span>
-                  <h3 className="mt-4 text-2xl font-black">{project.title}</h3>
-                  <p className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-white/75">
-                    <MapPin className="h-4 w-4" />
+                <img src={project.image} alt={project.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-6 text-white transform transition-transform duration-500 group-hover:-translate-y-2">
+                  <span className="rounded-lg bg-gradient-to-r from-gold-400 to-gold-600 px-3 py-1.5 text-xs font-bold text-white shadow-md">{project.type}</span>
+                  <h3 className="mt-5 text-2xl font-bold">{project.title}</h3>
+                  <p className="mt-2.5 flex items-center gap-2 text-sm font-medium text-slate-300">
+                    <MapPin className="h-4 w-4 text-gold-400" />
                     {project.location}
                   </p>
                 </div>
@@ -747,22 +748,25 @@ export default function Homepage() {
       </section>
 
       <section className="px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl overflow-hidden rounded-lg bg-slate-950 p-8 text-white shadow-2xl shadow-slate-950/20 sm:p-12">
-          <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div className="mx-auto max-w-7xl relative overflow-hidden rounded-3xl bg-slate-950 p-8 text-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] sm:p-14">
+          <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-gold-500/20 blur-[100px]" />
+          <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-emerald-500/20 blur-[100px]" />
+          
+          <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.18em] text-[#d7b56d]">Bắt đầu tìm kiếm</p>
-              <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-tight sm:text-5xl">
+              <p className="text-sm font-bold uppercase tracking-widest text-gold-400">Bắt đầu tìm kiếm</p>
+              <h2 className="mt-4 max-w-3xl text-3xl font-black tracking-tight sm:text-5xl leading-tight">
                 Bạn đang tìm bất động sản phù hợp?
               </h2>
-              <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-white/70">
+              <p className="mt-5 max-w-2xl text-lg font-medium leading-relaxed text-slate-300">
                 Khám phá hàng nghìn tin đăng được cập nhật ngay hôm nay hoặc đăng tin để tiếp cận khách hàng tiềm năng.
               </p>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
-              <Link to="/properties" className="inline-flex h-12 items-center justify-center rounded-md bg-[#d7b56d] px-6 text-sm font-black text-slate-950 transition hover:bg-[#edcd82]">
+            <div className="flex flex-col gap-4 sm:flex-row lg:flex-col xl:flex-row">
+              <Link to="/properties" className="inline-flex h-14 items-center justify-center rounded-xl bg-gradient-to-r from-gold-400 to-gold-600 px-8 text-base font-bold text-white shadow-lg shadow-gold-500/30 transition-all hover:-translate-y-1 hover:shadow-xl hover:from-gold-300 hover:to-gold-500">
                 Xem bất động sản
               </Link>
-              <Link to="/broker/upload" className="inline-flex h-12 items-center justify-center rounded-md border border-white/20 px-6 text-sm font-black text-white transition hover:bg-white hover:text-slate-950">
+              <Link to="/broker/upload" className="inline-flex h-14 items-center justify-center rounded-xl border-2 border-slate-700 bg-slate-800/50 backdrop-blur-md px-8 text-base font-bold text-white transition-all hover:-translate-y-1 hover:bg-slate-700 hover:border-slate-600 shadow-lg">
                 Đăng tin ngay
               </Link>
             </div>

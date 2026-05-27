@@ -37,17 +37,21 @@ export default function PublicLayout() {
   };
 
   const navClass = ({ isActive }) =>
-    `text-sm font-semibold transition-colors ${
-      isActive ? "text-slate-950" : "text-slate-500 hover:text-slate-950"
+    `text-sm font-semibold transition-all duration-200 relative ${
+      isActive 
+        ? "text-gold-600 after:absolute after:bottom-[-4px] after:left-0 after:w-full after:h-0.5 after:bg-gold-500 after:rounded-full" 
+        : "text-slate-500 hover:text-slate-900"
     }`;
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-950">
-      {!isAuthPage && <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-900">
+      {!isAuthPage && <header className="sticky top-0 z-50 border-b border-white/40 bg-white/70 backdrop-blur-xl shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] transition-all duration-300">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-slate-950">
-            <Building2 className="h-6 w-6" />
-            <span>NhaDatPro</span>
+          <Link to="/" className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-slate-900 group">
+            <div className="bg-gradient-to-br from-gold-400 to-gold-600 text-white p-1.5 rounded-lg shadow-md group-hover:scale-105 transition-transform">
+              <Building2 className="h-5 w-5" />
+            </div>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">NhaDatPro</span>
           </Link>
 
           <nav className="hidden items-center gap-8 md:flex">
@@ -69,7 +73,7 @@ export default function PublicLayout() {
             {!user ? (
               <Link
                 to="/auth"
-                className="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm px-5 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-gold-600 hover:border-gold-200 hover:shadow-md"
               >
                 Đăng nhập
               </Link>
@@ -80,11 +84,13 @@ export default function PublicLayout() {
                   <button
                   type="button"
                   onClick={() => setShowDropdown((value) => !value)}
-                  className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm transition hover:bg-slate-50"
+                  className="flex items-center gap-3 rounded-full border border-slate-200 bg-white/80 backdrop-blur-sm pl-2 pr-4 py-1.5 shadow-sm transition-all hover:bg-white hover:border-gold-300 hover:shadow-md group"
                 >
-                  <UserCircle className="h-5 w-5 text-slate-600" />
+                  <div className="bg-slate-100 p-1.5 rounded-full group-hover:bg-gold-50 group-hover:text-gold-600 transition-colors">
+                    <UserCircle className="h-5 w-5" />
+                  </div>
                   <div className="flex flex-col items-start">
-                    <span className="hidden text-sm font-bold text-slate-900 sm:inline">
+                    <span className="hidden text-sm font-bold text-slate-800 sm:inline group-hover:text-gold-700 transition-colors">
                       {user.fullName || user.email}
                     </span>
                     {user.role === "customer" && reputationScore && (
@@ -102,11 +108,14 @@ export default function PublicLayout() {
                 </button>
 
                 {showDropdown && (
-                  <div className="absolute right-0 mt-3 w-52 overflow-hidden rounded-md border border-slate-200 bg-white py-1 shadow-xl shadow-slate-900/10">
+                  <div className="absolute right-0 mt-3 w-56 overflow-hidden rounded-xl border border-slate-100 bg-white/95 backdrop-blur-xl py-2 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] animate-fade-in origin-top-right">
+                    <div className="px-4 py-2 border-b border-slate-100 mb-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Tài khoản</p>
+                    </div>
                     <Link
                       to={getDashboardLink()}
                       onClick={() => setShowDropdown(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-gold-600 transition-colors"
                     >
                       <LayoutDashboard className="h-4 w-4" />
                       Dashboard
@@ -150,7 +159,7 @@ export default function PublicLayout() {
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors mt-1 border-t border-slate-100"
                     >
                       <LogOut className="h-4 w-4" />
                       Đăng xuất
@@ -168,14 +177,16 @@ export default function PublicLayout() {
         <Outlet />
       </main>
 
-      {!isAuthPage && <footer className="bg-slate-950 py-10 text-white">
+      {!isAuthPage && <footer className="bg-slate-950 py-12 text-slate-300">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 md:grid-cols-4 lg:px-8">
           <div>
-            <div className="mb-4 flex items-center gap-2 text-lg font-extrabold">
-              <Building2 className="h-5 w-5" />
+            <div className="mb-5 flex items-center gap-2 text-xl font-extrabold text-white">
+              <div className="bg-gold-500 text-slate-950 p-1.5 rounded-lg shadow-md">
+                <Building2 className="h-5 w-5" />
+              </div>
               <span>NhaDatPro</span>
             </div>
-            <p className="max-w-xs text-sm leading-6 text-slate-300">
+            <p className="max-w-xs text-sm leading-relaxed text-slate-400">
               Nền tảng môi giới bất động sản hàng đầu Việt Nam. Cung cấp thông tin chính xác,
               giao dịch an toàn và nhanh chóng.
             </p>

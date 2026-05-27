@@ -11,7 +11,7 @@ export default function RescheduleWarningModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in">
         {/* Header */}
         <div className={`p-6 ${isWithin24Hours ? 'bg-red-50' : 'bg-amber-50'}`}>

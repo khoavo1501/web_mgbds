@@ -11,6 +11,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import NotificationDropdown from "../components/NotificationDropdown";
 
 const navItems = [
   { name: "Tổng quan", path: "/customer", icon: Home, end: true },
@@ -103,12 +104,7 @@ export default function CustomerLayout() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100"
-              >
-                <Bell className="h-5 w-5" />
-              </button>
+              <NotificationDropdown />
               <Link
                 to="/"
                 className="inline-flex h-10 items-center rounded-md border border-slate-200 bg-white px-4 text-sm font-bold text-slate-950 hover:bg-slate-50"

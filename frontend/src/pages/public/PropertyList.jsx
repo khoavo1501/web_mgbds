@@ -133,7 +133,7 @@ const buildSearchParams = (filters) => {
   params.set("sortBy", selectedSort.sortBy);
   params.set("sortDirection", selectedSort.sortDirection);
   params.set("page", "0");
-  params.set("status", "published");
+  params.set("status", "approved");
 
   return params;
 };
@@ -214,7 +214,7 @@ export default function PropertyList() {
       try {
         const params = new URLSearchParams(searchParams);
         params.delete("province");
-        params.set("status", "published");
+        params.set("status", "approved");
         params.set("size", String(PAGE_SIZE));
         if (!params.has("sortBy")) params.set("sortBy", "createdAt");
         if (!params.has("sortDirection")) params.set("sortDirection", "DESC");
@@ -537,66 +537,72 @@ export default function PropertyList() {
               >
                 <Link
                   to={`/properties/${property.propertyId}`}
-                  className="group block overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                  className="group flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white transition-all duration-300 hover:-translate-y-1.5 hover:premium-shadow"
                 >
                   <div className="relative h-60 overflow-hidden">
                     <img
                       src={getPropertyImage(property)}
                       alt={property.title}
-                      className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent" />
-                    <span className="absolute left-3 top-3 rounded-sm bg-white/92 px-3 py-1 text-xs font-bold text-slate-900">
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent opacity-60 transition-opacity group-hover:opacity-80" />
+                    <span className="absolute left-3 top-3 rounded-lg bg-white/90 backdrop-blur-md px-3 py-1 text-xs font-bold text-slate-800 shadow-sm">
                       {getPropertyTypeLabel(property.propertyType)}
                     </span>
-                    <span className="absolute bottom-3 left-3 rounded-sm bg-white px-2.5 py-1 text-xs font-semibold text-slate-900">
+                    <span className="absolute bottom-3 left-3 flex items-center gap-1 rounded-lg bg-slate-900/60 backdrop-blur-md px-2.5 py-1 text-xs font-medium text-white">
+                      <MapPin className="h-3 w-3" />
                       {property.province || "Hồ Chí Minh"}
                     </span>
                     <button
                       type="button"
                       onClick={(event) => toggleLike(property.propertyId, event)}
-                      className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/95 text-slate-700 transition hover:bg-slate-950 hover:text-white"
+                      className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 backdrop-blur-sm text-slate-700 transition hover:bg-rose-500 hover:text-white hover:shadow-md"
                       aria-label="Lưu bất động sản"
                     >
                       <Heart
                         className={`h-4 w-4 ${
-                          likedProperties.has(property.propertyId) ? "fill-slate-950 text-slate-950" : ""
+                          likedProperties.has(property.propertyId) ? "fill-rose-500 text-rose-500" : ""
                         }`}
                       />
                     </button>
                   </div>
 
-                  <div className="p-4">
-                    <h2 className="line-clamp-2 min-h-11 text-base font-extrabold leading-snug text-slate-950">
+                  <div className="flex flex-col flex-1 p-5">
+                    <h2 className="line-clamp-2 min-h-[2.75rem] text-base font-bold leading-snug text-slate-800 group-hover:text-gold-600 transition-colors">
                       {property.title}
                     </h2>
-                    <p className="mt-3 flex items-center gap-1.5 text-sm font-medium text-slate-600">
-                      <MapPin className="h-4 w-4 shrink-0" />
+                    <p className="mt-2.5 flex items-center gap-1.5 text-sm text-slate-500">
                       <span className="line-clamp-1">{property.address || `${property.district || ""}, ${property.province || ""}`}</span>
                     </p>
 
-                    <div className="mt-5 flex items-center justify-between gap-3">
-                      <p className="text-lg font-extrabold text-slate-950">{formatPrice(property.price)}</p>
-                      <div className="flex items-center gap-3 text-xs font-semibold text-slate-700">
-                        <span className="flex items-center gap-1"><Square className="h-3.5 w-3.5" />{formatArea(property.area)}</span>
-                        <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" />{property.bedrooms || "-"}</span>
-                        <span className="flex items-center gap-1"><Bath className="h-3.5 w-3.5" />{property.bathrooms || "-"}</span>
+                    <div className="mt-5 flex items-center justify-between gap-3 pt-4 border-t border-slate-100">
+                      <p className="text-lg font-bold text-gold-600">{formatPrice(property.price)}</p>
+                      <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                        <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+                          <Square className="h-3.5 w-3.5 text-slate-400" />{formatArea(property.area)}
+                        </span>
+                        <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+                          <BedDouble className="h-3.5 w-3.5 text-slate-400" />{property.bedrooms || "-"}
+                        </span>
+                        <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+                          <Bath className="h-3.5 w-3.5 text-slate-400" />{property.bathrooms || "-"}
+                        </span>
                       </div>
                     </div>
 
                     <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
-                      <div className="flex items-center gap-2">
-                        <div className="grid h-8 w-8 place-items-center rounded-full bg-[#f4e7c8] text-[#8b6824]">
+                      <div className="flex items-center gap-3">
+                        <div className="grid h-8 w-8 place-items-center rounded-full bg-gold-50 text-gold-600 group-hover:bg-gold-500 group-hover:text-white transition-colors">
                           <UserCircle className="h-5 w-5" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-slate-900">
+                          <p className="text-xs font-bold text-slate-800">
                             {property.assignedTo?.fullName || "Tư vấn viên"}
                           </p>
                           <p className="text-xs font-medium text-slate-500">Phụ trách chính</p>
                         </div>
                       </div>
-                      <span className="rounded-sm bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                      <span className="rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 group-hover:bg-gold-50 group-hover:text-gold-600 transition-colors">
                         Xem chi tiết
                       </span>
                     </div>

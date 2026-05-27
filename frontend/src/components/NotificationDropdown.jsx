@@ -9,13 +9,41 @@ const getIconForType = (type) => {
     case 'PAYMENT_CONFIRMED':
     case 'PROPERTY_APPROVED':
     case 'APPOINTMENT_APPROVED':
-      return <CheckCircle className="w-5 h-5 text-green-500" />;
+    case 'appointment_confirmed':
+    case 'appointment_completed':
+      return (
+        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+          <CheckCircle className="w-5 h-5 text-emerald-600" />
+        </div>
+      );
     case 'DOCUMENT_REJECTED':
     case 'PROPERTY_REJECTED':
     case 'TRANSACTION_CANCELLED':
-      return <XCircle className="w-5 h-5 text-red-500" />;
+    case 'appointment_rejected':
+    case 'appointment_cancelled':
+      return (
+        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+          <XCircle className="w-5 h-5 text-red-600" />
+        </div>
+      );
+    case 'appointment_rescheduled':
+      return (
+        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+          <Clock className="w-5 h-5 text-indigo-600" />
+        </div>
+      );
+    case 'appointment_created':
+      return (
+        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+          <Bell className="w-5 h-5 text-blue-600" />
+        </div>
+      );
     default:
-      return <Bell className="w-5 h-5 text-blue-500" />;
+      return (
+        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+          <Bell className="w-5 h-5 text-slate-600" />
+        </div>
+      );
   }
 };
 
@@ -87,7 +115,7 @@ const NotificationDropdown = () => {
     <div className="relative">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+        className="relative p-2.5 text-slate-600 hover:text-slate-950 hover:bg-slate-100 rounded-xl transition-colors"
       >
         <Bell className="w-6 h-6" />
         {unreadCount > 0 && (
@@ -114,62 +142,69 @@ const NotificationDropdown = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden"
+              className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-[1.5rem] premium-shadow border border-slate-100 z-50 overflow-hidden"
             >
-              <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-                <h3 className="font-semibold text-gray-800">Thông báo</h3>
+              <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-white">
+                <h3 className="font-bold text-slate-950 text-lg tracking-tight">Thông báo</h3>
                 {unreadCount > 0 && (
                   <button 
                     onClick={markAllAsRead}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+                    className="text-xs text-gold-600 hover:text-gold-700 font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-gold-50 transition-colors"
                   >
-                    <Check className="w-3 h-3" /> Đánh dấu đã đọc
+                    <Check className="w-3.5 h-3.5" /> Đã đọc tất cả
                   </button>
                 )}
               </div>
               
-              <div className="max-h-96 overflow-y-auto">
+              <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
                 {notifications.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500 flex flex-col items-center">
-                    <Bell className="w-10 h-10 text-gray-300 mb-2" />
-                    <p>Không có thông báo nào</p>
+                  <div className="p-10 text-center text-slate-500 flex flex-col items-center">
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                      <Bell className="w-8 h-8 text-slate-300" />
+                    </div>
+                    <p className="font-medium text-slate-600">Bạn chưa có thông báo nào</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-50">
+                  <div className="divide-y divide-slate-100">
                     {notifications.map((notif) => (
                       <div 
                         key={notif.notificationId} 
-                        className={`p-4 hover:bg-gray-50 transition-colors flex gap-3 cursor-pointer ${!notif.isRead ? 'bg-blue-50/30' : ''}`}
+                        className={`p-4 hover:bg-slate-50 transition-colors flex gap-4 cursor-pointer relative group ${!notif.isRead ? 'bg-emerald-50/30' : ''}`}
                         onClick={() => {
                           if (!notif.isRead) markAsRead(notif.notificationId);
                         }}
                       >
-                        <div className="mt-1 flex-shrink-0">
+                        {/* Indicator Line cho thông báo chưa đọc */}
+                        {!notif.isRead && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+                        )}
+                        
+                        <div className="mt-0.5">
                           {getIconForType(notif.type)}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-sm ${!notif.isRead ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+                        <div className="flex-1 min-w-0 pr-2">
+                          <p className={`text-sm tracking-tight ${!notif.isRead ? 'font-bold text-slate-950' : 'font-semibold text-slate-800'}`}>
                             {notif.title}
                           </p>
-                          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                          <p className={`text-sm mt-1 line-clamp-2 ${!notif.isRead ? 'text-slate-700 font-medium' : 'text-slate-500'}`}>
                             {notif.message}
                           </p>
-                          <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
+                          <p className="text-xs text-slate-400 mt-2.5 flex items-center gap-1.5 font-medium">
+                            <Clock className="w-3.5 h-3.5" />
                             {formatTime(notif.createdAt)}
                           </p>
                         </div>
-                        {!notif.isRead && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                        )}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
               
-              <div className="p-3 border-t bg-gray-50 text-center">
-                <button className="text-sm font-medium text-blue-600 hover:text-blue-800" onClick={() => setIsOpen(false)}>
+              <div className="p-3 border-t border-slate-100 bg-gray-50/50 text-center">
+                <button 
+                  className="text-sm font-bold text-slate-700 hover:text-slate-950 transition-colors py-1.5 px-4 rounded-full hover:bg-slate-200" 
+                  onClick={() => setIsOpen(false)}
+                >
                   Đóng
                 </button>
               </div>

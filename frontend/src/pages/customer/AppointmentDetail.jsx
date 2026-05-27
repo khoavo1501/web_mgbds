@@ -6,10 +6,12 @@ import {
   Edit, Trash2 
 } from 'lucide-react';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 
 export default function AppointmentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [relatedProperties, setRelatedProperties] = useState([]);
@@ -29,7 +31,7 @@ export default function AppointmentDetail() {
       }
     } catch (error) {
       console.error('Error fetching appointment:', error);
-      alert('Không thể tải thông tin lịch hẹn');
+      toast.error('Không thể tải thông tin lịch hẹn');
     } finally {
       setLoading(false);
     }

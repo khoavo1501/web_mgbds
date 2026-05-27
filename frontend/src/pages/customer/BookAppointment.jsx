@@ -6,12 +6,14 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 
 export default function BookAppointment() {
   const { propertyId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const toast = useToast();
   
   // Get data from PropertyDetail
   const { selectedDate, selectedTime, note: initialNote } = location.state || {};
@@ -72,7 +74,7 @@ export default function BookAppointment() {
       }
     } catch (error) {
       console.error('Error fetching property:', error);
-      alert('Không thể tải thông tin bất động sản');
+      toast.error('Không thể tải thông tin bất động sản');
       navigate(`/properties/${propertyId}`);
     } finally {
       setLoading(false);
@@ -115,7 +117,7 @@ export default function BookAppointment() {
       }
     } catch (error) {
       console.error('Error booking appointment:', error);
-      alert(error.response?.data?.message || 'Không thể đặt lịch. Vui lòng thử lại.');
+      toast.error(error.response?.data?.message || 'Không thể đặt lịch. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
     }

@@ -190,7 +190,23 @@ public class AppointmentService {
         appointment.setStatus("pending");
         appointment.setAppointmentType("property_viewing");
 
-        return convertToDTO(appointmentRepository.save(appointment));
+        appointment = appointmentRepository.save(appointment);
+        
+        // Gửi thông báo cho môi giới khi có lịch đặt mới
+        String formattedTime = request.getScheduledAt().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"));
+        notificationService.createNotification(
+            broker,
+            "appointment_created",
+            "Lịch hẹn xem nhà mới",
+            String.format("Khách hàng %s đã đặt lịch xem '%s' vào %s. Vui lòng kiểm tra và xác nhận.",
+                customer.getFullName(),
+                property.getTitle(),
+                formattedTime
+            ),
+            "broker"
+        );
+
+        return convertToDTO(appointment);
     }
 
     @Transactional
@@ -254,6 +270,40 @@ public class AppointmentService {
             }
             
             appointment.setStatus(request.getStatus());
+
+            // Gửi thông báo khi môi giới xác nhận/từ chối/hoàn thành
+            if ("broker".equalsIgnoreCase(currentUser.getRole())) {
+                String notifTitle = "";
+                String notifMessage = "";
+                String notifType = "";
+                
+                if ("confirmed".equalsIgnoreCase(request.getStatus()) || "scheduled".equalsIgnoreCase(request.getStatus())) {
+                    notifTitle = "Lịch hẹn đã được xác nhận";
+                    notifMessage = String.format("Môi giới %s đã xác nhận lịch hẹn xem '%s' của bạn.", 
+                                        appointment.getBroker().getFullName(), appointment.getProperty().getTitle());
+                    notifType = "appointment_confirmed";
+                } else if ("rejected".equalsIgnoreCase(request.getStatus())) {
+                    notifTitle = "Lịch hẹn bị từ chối";
+                    notifMessage = String.format("Môi giới %s đã từ chối lịch hẹn xem '%s'.", 
+                                        appointment.getBroker().getFullName(), appointment.getProperty().getTitle());
+                    notifType = "appointment_rejected";
+                } else if ("completed".equalsIgnoreCase(request.getStatus())) {
+                    notifTitle = "Lịch hẹn hoàn tất";
+                    notifMessage = String.format("Môi giới %s đã đánh dấu hoàn tất buổi xem '%s'.", 
+                                        appointment.getBroker().getFullName(), appointment.getProperty().getTitle());
+                    notifType = "appointment_completed";
+                }
+                
+                if (!notifTitle.isEmpty()) {
+                    notificationService.createNotification(
+                        appointment.getCustomer(),
+                        notifType,
+                        notifTitle,
+                        notifMessage,
+                        "customer"
+                    );
+                }
+            }
         }
 
         // Update note (if provided)
@@ -326,6 +376,25 @@ public class AppointmentService {
 
             appointment.setScheduledAt(request.getScheduledAt());
             appointment.setStatus("pending"); // Reset to pending - customer needs to confirm
+            
+            // Nếu khách hàng dời lịch, gửi thông báo cho môi giới
+            if (!isBrokerRescheduling) {
+                String newDateTime = request.getScheduledAt().toString();
+                String notificationMessage = String.format(
+                    "Khách hàng %s đã dời lịch hẹn xem '%s' sang %s. Vui lòng xác nhận lại.",
+                    appointment.getCustomer().getFullName(),
+                    appointment.getProperty().getTitle(),
+                    newDateTime
+                );
+                
+                notificationService.createNotification(
+                    appointment.getBroker(),
+                    "appointment_rescheduled",
+                    "Khách hàng dời lịch hẹn",
+                    notificationMessage,
+                    "broker"
+                );
+            }
             if ("direct_payment".equalsIgnoreCase(appointment.getAppointmentType())) {
                 syncDirectPaymentTransactionSchedule(appointment, request.getScheduledAt());
             }
@@ -365,6 +434,46 @@ public class AppointmentService {
         }
 
         appointment.setStatus("cancelled");
+        
+        // Gửi thông báo hủy lịch
+        if (appointment.getCustomer().getUserId().equals(currentUser.getUserId())) {
+            // Khách hàng hủy -> báo môi giới
+            notificationService.createNotification(
+                appointment.getBroker(),
+                "appointment_cancelled",
+                "Khách hàng hủy lịch hẹn",
+                String.format("Khách hàng %s đã hủy lịch hẹn xem '%s'.", 
+                    appointment.getCustomer().getFullName(), appointment.getProperty().getTitle()),
+                "broker"
+            );
+        } else if (appointment.getBroker().getUserId().equals(currentUser.getUserId())) {
+            // Môi giới hủy -> báo khách hàng
+            notificationService.createNotification(
+                appointment.getCustomer(),
+                "appointment_cancelled",
+                "Môi giới hủy lịch hẹn",
+                String.format("Môi giới %s đã hủy lịch hẹn xem '%s'.", 
+                    appointment.getBroker().getFullName(), appointment.getProperty().getTitle()),
+                "customer"
+            );
+        } else {
+            // Admin hủy -> báo cả hai
+            notificationService.createNotification(
+                appointment.getBroker(),
+                "appointment_cancelled",
+                "Lịch hẹn bị hủy bởi Admin",
+                String.format("Admin đã hủy lịch hẹn xem '%s'.", appointment.getProperty().getTitle()),
+                "broker"
+            );
+            notificationService.createNotification(
+                appointment.getCustomer(),
+                "appointment_cancelled",
+                "Lịch hẹn bị hủy bởi Admin",
+                String.format("Admin đã hủy lịch hẹn xem '%s'.", appointment.getProperty().getTitle()),
+                "customer"
+            );
+        }
+        
         appointmentRepository.save(appointment);
     }
 

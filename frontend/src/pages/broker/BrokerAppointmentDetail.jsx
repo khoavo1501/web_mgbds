@@ -8,10 +8,12 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import SuccessModal from '../../components/common/SuccessModal';
+import { useToast } from '../../context/ToastContext';
 
 export default function BrokerAppointmentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
@@ -36,7 +38,7 @@ export default function BrokerAppointmentDetail() {
       }
     } catch (error) {
       console.error('Error fetching appointment:', error);
-      alert('Không thể tải thông tin lịch hẹn');
+      toast.error('Không thể tải thông tin lịch hẹn');
       navigate('/broker/appointments');
     } finally {
       setLoading(false);
@@ -76,13 +78,13 @@ export default function BrokerAppointmentDetail() {
             completed: 'hoàn tất',
             rejected: 'từ chối'
           };
-          alert(`Đã ${actionLabels[newStatus] || 'cập nhật'} lịch hẹn`);
+          toast.success(`Đã ${actionLabels[newStatus] || 'cập nhật'} lịch hẹn`);
           fetchAppointmentDetail();
         }
       }
     } catch (error) {
       console.error('Error updating appointment:', error);
-      alert('Không thể cập nhật lịch hẹn: ' + (error.response?.data?.message || error.message));
+      toast.error('Không thể cập nhật lịch hẹn: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -102,7 +104,7 @@ export default function BrokerAppointmentDetail() {
       }
     } catch (error) {
       console.error('Error rescheduling:', error);
-      alert('❌ Không thể dời lịch: ' + (error.response?.data?.message || error.message));
+      toast.error('❌ Không thể dời lịch: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -206,7 +208,7 @@ export default function BrokerAppointmentDetail() {
           </div>
           
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-slate-900">Chi tiết lịch hẹn</h1>
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">Chi tiết lịch hẹn</h1>
             <div className="flex items-center gap-3">
               {appointment.status === 'pending' && (
                 <>
@@ -244,7 +246,7 @@ export default function BrokerAppointmentDetail() {
                   </button>
                   <button
                     onClick={() => handleUpdateStatus('viewed')}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
+                    className="px-4 py-2 bg-gold-500 text-white rounded-xl hover:bg-gold-600 font-bold shadow-md shadow-gold-500/20 transition-colors font-semibold text-sm"
                   >
                     Đã dẫn xem nhà
                   </button>

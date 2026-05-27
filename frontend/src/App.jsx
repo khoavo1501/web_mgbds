@@ -5,6 +5,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import { ReputationProvider } from "./context/ReputationContext";
+import { ToastProvider } from "./context/ToastContext";
 
 // Public & Auth Pages
 import Homepage from "./pages/public/Homepage";
@@ -47,7 +48,8 @@ function App() {
     <AuthProvider>
       <ReputationProvider>
         <FavoritesProvider>
-          <Router>
+          <ToastProvider>
+            <Router>
           <Routes>
             {/* Public Routes */}
             <Route element={<PublicLayout />}>
@@ -106,8 +108,9 @@ function App() {
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </Router>
-      </FavoritesProvider>
+            </Router>
+          </ToastProvider>
+        </FavoritesProvider>
       </ReputationProvider>
     </AuthProvider>
   );
