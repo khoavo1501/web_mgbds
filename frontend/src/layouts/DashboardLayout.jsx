@@ -1,8 +1,7 @@
-﻿import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import {
   Bell,
   Building2,
-  ClipboardList,
   FileBarChart,
   Home,
   LayoutDashboard,
@@ -19,7 +18,6 @@ import NotificationDropdown from "../components/NotificationDropdown";
 const navItems = [
   { name: "Tổng quan", path: "/admin", icon: LayoutDashboard },
   { name: "Quản lý BĐS", path: "/admin/properties", icon: Building2 },
-  { name: "Duyệt", path: "/admin/reviews", icon: ClipboardList },
   { name: "Tài chính", path: "/admin/finance", icon: Wallet },
   { name: "Báo cáo", path: "/admin/reports", icon: FileBarChart },
   { name: "Người dùng", path: "/admin/users", icon: Users },

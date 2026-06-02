@@ -18,6 +18,7 @@ CREATE TABLE users (
     full_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     is_active BOOLEAN DEFAULT true,
+    reputation_score INT DEFAULT 100,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -48,7 +49,25 @@ CREATE TABLE properties (
     is_locked BOOLEAN DEFAULT false,
     source_type VARCHAR(50) DEFAULT 'self_exploited',
     is_exclusive BOOLEAN DEFAULT false,
-    exclusive_expired_at TIMESTAMP
+    exclusive_expired_at TIMESTAMP,
+    -- Giấy tờ pháp lý
+    red_book_url VARCHAR(500),
+    household_registration_url VARCHAR(500),
+    owner_id_url VARCHAR(500),
+    -- Hợp đồng độc quyền
+    contract_status VARCHAR(30),
+    owner_name VARCHAR(100),
+    owner_phone VARCHAR(20),
+    exclusive_duration VARCHAR(100),
+    brokerage_fee NUMERIC(5, 2),
+    owner_desired_price NUMERIC(18, 2),
+    commission_terms TEXT,
+    brokerage_contract_url VARCHAR(500),
+    -- Điểm uy tín / Vị trí chi tiết / Số phòng
+    address VARCHAR(500),
+    ward VARCHAR(100),
+    bedrooms INT,
+    bathrooms INT
 );
 
 -- 4. Property Images
@@ -172,9 +191,11 @@ CREATE TABLE commissions (
 CREATE TABLE notifications (
     notification_id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(user_id),
+    type VARCHAR(50),
     title VARCHAR(255) NOT NULL,
-    content TEXT,
+    message TEXT,
     is_read BOOLEAN DEFAULT false,
+    target_role VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -194,6 +215,25 @@ CREATE TABLE sessions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 17. Reputation History (Điểm uy tín)
+CREATE TABLE reputation_history (
+    history_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    action_type VARCHAR(50) NOT NULL,           -- 'cancel_confirmed_within_24h', 'cancel_confirmed_after_24h', 'complete_appointment', 'no_show', 'manual_adjustment'
+    points_change INT NOT NULL,                 -- +5, -10, -20, etc.
+    previous_score INT NOT NULL,                -- Điểm trước khi thay đổi
+    new_score INT NOT NULL,                     -- Điểm sau khi thay đổi
+    reason TEXT,                                -- Lý do thay đổi (nếu có)
+    appointment_id INT REFERENCES appointments(appointment_id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by INT REFERENCES users(user_id) ON DELETE SET NULL  -- NULL = tự động, có giá trị = admin điều chỉnh
+);
+
+-- Indexes cho điểm uy tín
+CREATE INDEX idx_reputation_history_user_id ON reputation_history(user_id);
+CREATE INDEX idx_reputation_history_created_at ON reputation_history(created_at);
+CREATE INDEX idx_users_reputation_score ON users(reputation_score);
+
 
 -- =====================================================
 -- PHẦN 2: DỮ LIỆU MẪU (SAMPLE DATA)
@@ -202,12 +242,12 @@ CREATE TABLE sessions (
 -- =====================================================
 
 -- 1. Users
-INSERT INTO users (email, password_hash, role, full_name, phone, is_active, created_at) VALUES
-('admin@example.com',     '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'admin',    'Admin User',    '0123456789', true, CURRENT_TIMESTAMP),
-('broker1@example.com',   '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'broker',   'Nguyễn Văn A',  '0987654321', true, CURRENT_TIMESTAMP),
-('broker2@example.com',   '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'broker',   'Trần Thị B',    '0912345678', true, CURRENT_TIMESTAMP),
-('customer1@example.com', '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'customer', 'Lê Văn C',      '0909123456', true, CURRENT_TIMESTAMP),
-('customer2@example.com', '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'customer', 'Phạm Thị D',    '0908765432', true, CURRENT_TIMESTAMP);
+INSERT INTO users (email, password_hash, role, full_name, phone, is_active, reputation_score, created_at) VALUES
+('admin@example.com',     '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'admin',    'Admin User',    '0123456789', true, 100, CURRENT_TIMESTAMP),
+('broker1@example.com',   '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'broker',   'Nguyễn Văn A',  '0987654321', true, 100, CURRENT_TIMESTAMP),
+('broker2@example.com',   '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'broker',   'Trần Thị B',    '0912345678', true, 100, CURRENT_TIMESTAMP),
+('customer1@example.com', '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'customer', 'Lê Văn C',      '0909123456', true, 110, CURRENT_TIMESTAMP),
+('customer2@example.com', '$2a$10$y2eKNgXjR.QNbmgp7vUmI./9SUwMZ79iN/CN/v4MxMUn5rgpBbENa', 'customer', 'Phạm Thị D',    '0908765432', true, 100, CURRENT_TIMESTAMP);
 
 -- 2. Categories — Loại BDS
 INSERT INTO categories (category_type, category_name, parent_id) VALUES
@@ -320,15 +360,15 @@ INSERT INTO categories (category_type, category_name, parent_id) VALUES
 ('district', 'Đặc khu Hoàng Sa',       6);
 
 -- 3. Properties
-INSERT INTO properties (property_code, title, description, property_type, status, province, district, area, price, created_by, assigned_to, created_at) VALUES
-('BDS-2024-0001', 'Căn hộ cao cấp 2PN ven sông Hàn',        'Căn hộ đẹp, view sông Hàn, nội thất đầy đủ, gần trường học và siêu thị',    'apartment', 'approved', 'Đà Nẵng', 'Phường Hải Châu',      75.5,  3500000000,  1, 2, CURRENT_TIMESTAMP),
-('BDS-2024-0002', 'Nhà riêng 4 tầng trung tâm Thanh Khê',   'Nhà đẹp, ô tô đỗ cửa, thuận tiện kinh doanh và di chuyển vào trung tâm',     'house',     'approved',      'Đà Nẵng', 'Phường Thanh Khê',     120.0,  8500000000,  1, 2, CURRENT_TIMESTAMP),
-('BDS-2024-0003', 'Biệt thự biển Sơn Trà',                  'Biệt thự sang trọng, gần biển, có hồ bơi riêng và không gian sân vườn',      'villa',     'approved',      'Đà Nẵng', 'Phường Sơn Trà',       250.0, 25000000000,  2, 2, CURRENT_TIMESTAMP),
-('BDS-2024-0004', 'Căn hộ 3PN Ngũ Hành Sơn',                'Căn hộ rộng rãi, view thành phố, gần biển Mỹ Khê, nội thất cao cấp',         'apartment', 'approved',      'Đà Nẵng', 'Phường Ngũ Hành Sơn',  95.0,  5500000000,  2, 3, CURRENT_TIMESTAMP),
-('BDS-2024-0005', 'Đất nền khu đô thị Cẩm Lệ',              'Đất nền đẹp, vị trí kết nối thuận tiện, pháp lý rõ ràng, sổ riêng',          'land',      'approved',      'Đà Nẵng', 'Phường Cẩm Lệ',        100.0,  4000000000,  1, 3, CURRENT_TIMESTAMP),
-('BDS-2024-0006', 'Shophouse mặt tiền Liên Chiểu',          'Shophouse 5 tầng, mặt tiền rộng, phù hợp kinh doanh và cho thuê',            'shophouse', 'approved',      'Đà Nẵng', 'Phường Liên Chiểu',    80.0, 12000000000,  1, 2, CURRENT_TIMESTAMP),
-('BDS-2024-0007', 'Căn hộ Studio gần đại học Đà Nẵng',      'Căn hộ mini, đầy đủ nội thất, giá tốt cho sinh viên và chuyên gia trẻ',      'apartment', 'approved',      'Đà Nẵng', 'Phường Hải Châu',      35.0,  2000000000,  2, 3, CURRENT_TIMESTAMP),
-('BDS-2024-0008', 'Nhà vườn Hòa Vang',                      'Nhà đẹp, khu dân cư yên tĩnh, gần chợ và trường học, không gian thoáng',     'house',     'pending',        'Đà Nẵng', 'Xã Hòa Vang',          90.0, 7000000000,  1, 2, CURRENT_TIMESTAMP);
+INSERT INTO properties (property_code, title, description, property_type, status, province, district, area, price, created_by, assigned_to, red_book_url, household_registration_url, owner_id_url, address, ward, bedrooms, bathrooms, created_at) VALUES
+('BDS-2024-0001', 'Căn hộ cao cấp 2PN ven sông Hàn',        'Căn hộ đẹp, view sông Hàn, nội thất đầy đủ, gần trường học và siêu thị',    'apartment', 'approved', 'Đà Nẵng', 'Phường Hải Châu',      75.5,  3500000000,  2, 2, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845808/8.2_u4ay2k.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', '123 Đường Cầu Giấy', 'Dịch Vọng', 2, 2, CURRENT_TIMESTAMP),
+('BDS-2024-0002', 'Nhà riêng 4 tầng trung tâm Thanh Khê',   'Nhà đẹp, ô tô đỗ cửa, thuận tiện kinh doanh và di chuyển vào trung tâm',     'house',     'approved',      'Đà Nẵng', 'Phường Thanh Khê',     120.0,  8500000000,  2, 2, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845808/8.2_u4ay2k.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', '456 Đường Láng', 'Láng Thượng', 4, 3, CURRENT_TIMESTAMP),
+('BDS-2024-0003', 'Biệt thự biển Sơn Trà',                  'Biệt thự sang trọng, gần biển, có hồ bơi riêng và không gian sân vườn',      'villa',     'approved',      'Đà Nẵng', 'Phường Sơn Trà',       250.0, 25000000000,  2, 2, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845808/8.2_u4ay2k.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', '789 Đường Hoa Lan', 'Việt Hưng', 5, 4, CURRENT_TIMESTAMP),
+('BDS-2024-0004', 'Căn hộ 3PN Ngũ Hành Sơn',                'Căn hộ rộng rãi, view thành phố, gần biển Mỹ Khê, nội thất cao cấp',         'apartment', 'approved',      'Đà Nẵng', 'Phường Ngũ Hành Sơn',  95.0,  5500000000,  2, 3, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845808/8.2_u4ay2k.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', '321 Đường Nguyễn Văn Hưởng', 'Thảo Điền', 3, 2, CURRENT_TIMESTAMP),
+('BDS-2024-0005', 'Đất nền khu đô thị Cẩm Lệ',              'Đất nền đẹp, vị trí kết nối thuận tiện, pháp lý rõ ràng, sổ riêng',          'land',      'approved',      'Đà Nẵng', 'Phường Cẩm Lệ',        100.0,  4000000000,  3, 3, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845808/8.2_u4ay2k.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', '654 Đường Võ Văn Ngân', 'Linh Chiểu', 0, 0, CURRENT_TIMESTAMP),
+('BDS-2024-0006', 'Shophouse mặt tiền Liên Chiểu',          'Shophouse 5 tầng, mặt tiền rộng, phù hợp kinh doanh và cho thuê',            'shophouse', 'approved',      'Đà Nẵng', 'Phường Liên Chiểu',    80.0, 12000000000,  2, 2, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845808/8.2_u4ay2k.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', '987 Đường Nguyễn Trãi', 'Nhân Chính', 0, 3, CURRENT_TIMESTAMP),
+('BDS-2024-0007', 'Căn hộ Studio gần đại học Đà Nẵng',      'Căn hộ mini, đầy đủ nội thất, giá tốt cho sinh viên và chuyên gia trẻ',      'apartment', 'approved',      'Đà Nẵng', 'Phường Hải Châu',      35.0,  2000000000,  2, 3, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845808/8.2_u4ay2k.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', '147 Đường Lê Lợi', 'Bến Nghé', 1, 1, CURRENT_TIMESTAMP),
+('BDS-2024-0008', 'Nhà vườn Hòa Vang',                      'Nhà đẹp, khu dân cư yên tĩnh, gần chợ và trường học, không gian thoáng',     'house',     'pending_review', 'Đà Nẵng', 'Xã Hòa Vang',          90.0, 7000000000,  2, 2, 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845808/8.2_u4ay2k.jpg', 'https://res.cloudinary.com/dcd2tgvhv/image/upload/v1779845809/8.1_cnu5or.jpg', '258 Đường Bà Triệu', 'Phạm Đình Hổ', 3, 2, CURRENT_TIMESTAMP);
 
 -- 4. Property Images
 INSERT INTO property_images (property_id, url, is_primary) VALUES
@@ -367,24 +407,32 @@ INSERT INTO appointments (property_id, customer_id, broker_id, scheduled_at, sta
 (1, 4, 2, CURRENT_TIMESTAMP + INTERVAL '2 days', 'pending',   'Khách muốn xem vào buổi sáng',       'Lê Văn C',   '0909123456', 'customer1@example.com', CURRENT_TIMESTAMP),
 (2, 5, 2, CURRENT_TIMESTAMP + INTERVAL '3 days', 'pending',   'Khách quan tâm đến vị trí',           'Phạm Thị D', '0908765432', 'customer2@example.com', CURRENT_TIMESTAMP),
 (4, 4, 3, CURRENT_TIMESTAMP + INTERVAL '1 day',  'confirmed', 'Khách muốn xem nội thất',             'Lê Văn C',   '0909123456', 'customer1@example.com', CURRENT_TIMESTAMP),
-(1, 4, 2, CURRENT_TIMESTAMP - INTERVAL '5 days', 'completed', 'Môi giới đã dẫn khách đi xem nhà',   'Lê Văn C',   '0909123456', 'customer1@example.com', CURRENT_TIMESTAMP - INTERVAL '5 days');
+(1, 4, 2, '2026-06-01 10:00:00', 'confirmed', 'Lịch hẹn đã xác nhận, chưa hoàn thành xem nhà',   'Lê Văn C',   '0909123456', 'customer1@example.com', '2026-06-01 08:00:00');
 
 -- 8. Transactions
 INSERT INTO transactions (transaction_code, property_id, customer_id, broker_id, total_price, deposit_amount, status, transaction_date) VALUES
-('GD2024-001', 1, 4, 2, 3500000000, 350000000, 'pending', CURRENT_DATE);
+('GD2024-001', 1, 4, 2, 3500000000, 350000000, 'completed', '2026-06-01');
 
 INSERT INTO transaction_payments (transaction_id, amount, payment_method, payment_status, payment_date, confirmed_by) VALUES
-(1, 350000000, 'transfer', 'pending', CURRENT_DATE, NULL);
+(1, 350000000, 'transfer', 'completed', '2026-06-01', 2);
 
 INSERT INTO commissions (transaction_id, user_id, amount, status) VALUES
-(1, 2, 42000000, 'pending');
+(1, 2, 42000000, 'paid');
 
 -- 9. Notifications
-INSERT INTO notifications (user_id, title, content, is_read, created_at) VALUES
-(2, 'Lịch hẹn mới',          'Bạn có lịch hẹn mới với khách hàng Lê Văn C',           false, CURRENT_TIMESTAMP),
-(2, 'BDS mới được gán',       'Bạn được gán phụ trách BDS BDS-2024-0001',               true,  CURRENT_TIMESTAMP),
-(4, 'Lịch hẹn được xác nhận','Lịch hẹn xem BDS BDS-2024-0004 đã được xác nhận',        false, CURRENT_TIMESTAMP),
-(4, 'Lịch hẹn hoàn thành',   'Lịch hẹn xem BDS BDS-2024-0001 đã hoàn thành',           true,  CURRENT_TIMESTAMP - INTERVAL '5 days');
+INSERT INTO notifications (user_id, type, title, message, is_read, created_at) VALUES
+(2, 'appointment_created',   'Lịch hẹn mới',          'Bạn có lịch hẹn mới với khách hàng Lê Văn C',           false, CURRENT_TIMESTAMP),
+(2, 'property_approved',    'BDS mới được gán',       'Bạn được gán phụ trách BDS BDS-2024-0001',               true,  CURRENT_TIMESTAMP),
+(3, 'appointment_created',   'Yêu cầu tư vấn mới',    'Khách hàng Lê Văn C muốn hẹn xem nhà vườn Hòa Vang',     false, CURRENT_TIMESTAMP),
+(3, 'property_approved',    'Bản tin đã được duyệt',  'Bất động sản BDS-2024-0008 của bạn đã được phê duyệt',    true,  CURRENT_TIMESTAMP),
+(3, 'appointment_confirmed', 'Lịch hẹn xác nhận',     'Lịch hẹn xem Biệt thự biển Đà Nẵng đã được xác nhận',     false, CURRENT_TIMESTAMP),
+(4, 'appointment_confirmed', 'Lịch hẹn được xác nhận','Lịch hẹn xem BDS BDS-2024-0004 đã được xác nhận',        false, CURRENT_TIMESTAMP),
+(4, 'appointment_completed', 'Lịch hẹn hoàn thành',   'Lịch hẹn xem BDS BDS-2024-0001 đã hoàn thành',           true,  CURRENT_TIMESTAMP - INTERVAL '5 days');
+
+-- 10. Reputation History (Lịch sử điểm uy tín)
+INSERT INTO reputation_history (user_id, action_type, points_change, previous_score, new_score, reason, appointment_id, created_at) VALUES
+(4, 'complete_appointment', 5, 100, 105, 'Hoàn thành lịch hẹn đúng giờ', 4, CURRENT_TIMESTAMP - INTERVAL '5 days'),
+(4, 'complete_appointment', 5, 105, 110, 'Hoàn thành lịch hẹn đúng giờ', NULL, CURRENT_TIMESTAMP - INTERVAL '10 days');
 
 
 -- =====================================================
@@ -419,4 +467,6 @@ SELECT 'notifications',                COUNT(*) FROM notifications
 UNION ALL
 SELECT 'audit_log',                    COUNT(*) FROM audit_log
 UNION ALL
-SELECT 'sessions',                     COUNT(*) FROM sessions;
+SELECT 'sessions',                     COUNT(*) FROM sessions
+UNION ALL
+SELECT 'reputation_history',           COUNT(*) FROM reputation_history;

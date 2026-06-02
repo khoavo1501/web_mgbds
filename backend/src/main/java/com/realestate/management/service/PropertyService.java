@@ -251,6 +251,10 @@ public class PropertyService {
         User currentUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
+        if (!"broker".equalsIgnoreCase(currentUser.getRole())) {
+            throw new RuntimeException("Chỉ Môi giới mới có quyền đăng bất động sản.");
+        }
+
         // Tạo property code tự động
         String propertyCode = generatePropertyCode();
 
@@ -335,16 +339,18 @@ public class PropertyService {
         User currentUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
+        if (!"broker".equalsIgnoreCase(currentUser.getRole())) {
+            throw new RuntimeException("Chỉ Môi giới mới có quyền cập nhật bất động sản.");
+        }
+
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy BDS với ID: " + id));
 
-        // Nếu là Broker, chỉ được sửa BDS do mình phụ trách hoặc do mình tạo
-        if ("broker".equalsIgnoreCase(currentUser.getRole())) {
-            boolean isCreator = property.getCreatedBy() != null && property.getCreatedBy().getUserId().equals(currentUser.getUserId());
-            boolean isAssigned = property.getAssignedTo() != null && property.getAssignedTo().getUserId().equals(currentUser.getUserId());
-            if (!isCreator && !isAssigned) {
-                throw new RuntimeException("Bạn không có quyền cập nhật BDS này");
-            }
+        // Broker chỉ được sửa BDS do mình phụ trách hoặc do mình tạo
+        boolean isCreator = property.getCreatedBy() != null && property.getCreatedBy().getUserId().equals(currentUser.getUserId());
+        boolean isAssigned = property.getAssignedTo() != null && property.getAssignedTo().getUserId().equals(currentUser.getUserId());
+        if (!isCreator && !isAssigned) {
+            throw new RuntimeException("Bạn không có quyền cập nhật BDS này");
         }
 
         // Cập nhật thông tin cơ bản
@@ -426,17 +432,17 @@ public class PropertyService {
         User currentUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
+        if (!"broker".equalsIgnoreCase(currentUser.getRole())) {
+            throw new RuntimeException("Chỉ Môi giới mới có quyền xóa bất động sản.");
+        }
+
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy BDS với ID: " + id));
 
-        // Admin hoặc Broker (nếu là người tạo và đang ở trạng thái pending) mới được xóa
-        if ("broker".equalsIgnoreCase(currentUser.getRole())) {
-            boolean isCreator = property.getCreatedBy() != null && property.getCreatedBy().getUserId().equals(currentUser.getUserId());
-            if (!isCreator || !"pending_review".equals(property.getStatus())) {
-                throw new RuntimeException("Bạn không có quyền xóa BDS này, hoặc BDS đã được duyệt");
-            }
-        } else if (!"admin".equalsIgnoreCase(currentUser.getRole())) {
-            throw new RuntimeException("Bạn không có quyền xóa BDS này");
+        // Broker chỉ được xóa BDS do mình tạo và đang ở trạng thái pending_review
+        boolean isCreator = property.getCreatedBy() != null && property.getCreatedBy().getUserId().equals(currentUser.getUserId());
+        if (!isCreator || !"pending_review".equals(property.getStatus())) {
+            throw new RuntimeException("Bạn không có quyền xóa BDS này, hoặc BDS đã được duyệt");
         }
 
         // Xóa tất cả hình ảnh trước

@@ -35,12 +35,10 @@ import BrokerAppointmentDetail from "./pages/broker/BrokerAppointmentDetail";
 import AppointmentConfirmSuccess from "./pages/broker/AppointmentConfirmSuccess";
 import BrokerLayout from "./layouts/BrokerLayout";
 
-// Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import PropertyManagement from "./pages/admin/PropertyManagement";
 import FinancialManagement from "./pages/admin/FinancialManagement";
 import UserManagement from "./pages/admin/UserManagement";
-import AdminReviewCenter from "./pages/admin/AdminReviewCenter";
 import AdminReports from "./pages/admin/AdminReports";
 
 function App() {
@@ -96,9 +94,6 @@ function App() {
                 {/* Admin */}
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/properties" element={<PropertyManagement />} />
-                <Route path="/admin/approval" element={<Navigate to="/admin/reviews" replace />} />
-                <Route path="/admin/transactions" element={<Navigate to="/admin/reviews" replace />} />
-                <Route path="/admin/reviews" element={<AdminReviewCenter />} />
                 <Route path="/admin/finance" element={<FinancialManagement />} />
                 <Route path="/admin/reports" element={<AdminReports />} />
                 <Route path="/admin/users" element={<UserManagement />} />

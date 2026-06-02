@@ -2,29 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Eye,
-  ImagePlus,
   Loader2,
   MapPin,
-  Pencil,
-  Plus,
   Search,
   SlidersHorizontal,
-  Trash2,
   X,
   XCircle,
 } from "lucide-react";
 import api from "../../services/api";
-
-const emptyForm = {
-  title: "",
-  description: "",
-  propertyType: "apartment",
-  province: "Đà Nẵng",
-  district: "",
-  area: "",
-  price: "",
-  images: [{ url: "", isPrimary: true }],
-};
 
 const propertyTypes = [
   { value: "apartment", label: "Căn hộ" },
@@ -47,6 +32,7 @@ const statuses = [
 ];
 
 const statusMeta = {
+  pending: { label: "Chờ kiểm tra", className: "bg-amber-100 text-amber-800" },
   pending_review: { label: "Chờ kiểm tra", className: "bg-amber-100 text-amber-800" },
   published: { label: "Đang đăng", className: "bg-emerald-100 text-emerald-800" },
   deposit_paid: { label: "Đã cọc", className: "bg-amber-100 text-amber-800" },
@@ -62,16 +48,10 @@ const formatVnd = (value) =>
 export default function PropertyManagement() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [uploadingImages, setUploadingImages] = useState(false);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [modalMode, setModalMode] = useState(null);
-  const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState(emptyForm);
   const [previewProperty, setPreviewProperty] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
   const [toast, setToast] = useState(null);
 
   const showToast = useCallback((type, message) => {
@@ -107,153 +87,11 @@ export default function PropertyManagement() {
   const summary = useMemo(() => {
     return {
       total: properties.length,
-      pending: properties.filter((item) => item.status === "pending_review").length,
+      pending: properties.filter((item) => item.status === "pending_review" || item.status === "pending").length,
       published: properties.filter((item) => item.status === "published").length,
       totalValue: properties.reduce((sum, item) => sum + Number(item.price || 0), 0),
     };
   }, [properties]);
-
-  const openCreateModal = () => {
-    setEditingId(null);
-    setFormData(emptyForm);
-    setModalMode("create");
-  };
-
-  const openEditModal = (property) => {
-    setEditingId(property.propertyId);
-    setFormData({
-      title: property.title || "",
-      description: property.description || "",
-      propertyType: property.propertyType || "apartment",
-      province: property.province || "Đà Nẵng",
-      district: property.district || "",
-      area: property.area || "",
-      price: property.price || "",
-      images: property.images?.length
-        ? property.images.map((image, index) => ({
-            url: image.url || "",
-            isPrimary: Boolean(image.isPrimary) || index === 0,
-          }))
-        : [{ url: "", isPrimary: true }],
-    });
-    setModalMode("edit");
-  };
-
-  const closeModal = () => {
-    setModalMode(null);
-    setEditingId(null);
-    setFormData(emptyForm);
-  };
-
-  const updateField = (name, value) => {
-    setFormData((current) => ({ ...current, [name]: value }));
-  };
-
-  const updateImage = (index, field, value) => {
-    setFormData((current) => ({
-      ...current,
-      images: current.images.map((image, i) => {
-        if (i !== index) return field === "isPrimary" && value ? { ...image, isPrimary: false } : image;
-        return { ...image, [field]: value };
-      }),
-    }));
-  };
-
-  const addImageRow = () => {
-    setFormData((current) => ({
-      ...current,
-      images: [...current.images, { url: "", isPrimary: current.images.length === 0 }],
-    }));
-  };
-
-  const uploadLocalImages = async (files) => {
-    const selectedFiles = Array.from(files || []);
-    if (selectedFiles.length === 0) return;
-
-    setUploadingImages(true);
-    try {
-      const uploadedImages = [];
-      for (const file of selectedFiles) {
-        const data = new FormData();
-        data.append("file", file);
-        const response = await api.post("/uploads/images", data, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-
-        if (!response.data.success) {
-          throw new Error(response.data.message || "Upload ảnh thất bại");
-        }
-
-        uploadedImages.push({
-          url: response.data.data.url,
-          isPrimary: false,
-        });
-      }
-
-      setFormData((current) => {
-        const existingImages = current.images.filter((image) => image.url.trim());
-        const next = [...existingImages, ...uploadedImages];
-        if (!next.some((image) => image.isPrimary) && next.length > 0) {
-          next[0] = { ...next[0], isPrimary: true };
-        }
-        return { ...current, images: next.length ? next : [{ url: "", isPrimary: true }] };
-      });
-
-      showToast("success", `Đã upload ${uploadedImages.length} ảnh vào thư mục local.`);
-    } catch (error) {
-      showToast("error", error.response?.data?.message || error.message || "Upload ảnh thất bại.");
-    } finally {
-      setUploadingImages(false);
-    }
-  };
-
-  const removeImageRow = (index) => {
-    setFormData((current) => {
-      const next = current.images.filter((_, i) => i !== index);
-      if (next.length === 0) return { ...current, images: [{ url: "", isPrimary: true }] };
-      if (!next.some((image) => image.isPrimary)) next[0] = { ...next[0], isPrimary: true };
-      return { ...current, images: next };
-    });
-  };
-
-  const buildPayload = () => ({
-    title: formData.title.trim(),
-    description: formData.description.trim(),
-    propertyType: formData.propertyType,
-    province: formData.province.trim(),
-    district: formData.district.trim(),
-    area: Number(formData.area),
-    price: Number(formData.price),
-    images: formData.images
-      .filter((image) => image.url.trim())
-      .map((image, index) => ({
-        url: image.url.trim(),
-        isPrimary: image.isPrimary || index === 0,
-      })),
-  });
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setSaving(true);
-    try {
-      const payload = buildPayload();
-      const response = editingId
-        ? await api.put(`/properties/${editingId}`, payload)
-        : await api.post("/properties", payload);
-
-      if (response.data.success) {
-        showToast("success", editingId ? "Đã cập nhật BĐS." : "Đã tạo BĐS mới, trạng thái chờ kiểm tra.");
-        closeModal();
-        fetchProperties();
-      } else {
-        showToast("error", response.data.message || "Lưu BĐS thất bại.");
-      }
-    } catch (error) {
-      showToast("error", error.response?.data?.message || "Lưu BĐS thất bại.");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleStatusChange = async (property, status) => {
     try {
@@ -269,22 +107,6 @@ export default function PropertyManagement() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    try {
-      const response = await api.delete(`/properties/${deleteTarget.propertyId}`);
-      if (response.data.success) {
-        showToast("success", `Đã xóa ${deleteTarget.propertyCode}.`);
-        setDeleteTarget(null);
-        fetchProperties();
-      } else {
-        showToast("error", response.data.message || "Xóa BĐS thất bại.");
-      }
-    } catch (error) {
-      showToast("error", error.response?.data?.message || "Xóa BĐS thất bại.");
-    }
-  };
-
   return (
     <div className="space-y-6">
       {toast && <Toast type={toast.type} message={toast.message} />}
@@ -294,16 +116,9 @@ export default function PropertyManagement() {
           <p className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-[#8b6f2f]">Kho nguồn hàng</p>
           <h1 className="text-3xl font-black tracking-tight text-stone-950">Quản lý bất động sản</h1>
           <p className="mt-2 max-w-2xl text-sm font-medium text-stone-500">
-            Quản trị toàn bộ tin đăng, cập nhật trạng thái, chỉnh thông tin và kiểm soát dữ liệu hiển thị trên website.
+            Quản trị toàn bộ tin đăng, xem thông tin chi tiết và phê duyệt hoặc từ chối tin đăng.
           </p>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="flex items-center gap-2 rounded-lg bg-stone-950 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-stone-800"
-        >
-          <Plus className="h-4 w-4" />
-          Thêm BĐS
-        </button>
       </section>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -358,11 +173,8 @@ export default function PropertyManagement() {
           </div>
         ) : properties.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-stone-100 text-stone-500">
-              <ImagePlus className="h-7 w-7" />
-            </div>
             <p className="text-lg font-black text-stone-900">Chưa có bất động sản phù hợp</p>
-            <p className="mt-1 text-sm font-medium text-stone-500">Thử đổi bộ lọc hoặc thêm tin mới.</p>
+            <p className="mt-1 text-sm font-medium text-stone-500">Thử đổi bộ lọc để kiểm tra lại.</p>
           </div>
         ) : (
           <div className="divide-y divide-stone-100">
@@ -408,28 +220,15 @@ export default function PropertyManagement() {
                     <p className="mt-1 text-xs font-bold text-stone-400">{property.area} m²</p>
                   </div>
                   <div>
-                    <select
-                      value={property.status}
-                      onChange={(event) => handleStatusChange(property, event.target.value)}
-                      className={`rounded-lg border-0 px-3 py-2 text-xs font-black outline-none ${statusMeta[property.status]?.className || "bg-stone-100 text-stone-700"}`}
-                    >
-                      {statuses
-                        .filter((status) => status.value !== "all")
-                        .map((status) => (
-                          <option key={status.value} value={status.value}>
-                            {status.label}
-                          </option>
-                        ))}
-                    </select>
+                    <span className={`inline-block rounded-lg px-3 py-2 text-xs font-black ${statusMeta[property.status]?.className || "bg-stone-100 text-stone-700"}`}>
+                      {statusMeta[property.status]?.label || property.status}
+                    </span>
                   </div>
                   <div className="flex justify-end gap-2">
                     <IconButton title="Xem nhanh" onClick={() => setPreviewProperty(property)}>
                       <Eye className="h-4 w-4" />
                     </IconButton>
-                    <IconButton title="Chỉnh sửa" onClick={() => openEditModal(property)}>
-                      <Pencil className="h-4 w-4" />
-                    </IconButton>
-                    {property.status === "pending_review" && (
+                    {(property.status === "pending_review" || property.status === "pending") && (
                       <>
                         <IconButton title="Duyệt BĐS và giấy tờ" tone="approve" onClick={() => handleStatusChange(property, "published")}>
                           <CheckCircle2 className="h-4 w-4" />
@@ -439,9 +238,6 @@ export default function PropertyManagement() {
                         </IconButton>
                       </>
                     )}
-                    <IconButton title="Xóa" tone="danger" onClick={() => setDeleteTarget(property)}>
-                      <Trash2 className="h-4 w-4" />
-                    </IconButton>
                   </div>
                 </article>
               );
@@ -450,32 +246,7 @@ export default function PropertyManagement() {
         )}
       </section>
 
-      {modalMode && (
-        <PropertyModal
-          mode={modalMode}
-          formData={formData}
-          saving={saving}
-          onClose={closeModal}
-          onSubmit={handleSubmit}
-          onFieldChange={updateField}
-          onImageChange={updateImage}
-          onAddImage={addImageRow}
-          onRemoveImage={removeImageRow}
-          onUploadImages={uploadLocalImages}
-          uploadingImages={uploadingImages}
-        />
-      )}
-
       {previewProperty && <PreviewModal property={previewProperty} onClose={() => setPreviewProperty(null)} />}
-
-      {deleteTarget && (
-        <ConfirmModal
-          title="Xóa bất động sản?"
-          message={`Tin ${deleteTarget.propertyCode} sẽ bị xóa khỏi hệ thống. Thao tác này không nên dùng nếu tin đã phát sinh giao dịch.`}
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={handleDelete}
-        />
-      )}
     </div>
   );
 }
@@ -528,202 +299,6 @@ function IconButton({ children, title, onClick, tone = "neutral" }) {
     >
       {children}
     </button>
-  );
-}
-
-function PropertyModal({
-  mode,
-  formData,
-  saving,
-  onClose,
-  onSubmit,
-  onFieldChange,
-  onImageChange,
-  onAddImage,
-  onRemoveImage,
-  onUploadImages,
-  uploadingImages,
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/55 px-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-stone-200 p-6">
-          <div>
-            <p className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-[#8b6f2f]">
-              {mode === "edit" ? "Cập nhật dữ liệu" : "Tạo nguồn hàng mới"}
-            </p>
-            <h2 className="text-2xl font-black text-stone-950">
-              {mode === "edit" ? "Chỉnh sửa bất động sản" : "Thêm bất động sản"}
-            </h2>
-          </div>
-          <button onClick={onClose} className="rounded-lg border border-stone-200 p-2 text-stone-500 hover:text-stone-950">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={onSubmit} className="space-y-6 p-6">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Field label="Tiêu đề" className="md:col-span-2">
-              <input
-                required
-                value={formData.title}
-                onChange={(event) => onFieldChange("title", event.target.value)}
-                className="field-control"
-                placeholder="VD: Căn hộ 2PN view sông..."
-              />
-            </Field>
-
-            <Field label="Loại BĐS">
-              <select
-                value={formData.propertyType}
-                onChange={(event) => onFieldChange("propertyType", event.target.value)}
-                className="field-control"
-              >
-                {propertyTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="Tỉnh/Thành">
-              <input
-                required
-                value={formData.province}
-                onChange={(event) => onFieldChange("province", event.target.value)}
-                className="field-control"
-              />
-            </Field>
-
-            <Field label="Quận/Huyện">
-              <input
-                required
-                value={formData.district}
-                onChange={(event) => onFieldChange("district", event.target.value)}
-                className="field-control"
-                placeholder="VD: Hải Châu"
-              />
-            </Field>
-
-            <Field label="Diện tích (m²)">
-              <input
-                required
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.area}
-                onChange={(event) => onFieldChange("area", event.target.value)}
-                className="field-control"
-              />
-            </Field>
-
-            <Field label="Giá (VNĐ)">
-              <input
-                required
-                type="number"
-                min="0"
-                step="1000000"
-                value={formData.price}
-                onChange={(event) => onFieldChange("price", event.target.value)}
-                className="field-control"
-              />
-            </Field>
-
-            <Field label="Mô tả" className="md:col-span-2">
-              <textarea
-                rows={4}
-                value={formData.description}
-                onChange={(event) => onFieldChange("description", event.target.value)}
-                className="field-control resize-none"
-                placeholder="Mô tả vị trí, pháp lý, tiện ích, tình trạng thực tế..."
-              />
-            </Field>
-          </div>
-
-          <div className="rounded-lg border border-stone-200 p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-black text-stone-900">Hình ảnh</p>
-                <p className="text-xs font-medium text-stone-500">
-                  Chọn ảnh từ máy để lưu vào thư mục local `backend/images`, tên file sẽ được mã hóa.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="cursor-pointer rounded-lg bg-[#d7b56d] px-3 py-2 text-xs font-black text-stone-950">
-                  {uploadingImages ? "Đang upload..." : "Chọn ảnh local"}
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/jpeg,image/png,image/gif,image/webp"
-                    className="hidden"
-                    disabled={uploadingImages}
-                    onChange={(event) => {
-                      onUploadImages(event.target.files);
-                      event.target.value = "";
-                    }}
-                  />
-                </label>
-                <button type="button" onClick={onAddImage} className="rounded-lg bg-stone-950 px-3 py-2 text-xs font-black text-white">
-                  Nhập URL
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {formData.images.map((image, index) => (
-                <div key={index} className="grid grid-cols-[1fr_120px_40px] gap-2">
-                  <input
-                    value={image.url}
-                    onChange={(event) => onImageChange(index, "url", event.target.value)}
-                    className="field-control"
-                    placeholder="https://..."
-                  />
-                  <label className="flex items-center justify-center gap-2 rounded-lg border border-stone-200 text-xs font-black text-stone-600">
-                    <input
-                      type="radio"
-                      checked={image.isPrimary}
-                      onChange={() => onImageChange(index, "isPrimary", true)}
-                    />
-                    Ảnh chính
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => onRemoveImage(index)}
-                    className="flex items-center justify-center rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 border-t border-stone-200 pt-5">
-            <button type="button" onClick={onClose} className="rounded-lg border border-stone-200 px-4 py-2.5 text-sm font-black">
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex items-center gap-2 rounded-lg bg-[#d7b56d] px-4 py-2.5 text-sm font-black text-stone-950 disabled:opacity-60"
-            >
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              Lưu thông tin
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function Field({ label, children, className = "" }) {
-  return (
-    <label className={`block ${className}`}>
-      <span className="mb-1.5 block text-xs font-black uppercase tracking-wider text-stone-500">{label}</span>
-      {children}
-    </label>
   );
 }
 
@@ -846,25 +421,6 @@ function Detail({ label, value }) {
     <div className="rounded-lg border border-stone-200 p-4">
       <p className="text-xs font-black uppercase tracking-wider text-stone-400">{label}</p>
       <p className="mt-1 text-sm font-black text-stone-950">{value}</p>
-    </div>
-  );
-}
-
-function ConfirmModal({ title, message, onCancel, onConfirm }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/55 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl">
-        <h2 className="text-xl font-black text-stone-950">{title}</h2>
-        <p className="mt-2 text-sm font-medium leading-6 text-stone-500">{message}</p>
-        <div className="mt-6 flex justify-end gap-3">
-          <button onClick={onCancel} className="rounded-lg border border-stone-200 px-4 py-2.5 text-sm font-black">
-            Hủy
-          </button>
-          <button onClick={onConfirm} className="rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-black text-white">
-            Xóa
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

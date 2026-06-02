@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, CheckCircle, XCircle, AlertCircle, Clock, FileText, Check } from 'lucide-react';
+import api from '../services/api';
 
 // Example types: DOCUMENT_REJECTED, DOCUMENT_VERIFIED, PAYMENT_CONFIRMED, PROPERTY_APPROVED, PROPERTY_REJECTED, TRANSACTION_CANCELLED, APPOINTMENT_APPROVED
 const getIconForType = (type) => {
@@ -8,6 +9,7 @@ const getIconForType = (type) => {
     case 'DOCUMENT_VERIFIED':
     case 'PAYMENT_CONFIRMED':
     case 'PROPERTY_APPROVED':
+    case 'property_approved':
     case 'APPOINTMENT_APPROVED':
     case 'appointment_confirmed':
     case 'appointment_completed':
@@ -18,6 +20,7 @@ const getIconForType = (type) => {
       );
     case 'DOCUMENT_REJECTED':
     case 'PROPERTY_REJECTED':
+    case 'property_rejected':
     case 'TRANSACTION_CANCELLED':
     case 'appointment_rejected':
     case 'appointment_cancelled':
@@ -54,21 +57,17 @@ const NotificationDropdown = () => {
 
   useEffect(() => {
     fetchNotifications();
-    // In a real app, you might want to poll or use WebSocket here
+    // Poll notifications every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchNotifications = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const res = await fetch('http://localhost:8080/api/notifications', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setNotifications(data.data.notifications || []);
-        setUnreadCount(data.data.unreadCount || 0);
+      const res = await api.get('/notifications');
+      if (res.data.success) {
+        setNotifications(res.data.data.notifications || []);
+        setUnreadCount(res.data.data.unreadCount || 0);
       }
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
@@ -77,11 +76,7 @@ const NotificationDropdown = () => {
 
   const markAsRead = async (id) => {
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`http://localhost:8080/api/notifications/${id}/read`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.patch(`/notifications/${id}/read`);
       setNotifications(prev => prev.map(n => n.notificationId === id ? { ...n, isRead: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {
@@ -91,11 +86,7 @@ const NotificationDropdown = () => {
 
   const markAllAsRead = async () => {
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`http://localhost:8080/api/notifications/read-all`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.patch(`/notifications/read-all`);
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       setUnreadCount(0);
     } catch (err) {
