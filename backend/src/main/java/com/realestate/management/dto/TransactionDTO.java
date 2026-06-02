@@ -42,7 +42,6 @@ public class TransactionDTO {
     private String propertyDistrict;
     private BigDecimal propertyArea;
     private BigDecimal propertyPrice;
-    private String propertyImageUrl;
 
     // Customer info
     private Long customerId;

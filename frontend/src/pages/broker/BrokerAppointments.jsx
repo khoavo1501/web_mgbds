@@ -13,27 +13,6 @@ export default function BrokerAppointments() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [selectedType, setSelectedType] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState('list');
-  const today = new Date();
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-
-  const getDaysInMonth = (year, month) => {
-    const firstDayIndex = new Date(year, month, 1).getDay();
-    const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    const days = [];
-    for (let i = 0; i < adjustedFirstDay; i++) {
-      days.push({ day: null, date: null });
-    }
-    for (let d = 1; d <= totalDays; d++) {
-      days.push({ day: d, date: new Date(year, month, d) });
-    }
-    return days;
-  };
 
   useEffect(() => {
     fetchAppointments();
@@ -183,34 +162,15 @@ export default function BrokerAppointments() {
   };
 
   const filteredAppointments = appointments.filter(apt => {
-    let statusMatch = true;
-    if (filter !== 'all') {
-      if (filter === 'upcoming') {
-        statusMatch = (apt.status === 'pending' || apt.status === 'confirmed' || 
-                       apt.status === 'scheduled' || apt.status === 'deal_scheduled');
-      } else if (filter === 'confirmed') {
-        statusMatch = apt.status === 'confirmed' || apt.status === 'scheduled';
-      } else {
-        statusMatch = apt.status === filter;
-      }
+    if (filter === 'all') return true;
+    if (filter === 'upcoming') {
+      return (apt.status === 'pending' || apt.status === 'confirmed' || 
+              apt.status === 'scheduled' || apt.status === 'deal_scheduled');
     }
-    
-    let typeMatch = true;
-    if (selectedType === 'viewing') {
-      typeMatch = apt.appointmentType !== 'direct_payment';
-    } else if (selectedType === 'direct_payment') {
-      typeMatch = apt.appointmentType === 'direct_payment';
+    if (filter === 'confirmed') {
+      return apt.status === 'confirmed' || apt.status === 'scheduled';
     }
-
-    let searchMatch = true;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      searchMatch = (apt.customerName?.toLowerCase().includes(q) || 
-                     apt.customerPhone?.includes(q) || 
-                     apt.propertyTitle?.toLowerCase().includes(q));
-    }
-
-    return statusMatch && typeMatch && searchMatch;
+    return apt.status === filter;
   });
 
   if (loading) {
@@ -281,207 +241,27 @@ export default function BrokerAppointments() {
             </button>
           </div>
           
-          <div className="flex items-center gap-2 relative">
-            <button 
-              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              className={`p-3 rounded-xl transition-all duration-200 ${
-                showFilterDropdown 
-                  ? 'bg-slate-955 bg-slate-950 text-gold-400' 
-                  : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-              title="Bộ lọc nâng cao"
-            >
+          <div className="flex items-center gap-2">
+            <button className="p-3 rounded-xl hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-900">
               <Filter className="w-5 h-5" />
             </button>
-            <button 
-              onClick={() => setViewMode(viewMode === 'list' ? 'calendar' : 'list')}
-              className={`p-3 rounded-xl transition-all duration-200 ${
-                viewMode === 'calendar' 
-                  ? 'bg-slate-955 bg-slate-950 text-gold-400' 
-                  : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-              title={viewMode === 'list' ? "Chuyển sang lịch biểu" : "Chuyển sang danh sách"}
-            >
+            <button className="p-3 rounded-xl hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-900">
               <Calendar className="w-5 h-5" />
             </button>
-
-            {showFilterDropdown && (
-              <div className="absolute right-0 top-14 z-50 w-72 rounded-2xl border border-slate-100 bg-white p-4 shadow-xl animate-fade-in origin-top-right">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-3">Lọc nâng cao</h4>
-                
-                <div className="mb-4">
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tìm kiếm nhanh</label>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Tên khách, SĐT, BDS..."
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-slate-950 transition-colors"
-                  />
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Loại cuộc hẹn</label>
-                  <div className="grid grid-cols-3 gap-1.5 bg-slate-50 p-1 rounded-xl">
-                    <button
-                      onClick={() => setSelectedType('all')}
-                      className={`py-1.5 text-[10px] font-extrabold rounded-lg transition ${selectedType === 'all' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}
-                    >
-                      Tất cả
-                    </button>
-                    <button
-                      onClick={() => setSelectedType('viewing')}
-                      className={`py-1.5 text-[10px] font-extrabold rounded-lg transition ${selectedType === 'viewing' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}
-                    >
-                      Xem nhà
-                    </button>
-                    <button
-                      onClick={() => setSelectedType('direct_payment')}
-                      className={`py-1.5 text-[10px] font-extrabold rounded-lg transition ${selectedType === 'direct_payment' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}
-                    >
-                      Giao dịch
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setSelectedType('all');
-                    setSearchQuery('');
-                    setShowFilterDropdown(false);
-                  }}
-                  className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-[10px] font-black text-slate-700 uppercase rounded-xl transition"
-                >
-                  Xóa bộ lọc
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Appointments Content (Calendar or List) */}
-        {viewMode === 'calendar' ? (
-          <div className="bg-white rounded-3xl border border-slate-100 p-6 premium-shadow">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-extrabold text-slate-900 text-lg">
-                Tháng {currentMonth + 1}, {currentYear}
-              </h3>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    if (currentMonth === 0) {
-                      setCurrentMonth(11);
-                      setCurrentYear(currentYear - 1);
-                    } else {
-                      setCurrentMonth(currentMonth - 1);
-                    }
-                  }}
-                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-700 transition"
-                >
-                  &larr; Tháng trước
-                </button>
-                <button
-                  onClick={() => {
-                    const today = new Date();
-                    setCurrentMonth(today.getMonth());
-                    setCurrentYear(today.getFullYear());
-                  }}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 transition"
-                >
-                  Hôm nay
-                </button>
-                <button
-                  onClick={() => {
-                    if (currentMonth === 11) {
-                      setCurrentMonth(0);
-                      setCurrentYear(currentYear + 1);
-                    } else {
-                      setCurrentMonth(currentMonth + 1);
-                    }
-                  }}
-                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-700 transition"
-                >
-                  Tháng sau &rarr;
-                </button>
-              </div>
+        {/* Appointments Grid */}
+        {filteredAppointments.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-8 h-8 text-slate-400" />
             </div>
-
-            <div className="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-black text-slate-400 uppercase tracking-widest">
-              <div>T2</div>
-              <div>T3</div>
-              <div>T4</div>
-              <div>T5</div>
-              <div>T6</div>
-              <div>T7</div>
-              <div>CN</div>
-            </div>
-
-            <div className="grid grid-cols-7 gap-2">
-              {getDaysInMonth(currentYear, currentMonth).map((cell, idx) => {
-                if (!cell.day) {
-                  return <div key={`empty-${idx}`} className="aspect-square bg-slate-50/50 rounded-2xl" />;
-                }
-                const cellDateStr = cell.date.toDateString();
-                const isToday = new Date().toDateString() === cellDateStr;
-                const cellApts = filteredAppointments.filter(apt => {
-                  if (!apt.scheduledAt) return false;
-                  return new Date(apt.scheduledAt).toDateString() === cellDateStr;
-                });
-
-                return (
-                  <div
-                    key={`day-${cell.day}`}
-                    className={`aspect-square p-2 border border-slate-100 rounded-2xl flex flex-col justify-between hover:border-slate-300 transition-all group ${
-                      isToday ? 'bg-blue-50/50 border-blue-200' : 'bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className={`w-6 h-6 flex items-center justify-center rounded-lg text-xs font-bold ${
-                        isToday ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-800'
-                      }`}>
-                        {cell.day}
-                      </span>
-                    </div>
-
-                    <div className="space-y-1">
-                      {cellApts.slice(0, 2).map(apt => (
-                        <div
-                          key={apt.appointmentId}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/broker/appointments/${apt.appointmentId}`);
-                          }}
-                          className={`text-[8px] font-bold px-1.5 py-0.5 rounded truncate cursor-pointer transition ${
-                            apt.appointmentType === 'direct_payment'
-                              ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
-                              : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                          }`}
-                          title={`${apt.customerName} - ${apt.propertyTitle}`}
-                        >
-                          {apt.customerName}
-                        </div>
-                      ))}
-                      {cellApts.length > 2 && (
-                        <div className="text-[7px] font-black text-slate-400 uppercase pl-1">
-                          +{cellApts.length - 2} lịch hẹn
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <h3 className="text-lg font-semibold text-slate-950 mb-2">Không có lịch hẹn</h3>
+            <p className="text-slate-600 text-sm">Chưa có lịch hẹn nào trong danh mục này</p>
           </div>
-        ) : filteredAppointments.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center col-span-full">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calendar className="w-8 h-8 text-slate-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-slate-950 mb-2">Không có lịch hẹn</h3>
-              <p className="text-slate-600 text-sm">Chưa có lịch hẹn nào khớp bộ lọc trong danh mục này</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {filteredAppointments.map((appointment) => (
               <div 
                 key={appointment.appointmentId} 

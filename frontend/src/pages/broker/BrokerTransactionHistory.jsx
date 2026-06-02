@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Banknote, Building2, CheckCircle2, Clock3, FileText, RefreshCcw, User, Calendar } from "lucide-react";
+import { Banknote, Building2, CheckCircle2, Clock3, FileText, RefreshCcw } from "lucide-react";
 import api from "../../services/api";
-import CountdownTimer from "../../components/common/CountdownTimer";
 
 const activeStatuses = new Set([
   "pending",
-  "pending_deposit",
   "customer_confirmed",
   "documents_submitted",
   "documents_verified",
@@ -19,7 +17,6 @@ const activeStatuses = new Set([
 
 const statusLabels = {
   pending: "Chờ khách xác nhận",
-  pending_deposit: "Chờ khách đặt cọc",
   customer_confirmed: "Khách đã xác nhận",
   documents_submitted: "Chờ hệ thống kiểm tra hồ sơ",
   documents_verified: "Hồ sơ hợp lệ",
@@ -35,8 +32,6 @@ const statusLabels = {
 };
 
 const statusStyles = {
-  pending: "bg-amber-100 text-amber-700 border-amber-200",
-  pending_deposit: "bg-orange-100 text-orange-700 border-orange-200",
   commitment_signed: "bg-teal-100 text-teal-700 border-teal-200",
   deal_scheduled: "bg-blue-100 text-blue-700 border-blue-200",
   broker_confirmed: "bg-cyan-100 text-cyan-700 border-cyan-200",
@@ -185,117 +180,69 @@ export default function BrokerTransactionHistory() {
             <p className="text-sm text-slate-500">Các giao dịch mới sẽ xuất hiện ở đây</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-5 w-full">
+          <div className="grid gap-5 xl:grid-cols-2">
             {activeTransactions.map((item) => (
-              <div key={item.transactionId} className="bg-white rounded-2xl border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col md:flex-row w-full">
-                {/* Property Image Left Section */}
-                <div className="relative w-full md:w-72 h-48 md:h-auto shrink-0 bg-slate-100 border-b md:border-b-0 md:border-r border-slate-100 overflow-hidden">
-                  {item.propertyImageUrl ? (
-                    <img 
-                      src={item.propertyImageUrl} 
-                      alt={item.propertyTitle}
-                      className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 p-4">
-                      <Building2 className="w-10 h-10 stroke-[1.5] mb-2" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Không có ảnh</span>
-                    </div>
-                  )}
-                  {/* Status Overlay for Mobile */}
-                  <div className="absolute top-3 left-3 md:hidden">
-                    <StatusPill status={item.status} />
-                  </div>
-                </div>
-
-                {/* Right Content Section */}
-                <div className="flex-1 p-6 flex flex-col justify-between">
-                  <div>
-                    {/* Top row: Code + Status */}
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-xs font-black text-slate-600 uppercase tracking-widest">
-                          {item.propertyCode || item.transactionCode}
-                        </span>
-                        {item.dealScheduleAt && (
-                          <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-bold">
-                            Lịch GD: {new Date(item.dealScheduleAt).toLocaleString("vi-VN", { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
-                          </span>
-                        )}
-                        {(item.status === 'pending_deposit' || item.status === 'pending') && item.expiredAt && (
-                          <CountdownTimer expiredAt={item.expiredAt} variant="compact" onExpired={fetchTransactions} />
-                        )}
-                      </div>
-                      <StatusPill status={item.status} />
-                    </div>
-
-                    <h2 className="text-xl font-black text-slate-900 leading-snug mb-4">
+              <div key={item.transactionId} className="bg-white rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-all p-5 shadow-sm">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                      {item.propertyCode || item.transactionCode}
+                    </p>
+                    <h2 className="text-lg font-bold text-slate-950 line-clamp-2 mb-2">
                       {item.propertyTitle || "Bất động sản"}
                     </h2>
-
-                    {/* Metadata Info Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100 mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
-                          <User className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Khách hàng</span>
-                          <span className="text-sm font-bold text-slate-800">{item.customerName || "Chưa cập nhật"}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
-                          <Calendar className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">Ngày giao dịch</span>
-                          <span className="text-sm font-bold text-slate-800">{formatDate(item.transactionDate)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    {/* Money Grid */}
-                    <div className="grid grid-cols-3 gap-4 bg-[#f8f6f2] p-4 rounded-xl border border-slate-200/40 mb-4">
-                      <div>
-                        <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Giá trị BĐS</span>
-                        <span className="text-sm md:text-base font-black text-slate-900">{formatVnd(item.totalPrice)}</span>
-                      </div>
-                      <div className="border-x border-slate-200 px-4">
-                        <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Tiền đặt cọc</span>
-                        <span className="text-sm md:text-base font-black text-emerald-600">{formatVnd(item.depositAmount)}</span>
-                      </div>
-                      <div className="pl-4">
-                        <span className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Hoàn cọc dự kiến</span>
-                        <span className="text-sm md:text-base font-black text-blue-600">{formatVnd(item.refundableDeposit)}</span>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    {item.status === "deal_scheduled" && (
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => confirmBroker(item)}
-                          className="flex-1 flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-950 hover:bg-slate-900 text-white rounded-xl transition font-bold text-xs shadow-md shadow-slate-950/10"
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                          Xác nhận thanh toán
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => rejectBroker(item)}
-                          className="flex items-center justify-center px-4 py-3 bg-white border border-red-200 text-red-600 rounded-xl hover:bg-red-50 transition font-bold text-xs"
-                        >
-                          Thất bại
-                        </button>
-                      </div>
+                    <p className="text-sm text-slate-600 mb-1">
+                      <span className="font-semibold">Khách hàng:</span> {item.customerName || "Chưa cập nhật"}
+                    </p>
+                    <p className="text-sm text-slate-600">
+                      <span className="font-semibold">Ngày giao dịch:</span> {formatDate(item.transactionDate)}
+                    </p>
+                    {item.dealScheduleAt && (
+                      <p className="text-sm text-gold-600 font-semibold mt-2">
+                        📅 Lịch giao dịch: {new Date(item.dealScheduleAt).toLocaleString("vi-VN")}
+                      </p>
                     )}
                   </div>
+                  <StatusPill status={item.status} />
                 </div>
+
+                {/* Money Info */}
+                <div className="grid gap-3 md:grid-cols-3 mb-4">
+                  <div className="bg-[#f7f4ef] font-sans rounded-lg border border-gray-200 p-3">
+                    <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Giá trị</p>
+                    <p className="text-sm font-bold text-slate-950">{formatVnd(item.totalPrice)}</p>
+                  </div>
+                  <div className="bg-green-50 rounded-lg border border-green-200 p-3">
+                    <p className="text-xs font-semibold text-green-700 uppercase mb-1">Tiền cọc</p>
+                    <p className="text-sm font-bold text-green-900">{formatVnd(item.depositAmount)}</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg border border-blue-200 p-3">
+                    <p className="text-xs font-semibold text-blue-700 uppercase mb-1">Hoàn cọc dự kiến</p>
+                    <p className="text-sm font-bold text-blue-900">{formatVnd(item.refundableDeposit)}</p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                {item.status === "deal_scheduled" && (
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => confirmBroker(item)}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-bold text-sm"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Xác nhận đã thanh toán
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => rejectBroker(item)}
+                      className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-bold text-sm"
+                    >
+                      Giao dịch thất bại
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -326,8 +273,6 @@ function Money({ label, value }) {
 
 function StatusPill({ status }) {
   const styles = {
-    pending: "bg-amber-100 text-amber-700 border-amber-200",
-    pending_deposit: "bg-orange-100 text-orange-700 border-orange-200",
     commitment_signed: "bg-teal-100 text-teal-700 border-teal-200",
     deal_scheduled: "bg-blue-100 text-blue-700 border-blue-200",
     broker_confirmed: "bg-cyan-100 text-cyan-700 border-cyan-200",

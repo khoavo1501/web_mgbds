@@ -3,20 +3,9 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/broker/Sidebar';
 import { Menu, Search } from 'lucide-react';
 import NotificationDropdown from '../components/NotificationDropdown';
-import { useAuth } from '../context/AuthContext';
 
 export default function BrokerLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const { user } = useAuth();
-
-    const getInitials = (name) => {
-        if (!name) return 'NV';
-        const parts = name.trim().split(' ');
-        if (parts.length >= 2) {
-            return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
-        }
-        return name.substring(0, 2).toUpperCase();
-    };
 
     return (
         <div className="flex h-screen bg-[#f7f4ef] overflow-hidden font-sans">
@@ -46,7 +35,7 @@ export default function BrokerLayout() {
                         <div className="flex items-center gap-3">
                             <NotificationDropdown />
                             <div className="h-8 w-8 rounded-full bg-slate-950 flex items-center justify-center text-gold-400 font-black text-xs font-bold shadow-md">
-                                {getInitials(user?.fullName)}
+                                NV
                             </div>
                         </div>
                     </div>

@@ -278,6 +278,10 @@ export default function BrokerDashboard() {
               <Search className="w-5 h-5" />
               Tìm kiếm
             </button>
+            <button className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 font-semibold text-slate-700 transition-all hover:scale-105 relative">
+              <Bell className="w-5 h-5" />
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span>
+            </button>
           </div>
         </div>
 

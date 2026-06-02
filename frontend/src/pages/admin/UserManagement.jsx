@@ -12,8 +12,6 @@ import {
   UserPlus,
   Users,
   XCircle,
-  Eye,
-  ShieldAlert,
 } from "lucide-react";
 import api from "../../services/api";
 
@@ -135,25 +133,6 @@ export default function UserManagement() {
       }
     } catch (error) {
       showToast("error", error.response?.data?.message || "Không thể cập nhật trạng thái người dùng.");
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleVerifyIdentity = async (user, status, reason = "") => {
-    setProcessingId(user.userId);
-    try {
-      const response = await api.patch(`/admin/users/${user.userId}/identity-status`, null, {
-        params: { status, reason }
-      });
-      if (response.data.success) {
-        showToast("success", status === "verified" ? `Đã duyệt hồ sơ của ${user.fullName}.` : `Đã từ chối hồ sơ.`);
-        await fetchUsers();
-      } else {
-        showToast("error", response.data.message || "Cập nhật hồ sơ thất bại.");
-      }
-    } catch (error) {
-      showToast("error", error.response?.data?.message || "Không thể cập nhật hồ sơ người dùng.");
     } finally {
       setProcessingId(null);
     }
@@ -307,25 +286,6 @@ export default function UserManagement() {
                     <div className="mb-1 flex items-center gap-2">
                       <span className="truncate text-sm font-black text-stone-950">{user.fullName}</span>
                       <RolePill role={user.role} />
-                      {user.role === 'customer' && (
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase ring-1 ring-transparent ${
-                          user.identityVerificationStatus === 'verified'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : user.identityVerificationStatus === 'rejected'
-                              ? 'bg-rose-100 text-rose-800'
-                              : user.identityVerificationStatus === 'pending_review'
-                                ? 'bg-amber-100 text-amber-800 animate-pulse'
-                                : 'bg-stone-100 text-stone-600'
-                        }`}>
-                          {user.identityVerificationStatus === 'verified'
-                            ? 'Đã xác thực'
-                            : user.identityVerificationStatus === 'rejected'
-                              ? 'Bị từ chối'
-                              : user.identityVerificationStatus === 'pending_review'
-                                ? 'Chờ duyệt hồ sơ'
-                                : 'Chưa có hồ sơ'}
-                        </span>
-                      )}
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold text-stone-500">
                       <span className="inline-flex items-center gap-1">
@@ -375,59 +335,6 @@ export default function UserManagement() {
                       </button>
                     )}
                   </div>
-                  {user.role === 'customer' && user.identityVerificationStatus === 'pending_review' && (
-                    <div className="col-span-4 mt-3 border-t border-dashed border-stone-200 pt-3 bg-amber-50/50 p-3 rounded-lg border border-amber-100">
-                      <div className="flex items-center gap-2 mb-2 text-amber-800">
-                        <ShieldAlert className="h-4 w-4" />
-                        <span className="text-xs font-black uppercase tracking-wider">Hồ sơ xác thực chờ duyệt</span>
-                      </div>
-                      <div className="flex flex-wrap gap-4 mb-3">
-                        {user.cccdFrontUrl && (
-                          <a href={user.cccdFrontUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-black text-stone-600 hover:text-[#8b6f2f] underline">
-                            <Eye className="h-3 w-3" />
-                            CCCD Mặt trước
-                          </a>
-                        )}
-                        {user.cccdBackUrl && (
-                          <a href={user.cccdBackUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-black text-stone-600 hover:text-[#8b6f2f] underline">
-                            <Eye className="h-3 w-3" />
-                            CCCD Mặt sau
-                          </a>
-                        )}
-                        {user.residenceUrl && (
-                          <a href={user.residenceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-black text-stone-600 hover:text-[#8b6f2f] underline">
-                            <Eye className="h-3 w-3" />
-                            Xác nhận cư trú
-                          </a>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleVerifyIdentity(user, 'verified')}
-                          disabled={processingId === user.userId}
-                          className="inline-flex h-8 items-center gap-1 rounded bg-[#2f6f73] px-3 text-xs font-black text-white hover:bg-opacity-90 disabled:opacity-60"
-                        >
-                          <CheckCircle2 className="h-3 w-3" />
-                          Phê duyệt
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const reason = window.prompt("Nhập lý do từ chối hồ sơ:");
-                            if (reason !== null) {
-                              handleVerifyIdentity(user, 'rejected', reason);
-                            }
-                          }}
-                          disabled={processingId === user.userId}
-                          className="inline-flex h-8 items-center gap-1 rounded bg-rose-600 px-3 text-xs font-black text-white hover:bg-rose-700 disabled:opacity-60"
-                        >
-                          <XCircle className="h-3 w-3" />
-                          Từ chối
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </article>
               ))}
             </div>

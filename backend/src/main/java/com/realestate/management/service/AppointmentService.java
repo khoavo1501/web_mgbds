@@ -39,9 +39,6 @@ public class AppointmentService {
     @Autowired
     private TransactionRepository transactionRepository;
 
-    @Autowired
-    private TransactionService transactionService;
-
     public List<AppointmentDTO> getMyAppointments() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName();
@@ -295,10 +292,6 @@ public class AppointmentService {
                     notifMessage = String.format("Môi giới %s đã đánh dấu hoàn tất buổi xem '%s'.", 
                                         appointment.getBroker().getFullName(), appointment.getProperty().getTitle());
                     notifType = "appointment_completed";
-                    
-                    if (!"completed".equalsIgnoreCase(oldStatus)) {
-                        transactionService.createTransactionFromCompletedAppointment(appointment);
-                    }
                 }
                 
                 if (!notifTitle.isEmpty()) {

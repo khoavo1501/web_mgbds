@@ -19,7 +19,6 @@ import {
   ShieldCheck,
   FileText,
   CheckCircle2,
-  TrendingUp,
 } from "lucide-react";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
@@ -277,7 +276,7 @@ export default function CustomerDashboard({ mode = "overview" }) {
     }
   };
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl">
       {mode === "overview" && (
         <Overview
           appointments={upcomingAppointments}
@@ -319,46 +318,21 @@ export default function CustomerDashboard({ mode = "overview" }) {
 
 function Overview({ appointments, transactions, activeTransactions, favorites, loadingTransactions }) {
   return (
-    <div className="relative overflow-hidden">
-      <style>{`
-        @keyframes sparkle {
-          0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-          100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0); opacity: 0; }
-        }
-        @keyframes pulseSlow {
-          0%, 100% { opacity: 0.15; transform: scale(1); }
-          50% { opacity: 0.3; transform: scale(1.05); }
-        }
-        .animate-fade-in-up {
-          animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          opacity: 0;
-        }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(16px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+    <div>
+      <PageTitle title="Tổng quan" description="Theo dõi hoạt động và giao dịch mới nhất." />
 
-      {/* Decorative Blur Orbs */}
-      <div className="absolute top-1/4 left-1/4 -z-10 w-96 h-96 bg-blue-400/10 rounded-full blur-[100px] pointer-events-none" style={{ animation: "pulseSlow 8s infinite" }} />
-      <div className="absolute top-2/3 right-1/4 -z-10 w-96 h-96 bg-orange-400/10 rounded-full blur-[100px] pointer-events-none" style={{ animation: "pulseSlow 10s infinite" }} />
-
-      <div className="animate-fade-in-up" style={{ animationDelay: "50ms" }}>
-        <PageTitle title="Tổng quan" description="Theo dõi hoạt động và giao dịch mới nhất." />
-      </div>
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
-        <SummaryCard icon={CalendarDays} label="Lịch hẹn sắp tới" value={appointments.length} tone="blue" to="/customer/appointments" />
-        <SummaryCard icon={BriefcaseBusiness} label="Giao dịch đang xử lý" value={activeTransactions.length} tone="amber" to="/customer/transactions" />
-        <SummaryCard icon={MessageSquare} label="Yêu cầu tư vấn" value={appointments.length} tone="green" to="/customer/appointments" />
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard icon={CalendarDays} label="Lịch hẹn sắp tới" value={appointments.length} tone="blue" />
+        <SummaryCard icon={BriefcaseBusiness} label="Giao dịch đang xử lý" value={activeTransactions.length} tone="amber" />
+        <SummaryCard icon={MessageSquare} label="Yêu cầu tư vấn" value={appointments.length} tone="green" />
         <SummaryCard icon={Heart} label="BĐS đã lưu" value={favorites.length} tone="rose" />
       </section>
 
-      <section className="mt-6 grid gap-6 xl:grid-cols-2 animate-fade-in-up" style={{ animationDelay: "250ms" }}>
+      <section className="mt-6 grid gap-6 xl:grid-cols-2">
         <Panel
           title="Giao dịch của tôi"
           action={
-            <Link to="/customer/transactions" className="text-xs font-bold text-blue-600 hover:underline">
+            <Link to="/customer/transactions" className="text-sm font-bold text-slate-700 hover:text-slate-950">
               Xem tất cả
             </Link>
           }
@@ -366,52 +340,24 @@ function Overview({ appointments, transactions, activeTransactions, favorites, l
           {loadingTransactions ? (
             <EmptyText>Đang tải giao dịch...</EmptyText>
           ) : transactions.length > 0 ? (
-            <div className="space-y-4">
-              {transactions.slice(0, 2).map((item) => {
-                const statusMap = {
-                  pending: { label: "mới", isPill: true },
-                  customer_confirmed: { label: "Đang xử lý", isPill: false },
-                  documents_submitted: { label: "Đang xử lý", isPill: false },
-                  documents_verified: { label: "Đang xử lý", isPill: false },
-                  payment_submitted: { label: "Đang xử lý", isPill: false },
-                  deposit_confirmed: { label: "Đang xử lý", isPill: false },
-                  commitment_signed: { label: "Đang xử lý", isPill: false },
-                  deal_scheduled: { label: "Đang xử lý", isPill: false },
-                  broker_confirmed: { label: "Hoàn tất", isPill: true, type: "success" },
-                  completed: { label: "Hoàn tất", isPill: true, type: "success" },
-                  cancelled: { label: "Đã hủy", isPill: true, type: "danger" }
-                };
-                const st = statusMap[item.status] || { label: item.status, isPill: false };
-                return (
-                  <Link
-                    key={item.transactionId}
-                    to={`/customer/transactions/${item.transactionId}`}
-                    className="flex items-center gap-4 rounded-2xl border border-slate-100 p-4 hover:bg-slate-50 transition-all duration-200 group"
-                  >
-                    <img
-                      src={item.propertyImageUrl || PLACEHOLDER_IMAGE}
-                      alt={item.propertyTitle}
-                      className="w-16 h-16 rounded-xl object-cover shrink-0 border border-slate-100 shadow-sm"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">
-                        {item.propertyTitle || "Bất động sản"}
-                      </p>
-                      <p className="text-sm font-bold text-blue-600 mt-1">{formatPrice(item.totalPrice)}</p>
-                    </div>
-                    {st.isPill ? (
-                      <span className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider ${
-                        st.type === "success" ? "bg-emerald-100 text-emerald-800" :
-                        st.type === "danger" ? "bg-rose-100 text-rose-800" : "bg-slate-950 text-white"
-                      }`}>
-                        {st.label}
-                      </span>
-                    ) : (
-                      <span className="shrink-0 text-xs font-semibold text-slate-500">{st.label}</span>
-                    )}
-                  </Link>
-                );
-              })}
+            <div className="space-y-3">
+              {transactions.map((item) => (
+                <Link
+                  key={item.transactionId}
+                  to={`/customer/transactions/${item.transactionId}`}
+                  className="flex items-center justify-between gap-4 rounded-md border border-slate-200 px-4 py-3 hover:bg-slate-50"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-slate-950">
+                      {item.propertyTitle || "Bất động sản"}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-500">{formatPrice(item.totalPrice)}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${getTransactionStatusClass(item.status)}`}>
+                    {transactionStatusLabels[item.status] || item.status}
+                  </span>
+                </Link>
+              ))}
             </div>
           ) : (
             <EmptyText>Bạn chưa có giao dịch nào.</EmptyText>
@@ -421,90 +367,36 @@ function Overview({ appointments, transactions, activeTransactions, favorites, l
         <Panel
           title="Bất động sản đã lưu"
           action={
-            <Link to="/customer/favorites" className="text-xs font-bold text-blue-600 hover:underline">
+            <Link to="/customer/favorites" className="text-sm font-bold text-slate-700 hover:text-slate-950">
               Xem tất cả
             </Link>
           }
         >
           {favorites.length > 0 ? (
             <div className="space-y-4">
-              {favorites.slice(0, 2).map((property) => (
+              {favorites.slice(0, 3).map((property) => (
                 <Link
                   key={property.propertyId}
                   to={`/properties/${property.propertyId}`}
-                  className="flex items-center gap-4 rounded-2xl border border-slate-100 p-4 hover:bg-slate-50 transition-all duration-200"
+                  className="flex items-center gap-4 rounded-md border border-slate-200 px-3 py-3 hover:bg-slate-50"
                 >
                   <img
                     src={getPropertyImage(property)}
                     alt={property.title}
-                    className="w-16 h-16 rounded-xl object-cover shrink-0 border border-slate-100 shadow-sm"
+                    className="h-16 w-16 shrink-0 rounded object-cover"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-extrabold text-slate-900 hover:text-blue-600 transition-colors">
-                      {property.title}
-                    </p>
-                    <p className="text-sm font-bold text-slate-900 mt-1">{formatPrice(property.price)}</p>
+                    <p className="truncate text-sm font-black text-slate-950">{property.title}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-950">{formatPrice(property.price)}</p>
                   </div>
-                  <Heart className="w-5 h-5 shrink-0 text-rose-500 fill-rose-500" />
+                  <Heart className="h-5 w-5 shrink-0 text-slate-700" />
                 </Link>
               ))}
             </div>
           ) : (
-            <div className="rounded-3xl border-2 border-dashed border-slate-200 p-8 flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-4">
-                <Heart className="w-8 h-8" />
-              </div>
-              <p className="text-sm font-bold text-slate-800">Bạn chưa lưu bất động sản nào.</p>
-              <p className="text-xs text-slate-400 mt-1 max-w-[320px] leading-relaxed">
-                Hãy khám phá các dự án mới nhất và lưu lại để so sánh nhé.
-              </p>
-              <Link
-                to="/properties"
-                className="mt-5 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-blue-600/20"
-              >
-                Khám phá ngay
-              </Link>
-            </div>
+            <EmptyText>Bạn chưa lưu bất động sản nào.</EmptyText>
           )}
         </Panel>
-      </section>
-
-      <section className="mt-8 grid gap-6 md:grid-cols-[1.5fr_1fr] animate-fade-in-up" style={{ animationDelay: "350ms" }}>
-        <div className="relative h-[250px] rounded-3xl overflow-hidden shadow-lg group">
-          <img
-            src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80"
-            alt="Diamond Riverside Residences"
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent" />
-          <div className="absolute bottom-0 left-0 p-6 sm:p-8">
-            <span className="inline-block bg-emerald-500 text-white text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-md mb-3">
-              Dự án HOT
-            </span>
-            <h3 className="text-xl sm:text-2xl font-black text-white">Diamond Riverside Residences</h3>
-            <p className="text-slate-200 text-xs sm:text-sm font-semibold mt-1">
-              Sống thượng lưu giữa lòng thành phố với tầm nhìn 360 độ.
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-orange-50/70 border border-orange-100 rounded-3xl p-6 sm:p-8 flex flex-col justify-between min-h-[250px] relative overflow-hidden group">
-          <div>
-            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-md text-orange-600 transition-transform duration-300 group-hover:scale-110">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-            <h3 className="text-lg font-black text-slate-900 mt-5">Phân tích thị trường</h3>
-            <p className="text-xs font-semibold text-slate-500 mt-2 leading-relaxed">
-              Giá bất động sản khu vực quận 2 đang tăng 12% so với cùng kỳ.
-            </p>
-          </div>
-          <Link
-            to="/properties"
-            className="mt-5 w-full py-3 bg-[#201512] text-white hover:bg-slate-900 transition-all font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-950/10"
-          >
-            Xem chi tiết
-          </Link>
-        </div>
       </section>
     </div>
   );
@@ -1031,149 +923,39 @@ function BookingModal({
   );
 }
 
-function CountUp({ to }) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    let start = 0;
-    const end = parseInt(to, 10);
-    if (isNaN(end) || end === 0) {
-      setCount(to);
-      return;
-    }
-    const duration = 800; // 0.8s
-    const startTime = performance.now();
-    
-    let frameId;
-    const update = (now) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const ease = progress * (2 - progress);
-      setCount(Math.floor(ease * end));
-      if (progress < 1) {
-        frameId = requestAnimationFrame(update);
-      } else {
-        setCount(end);
-      }
-    };
-    frameId = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(frameId);
-  }, [to]);
-  return <span>{count}</span>;
-}
-
-function TypewriterText({ text }) {
-  const [displayedText, setDisplayedText] = useState("");
-  useEffect(() => {
-    let i = 0;
-    setDisplayedText("");
-    const timer = setInterval(() => {
-      setDisplayedText((prev) => prev + text.charAt(i));
-      i++;
-      if (i >= text.length) {
-        clearInterval(timer);
-      }
-    }, 30);
-    return () => clearInterval(timer);
-  }, [text]);
-  return <span>{displayedText}</span>;
-}
-
-function SparklesEffect({ children }) {
-  const [particles, setParticles] = useState([]);
-  
-  const handleClick = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    const newParticles = Array.from({ length: 8 }).map((_, i) => {
-      const angle = (i * 45 * Math.PI) / 180;
-      const distance = 30 + Math.random() * 30;
-      return {
-        id: Math.random(),
-        startX: x,
-        startY: y,
-        endX: x + Math.cos(angle) * distance,
-        endY: y + Math.sin(angle) * distance,
-        color: ["#3b82f6", "#f59e0b", "#10b981", "#f43f5e", "#8b5cf6"][Math.floor(Math.random() * 5)],
-      };
-    });
-    setParticles((prev) => [...prev, ...newParticles]);
-    setTimeout(() => {
-      setParticles((prev) => prev.filter((p) => !newParticles.some((np) => np.id === p.id)));
-    }, 600);
-  };
-
-  return (
-    <div onClick={handleClick} className="relative cursor-pointer select-none overflow-hidden rounded-2xl">
-      {children}
-      {particles.map((p) => (
-        <span
-          key={p.id}
-          className="absolute w-2 h-2 rounded-full pointer-events-none"
-          style={{
-            backgroundColor: p.color,
-            animation: "sparkle 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards",
-            left: p.startX,
-            top: p.startY,
-            "--tx": `${p.endX - p.startX}px`,
-            "--ty": `${p.endY - p.startY}px`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
 function PageTitle({ title, description }) {
   return (
     <section className="mb-6">
-      <h1 className="text-xl font-extrabold text-slate-900 sm:text-2xl">{title}</h1>
-      <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-        <TypewriterText text={description} />
-      </p>
+      <h1 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{title}</h1>
+      <p className="mt-1 text-sm font-medium text-slate-500 sm:text-base">{description}</p>
     </section>
   );
 }
 
-function SummaryCard({ icon: Icon, label, value, tone, to }) {
+function SummaryCard({ icon: Icon, label, value, tone }) {
   const tones = {
-    blue: "bg-blue-50 text-blue-600",
-    amber: "bg-amber-50 text-amber-600",
-    green: "bg-emerald-50 text-emerald-600",
-    rose: "bg-rose-50 text-rose-600",
+    blue: "bg-blue-100 text-blue-600",
+    amber: "bg-amber-100 text-amber-600",
+    green: "bg-green-100 text-green-600",
+    rose: "bg-rose-100 text-rose-600",
   };
 
-  const cardContent = (
-    <article className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 h-full">
-      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${tones[tone] || tones.blue}`}>
-        <Icon className="h-5 w-5" />
+  return (
+    <article className="flex min-h-24 items-center gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${tones[tone]}`}>
+        <Icon className="h-6 w-6" />
       </div>
       <div>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-        <p className="text-2xl font-black text-slate-950 mt-0.5 leading-none">
-          <CountUp to={value} />
-        </p>
+        <p className="text-sm font-semibold text-slate-500">{label}</p>
+        <p className="text-3xl font-black text-slate-950">{value}</p>
       </div>
     </article>
-  );
-
-  return (
-    <SparklesEffect>
-      {to ? (
-        <Link to={to} className="block h-full cursor-pointer">
-          {cardContent}
-        </Link>
-      ) : (
-        cardContent
-      )}
-    </SparklesEffect>
   );
 }
 
 function Panel({ title, action, children }) {
   return (
-    <section className="bg-white rounded-[2rem] premium-shadow border border-slate-100 p-6 sm:p-8 transition-all duration-200">
+    <section className="min-h-96 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-6 flex items-center justify-between gap-4">
         <h2 className="text-xl font-black text-slate-950">{title}</h2>
         {action}

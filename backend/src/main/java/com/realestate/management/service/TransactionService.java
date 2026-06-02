@@ -306,9 +306,6 @@ public class TransactionService {
         }
 
         if ("deposit_confirmed".equals(status)) {
-            if (t.getProperty() != null && "deposit_paid".equalsIgnoreCase(t.getProperty().getStatus())) {
-                throw new RuntimeException("Bất động sản này đã được đặt cọc bởi giao dịch khác");
-            }
             transactionPaymentRepository.findByTransaction(t).forEach(payment -> {
                 if (payment.getConfirmedBy() == null) {
                     payment.setConfirmedBy(currentUser);
@@ -627,14 +624,6 @@ public class TransactionService {
             dto.setPropertyDistrict(t.getProperty().getDistrict());
             dto.setPropertyArea(t.getProperty().getArea());
             dto.setPropertyPrice(t.getProperty().getPrice());
-            
-            if (t.getProperty().getImages() != null && !t.getProperty().getImages().isEmpty()) {
-                PropertyImage primaryImage = t.getProperty().getImages().stream()
-                        .filter(img -> img.getIsPrimary() != null && img.getIsPrimary())
-                        .findFirst()
-                        .orElse(t.getProperty().getImages().get(0));
-                dto.setPropertyImageUrl(primaryImage.getUrl());
-            }
         }
 
         List<TransactionPayment> payments = transactionPaymentRepository.findByTransaction(t);
@@ -878,13 +867,14 @@ public class TransactionService {
             throw new RuntimeException("BĐS này không còn ở trạng thái có thể giao dịch");
         }
 
-        // Kiểm tra xem đã có giao dịch nào đã chuyển cọc thành công chưa
-        boolean hasDepositConfirmedTransaction = transactionRepository.findByProperty(property).stream()
-                .anyMatch(transaction -> java.util.List.of("deposit_confirmed", "commitment_signed", "deal_scheduled", "broker_confirmed", "completed")
-                        .contains(transaction.getStatus().toLowerCase()));
+        // Kiểm tra xem đã có giao dịch chưa hoàn tất chưa
+        boolean hasOpenTransaction = transactionRepository.findByProperty(property).stream()
+                .anyMatch(transaction -> !"completed".equalsIgnoreCase(transaction.getStatus())
+                        && !"cancelled".equalsIgnoreCase(transaction.getStatus())
+                        && !"refunded".equalsIgnoreCase(transaction.getStatus()));
         
-        if (hasDepositConfirmedTransaction) {
-            throw new RuntimeException("BĐS này đã được đặt cọc bởi giao dịch khác");
+        if (hasOpenTransaction) {
+            throw new RuntimeException("BĐS này đang có giao dịch chưa hoàn tất");
         }
 
         // Tính tiền cọc 10%
@@ -913,7 +903,9 @@ public class TransactionService {
         commission.setStatus("pending");
         commissionRepository.save(commission);
 
-        // Giữ trạng thái BĐS là published để khách khác vẫn có thể xem/đặt lịch cho đến khi có người cọc thành công
+        // Đánh dấu BĐS đang trong quá trình giao dịch
+        property.setStatus("in_transaction");
+        propertyRepository.save(property);
 
         auditLogService.log(null, saved.getStatus(), "AUTO_CREATE_TRANSACTION_FROM_APPOINTMENT", "Transaction", saved.getTransactionId());
 
