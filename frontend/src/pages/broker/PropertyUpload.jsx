@@ -80,9 +80,9 @@ function MyProperties({ onEdit, showToast }) {
 
   const fetchProperties = useCallback(() => {
     setLoading(true);
-    api.get('/properties?size=100')
+    api.get('/properties/my-properties')
       .then(res => {
-        if (res.data.success) setProperties(res.data.data.content || []);
+        if (res.data.success) setProperties(res.data.data || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));

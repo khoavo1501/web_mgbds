@@ -84,10 +84,26 @@ public class PropertyController {
         }
     }
 
+    /** Lay danh sach BDS do moi gioi dang nhap tao. */
+    @GetMapping("/my-properties")
+    @PreAuthorize("hasRole('BROKER')")
+    public ResponseEntity<ApiResponse<java.util.List<PropertyDTO>>> getMyProperties() {
+        try {
+            return ResponseEntity.ok(
+                ApiResponse.success("Lay danh sach BDS cua toi thanh cong", propertyService.getMyProperties())
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Loi khi lay danh sach BDS cua toi: " + e.getMessage()));
+        }
+    }
+
     /**
      * GET /api/properties/{id}
-     * Lấy chi tiết 1 BDS
-     * Public API - Không cần authentication
+     * Lay chi tiet mot BDS theo ID.
      */
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<PropertyDTO>> getPropertyById(@PathVariable Long id) {
@@ -108,10 +124,10 @@ public class PropertyController {
     /**
      * POST /api/properties
      * Tạo mới BDS
-     * Yêu cầu quyền: ADMIN hoặc BROKER
+     * Yêu cầu quyền: BROKER
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'BROKER')")
+    @PreAuthorize("hasRole('BROKER')")
     public ResponseEntity<ApiResponse<PropertyDTO>> createProperty(
             @Valid @RequestBody PropertyCreateRequest request
     ) {

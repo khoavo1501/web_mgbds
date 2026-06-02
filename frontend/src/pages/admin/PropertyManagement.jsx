@@ -6,7 +6,6 @@ import {
   Loader2,
   MapPin,
   Pencil,
-  Plus,
   Search,
   SlidersHorizontal,
   Trash2,
@@ -99,12 +98,6 @@ export default function PropertyManagement() {
       totalValue: properties.reduce((sum, item) => sum + Number(item.price || 0), 0),
     };
   }, [properties]);
-
-  const openCreateModal = () => {
-    setEditingId(null);
-    setFormData(emptyForm);
-    setModalMode("create");
-  };
 
   const openEditModal = (property) => {
     setEditingId(property.propertyId);
@@ -224,12 +217,10 @@ export default function PropertyManagement() {
     setSaving(true);
     try {
       const payload = buildPayload();
-      const response = editingId
-        ? await api.put(`/properties/${editingId}`, payload)
-        : await api.post("/properties", payload);
+      const response = await api.put(`/properties/${editingId}`, payload);
 
       if (response.data.success) {
-        showToast("success", editingId ? "Đã cập nhật BĐS." : "Đã tạo BĐS mới, trạng thái chờ kiểm tra.");
+        showToast("success", "Đã cập nhật BĐS.");
         closeModal();
         fetchProperties();
       } else {
@@ -291,13 +282,6 @@ export default function PropertyManagement() {
             Quản trị toàn bộ tin đăng, cập nhật trạng thái, chỉnh thông tin và kiểm soát dữ liệu hiển thị trên website.
           </p>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="flex items-center gap-2 rounded-lg bg-stone-950 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-stone-800"
-        >
-          <Plus className="h-4 w-4" />
-          Thêm BĐS
-        </button>
       </section>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -357,7 +341,7 @@ export default function PropertyManagement() {
               <ImagePlus className="h-7 w-7" />
             </div>
             <p className="text-lg font-black text-stone-900">Chưa có bất động sản phù hợp</p>
-            <p className="mt-1 text-sm font-medium text-stone-500">Thử đổi bộ lọc hoặc thêm tin mới.</p>
+            <p className="mt-1 text-sm font-medium text-stone-500">Thử đổi bộ lọc để tìm bất động sản.</p>
           </div>
         ) : (
           <div className="divide-y divide-stone-100">

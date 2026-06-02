@@ -229,9 +229,22 @@ public class PropertyService {
         }
     }
 
-    /**
-     * Lấy chi tiết 1 BDS theo ID
-     */
+    /** Lay danh sach BDS do moi gioi dang nhap tao. */
+    public List<PropertyDTO> getMyProperties() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User khong ton tai"));
+
+        if (!"broker".equalsIgnoreCase(currentUser.getRole())) {
+            throw new RuntimeException("Chi moi gioi moi co danh sach BDS cua toi");
+        }
+
+        return propertyRepository.findByCreatedBy(currentUser).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /** Lay chi tiet mot BDS theo ID. */
     public PropertyDTO getPropertyById(Long id) {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy BDS với ID: " + id));
@@ -252,6 +265,10 @@ public class PropertyService {
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
         // Tạo property code tự động
+        if (!"broker".equalsIgnoreCase(currentUser.getRole())) {
+            throw new RuntimeException("Chi moi gioi moi co quyen dang tin BDS");
+        }
+
         String propertyCode = generatePropertyCode();
 
         // Tạo Property entity
