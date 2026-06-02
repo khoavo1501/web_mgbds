@@ -290,7 +290,7 @@ export default function Homepage() {
     const fetchProperties = async () => {
       try {
         const response = await api.get(
-          "/properties?status=approved&size=10&sortBy=createdAt&sortDirection=DESC"
+          "/properties?status=published&size=10&sortBy=createdAt&sortDirection=DESC"
         );
         if (response.data.success) {
           setFeaturedProperties(response.data.data.content || []);

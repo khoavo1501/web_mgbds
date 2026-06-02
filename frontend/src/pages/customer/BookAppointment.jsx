@@ -7,6 +7,7 @@ import {
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { getPropertyStatusMeta } from '../../utils/propertyStatus';
 
 export default function BookAppointment() {
   const { propertyId } = useParams();
@@ -407,7 +408,7 @@ export default function BookAppointment() {
                     </div>
                   )}
                   <span className="absolute top-3 right-3 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                    Đang bán
+                    {getPropertyStatusMeta(property.status).label}
                   </span>
                 </div>
                 <div className="p-6">

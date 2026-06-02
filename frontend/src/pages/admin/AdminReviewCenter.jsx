@@ -43,7 +43,7 @@ export default function AdminReviewCenter() {
     setLoading(true);
     try {
       const [propertyRes, userRes, transactionRes] = await Promise.all([
-        api.get("/properties?status=pending_review&size=100&sortBy=createdAt&sortDirection=ASC"),
+        api.get("/properties?status=pending&size=100&sortBy=createdAt&sortDirection=ASC"),
         api.get("/admin/users?role=customer"),
         api.get("/transactions"),
       ]);
@@ -120,10 +120,17 @@ export default function AdminReviewCenter() {
   }, [properties, transactions, users]);
 
   const handlePropertyStatus = async (property, status) => {
+    const reason = status === "rejected"
+      ? window.prompt("Nhập lý do không duyệt BĐS để môi giới cập nhật lại:")
+      : "";
+    if (status === "rejected" && !reason?.trim()) return;
+
     const key = `property-${property.propertyId}`;
     setProcessingKey(key);
     try {
-      const response = await api.patch(`/properties/${property.propertyId}/status?status=${status}`);
+      const response = await api.patch(`/properties/${property.propertyId}/status`, null, {
+        params: { status, reason: reason?.trim() },
+      });
       if (response.data.success) {
         showToast(status === "published" ? "success" : "error", status === "published" ? "Đã duyệt BĐS." : "Đã từ chối BĐS.");
         setSelected(null);
@@ -289,7 +296,7 @@ function ReviewModal({ item, processing, onClose, onApproveProperty, onApproveUs
         <div className="flex justify-end gap-3 border-t border-stone-200 p-6">
           {item.type === "property" && (
             <>
-              <button disabled={processing} onClick={() => onApproveProperty(payload, "rejected")} className="rounded-lg bg-rose-100 px-4 py-2 text-sm font-black text-rose-700 hover:bg-rose-200 disabled:opacity-60">Từ chối</button>
+              <button disabled={processing} onClick={() => onApproveProperty(payload, "rejected")} className="rounded-lg bg-rose-100 px-4 py-2 text-sm font-black text-rose-700 hover:bg-rose-200 disabled:opacity-60">Không duyệt</button>
               <button disabled={processing} onClick={() => onApproveProperty(payload, "published")} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60">Duyệt BĐS</button>
             </>
           )}

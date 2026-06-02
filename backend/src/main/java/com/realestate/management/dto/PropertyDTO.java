@@ -22,6 +22,7 @@ public class PropertyDTO {
     private String description;
     private String propertyType;
     private String status;
+    private String rejectReason;
     private String province;
     private String district;
     private BigDecimal area;

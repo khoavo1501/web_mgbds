@@ -19,6 +19,7 @@ import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useFavorites } from "../../context/FavoritesContext";
 import { useToast } from "../../context/ToastContext";
+import { getPropertyStatusMeta } from "../../utils/propertyStatus";
 
 const PLACEHOLDER_IMAGE =
   "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1400&q=80";
@@ -31,15 +32,6 @@ const propertyTypeLabels = {
   shophouse: "Shophouse",
 };
 
-const statusLabels = {
-  published: "Đang mở bán",
-  in_transaction: "Đang giao dịch",
-  deposit_paid: "Đã cọc",
-  pending: "Chờ kiểm tra",
-  rejected: "Đã từ chối",
-  sold: "Đã bán",
-  Available: "Đang mở bán",
-};
 
 const hasValue = (value) => value !== undefined && value !== null && value !== "";
 
@@ -210,7 +202,8 @@ export default function PropertyDetail() {
   const favorite = isFavorite(property.propertyId);
   const broker = property.assignedTo || property.createdBy;
   const hasBrokerInfo = broker?.fullName || broker?.phone || broker?.email;
-  const statusLabel = statusLabels[property.status] || property.status || "Đang mở bán";
+  const statusMeta = getPropertyStatusMeta(property.status);
+  const statusLabel = statusMeta.label;
   const mapQuery = encodeURIComponent(location || `${property.district || ""}, ${property.province || ""}`);
   const mapUrl = `https://www.google.com/maps?q=${mapQuery}&output=embed`;
   const brokerPhoneDigits = broker?.phone?.replace(/\D/g, "");
@@ -223,7 +216,7 @@ export default function PropertyDetail() {
 
   const detailItems = [
     typeLabel && { label: "Loại hình", value: typeLabel },
-    property.status && { label: "Trạng thái", value: statusLabels[property.status] || property.status },
+    property.status && { label: "Trạng thái", value: getPropertyStatusMeta(property.status).label },
     property.propertyCode && { label: "Mã tin", value: property.propertyCode },
     property.province && { label: "Tỉnh/Thành", value: property.province },
     property.district && { label: "Quận/Huyện", value: property.district },
@@ -276,7 +269,7 @@ export default function PropertyDetail() {
                       {typeLabel}
                     </span>
                   )}
-                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
+                  <span className={`rounded-full px-3 py-1 text-xs font-black ring-1 ring-black/5 ${statusMeta.className}`}>
                     {statusLabel}
                   </span>
                 </div>
@@ -284,15 +277,6 @@ export default function PropertyDetail() {
                   <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-slate-950">
                     {property.title}
                   </h1>
-                  {property.status === 'deposit_paid' && (
-                    <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-yellow-200">Đã cọc</span>
-                  )}
-                  {(property.status === 'locked' || property.status === 'in_transaction' || (property.isLocked && property.status !== 'deposit_paid')) && (
-                    <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-yellow-200">Đang giao dịch</span>
-                  )}
-                  {property.status === 'sold' && (
-                    <span className="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-red-200">Đã bán</span>
-                  )}
                 </div>
                 {location && (
                   <p className="mt-3 flex items-start gap-2 text-sm font-medium text-slate-600">

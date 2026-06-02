@@ -133,7 +133,7 @@ const buildSearchParams = (filters) => {
   params.set("sortBy", selectedSort.sortBy);
   params.set("sortDirection", selectedSort.sortDirection);
   params.set("page", "0");
-  params.set("status", "approved");
+  params.set("status", "published");
 
   return params;
 };
@@ -214,7 +214,7 @@ export default function PropertyList() {
       try {
         const params = new URLSearchParams(searchParams);
         params.delete("province");
-        params.set("status", "approved");
+        params.set("status", "published");
         params.set("size", String(PAGE_SIZE));
         if (!params.has("sortBy")) params.set("sortBy", "createdAt");
         if (!params.has("sortDirection")) params.set("sortDirection", "DESC");

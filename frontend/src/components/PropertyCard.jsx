@@ -1,13 +1,14 @@
 import { MapPin, BedDouble, Bath, Square, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
-import Badge from "./Badge";
 import { useFavorites } from "../context/FavoritesContext";
+import { getPropertyStatusMeta } from "../utils/propertyStatus";
 
 export default function PropertyCard({ property }) {
   const { toggleFavorite, isFavorite } = useFavorites();
   const stableSeed = Number(property.propertyId) || 1;
   const bedCount = (stableSeed % 3) + 1;
   const bathCount = (stableSeed % 2) + 1;
+  const statusMeta = getPropertyStatusMeta(property.status);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
@@ -24,18 +25,9 @@ export default function PropertyCard({ property }) {
           <Heart className={`h-5 w-5 ${isFavorite(property.propertyId) ? 'text-red-500 fill-current' : 'text-gray-500'}`} />
         </button>
         <div className="absolute top-2 right-2 flex flex-col gap-1">
-          {property.status === 'deposit_paid' && (
-            <Badge status="warning">Đã cọc</Badge>
-          )}
-          {(property.status === 'locked' || property.status === 'in_transaction' || (property.isLocked && property.status !== 'deposit_paid')) && (
-            <Badge status="warning">Đang giao dịch</Badge>
-          )}
-          {property.status === 'published' && (
-            <Badge status="success">Đang bán</Badge>
-          )}
-          {property.status === 'sold' && (
-            <Badge status="error">Đã bán</Badge>
-          )}
+          <span className={`rounded px-2 py-1 text-xs font-bold ${statusMeta.className}`}>
+            {statusMeta.label}
+          </span>
         </div>
         <div className="absolute bottom-2 left-2 bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">
           ${property.price.toLocaleString()}

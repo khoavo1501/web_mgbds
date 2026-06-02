@@ -185,10 +185,11 @@ public class PropertyController {
     @PreAuthorize("hasAnyRole('ADMIN', 'BROKER')")
     public ResponseEntity<ApiResponse<PropertyDTO>> updatePropertyStatus(
             @PathVariable Long id,
-            @RequestParam String status
+            @RequestParam String status,
+            @RequestParam(required = false) String reason
     ) {
         try {
-            PropertyDTO updatedProperty = propertyService.updatePropertyStatus(id, status);
+            PropertyDTO updatedProperty = propertyService.updatePropertyStatus(id, status, reason);
             return ResponseEntity.ok(
                 ApiResponse.success("Cập nhật trạng thái BDS thành công", updatedProperty)
             );
