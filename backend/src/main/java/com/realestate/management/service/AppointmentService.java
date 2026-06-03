@@ -252,6 +252,8 @@ public class AppointmentService {
             }
             
             // 🆕 VALIDATION: Môi giới chỉ được xác nhận "completed" SAU NGÀY hẹn
+            // Vô hiệu hóa để môi giới có thể xác nhận trực tiếp khi kiểm thử/sử dụng thực tế
+            /*
             if (("viewed".equalsIgnoreCase(request.getStatus()) || "completed".equalsIgnoreCase(request.getStatus())) &&
                 "broker".equalsIgnoreCase(currentUser.getRole())) {
                 
@@ -268,6 +270,7 @@ public class AppointmentService {
                     );
                 }
             }
+            */
             
             appointment.setStatus(request.getStatus());
 

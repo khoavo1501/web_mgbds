@@ -322,14 +322,14 @@ INSERT INTO categories (category_type, category_name, parent_id) VALUES
 
 -- 3. Properties
 INSERT INTO properties (property_code, title, description, property_type, status, province, district, area, price, created_by, assigned_to, created_at) VALUES
-('BDS-2024-0001', 'Căn hộ cao cấp 2PN ven sông Hàn',        'Căn hộ đẹp, view sông Hàn, nội thất đầy đủ, gần trường học và siêu thị',    'apartment', 'in_transaction', 'Đà Nẵng', 'Phường Hải Châu',      75.5,  3500000000,  2, 2, CURRENT_TIMESTAMP),
-('BDS-2024-0002', 'Nhà riêng 4 tầng trung tâm Thanh Khê',   'Nhà đẹp, ô tô đỗ cửa, thuận tiện kinh doanh và di chuyển vào trung tâm',     'house',     'published',      'Đà Nẵng', 'Phường Thanh Khê',     120.0,  8500000000,  2, 2, CURRENT_TIMESTAMP),
+('BDS-2024-0001', 'Căn hộ cao cấp 2PN ven sông Hàn',        'Căn hộ đẹp, view sông Hàn, nội thất đầy đủ, gần trường học và siêu thị',    'apartment', 'published', 'Đà Nẵng', 'Phường Hải Châu',      75.5,  3500000000,  1, 2, CURRENT_TIMESTAMP),
+('BDS-2024-0002', 'Nhà riêng 4 tầng trung tâm Thanh Khê',   'Nhà đẹp, ô tô đỗ cửa, thuận tiện kinh doanh và di chuyển vào trung tâm',     'house',     'published',      'Đà Nẵng', 'Phường Thanh Khê',     120.0,  8500000000,  1, 2, CURRENT_TIMESTAMP),
 ('BDS-2024-0003', 'Biệt thự biển Sơn Trà',                  'Biệt thự sang trọng, gần biển, có hồ bơi riêng và không gian sân vườn',      'villa',     'published',      'Đà Nẵng', 'Phường Sơn Trà',       250.0, 25000000000,  2, 2, CURRENT_TIMESTAMP),
 ('BDS-2024-0004', 'Căn hộ 3PN Ngũ Hành Sơn',                'Căn hộ rộng rãi, view thành phố, gần biển Mỹ Khê, nội thất cao cấp',         'apartment', 'published',      'Đà Nẵng', 'Phường Ngũ Hành Sơn',  95.0,  5500000000,  2, 3, CURRENT_TIMESTAMP),
-('BDS-2024-0005', 'Đất nền khu đô thị Cẩm Lệ',              'Đất nền đẹp, vị trí kết nối thuận tiện, pháp lý rõ ràng, sổ riêng',          'land',      'published',      'Đà Nẵng', 'Phường Cẩm Lệ',        100.0,  4000000000,  3, 3, CURRENT_TIMESTAMP),
-('BDS-2024-0006', 'Shophouse mặt tiền Liên Chiểu',          'Shophouse 5 tầng, mặt tiền rộng, phù hợp kinh doanh và cho thuê',            'shophouse', 'published',      'Đà Nẵng', 'Phường Liên Chiểu',    80.0, 12000000000,  2, 2, CURRENT_TIMESTAMP),
+('BDS-2024-0005', 'Đất nền khu đô thị Cẩm Lệ',              'Đất nền đẹp, vị trí kết nối thuận tiện, pháp lý rõ ràng, sổ riêng',          'land',      'published',      'Đà Nẵng', 'Phường Cẩm Lệ',        100.0,  4000000000,  1, 3, CURRENT_TIMESTAMP),
+('BDS-2024-0006', 'Shophouse mặt tiền Liên Chiểu',          'Shophouse 5 tầng, mặt tiền rộng, phù hợp kinh doanh và cho thuê',            'shophouse', 'published',      'Đà Nẵng', 'Phường Liên Chiểu',    80.0, 12000000000,  1, 2, CURRENT_TIMESTAMP),
 ('BDS-2024-0007', 'Căn hộ Studio gần đại học Đà Nẵng',      'Căn hộ mini, đầy đủ nội thất, giá tốt cho sinh viên và chuyên gia trẻ',      'apartment', 'published',      'Đà Nẵng', 'Phường Hải Châu',      35.0,  2000000000,  2, 3, CURRENT_TIMESTAMP),
-('BDS-2024-0008', 'Nhà vườn Hòa Vang',                      'Nhà đẹp, khu dân cư yên tĩnh, gần chợ và trường học, không gian thoáng',     'house',     'pending',        'Đà Nẵng', 'Xã Hòa Vang',          90.0, 7000000000,  2, 2, CURRENT_TIMESTAMP);
+('BDS-2024-0008', 'Nhà vườn Hòa Vang',                      'Nhà đẹp, khu dân cư yên tĩnh, gần chợ và trường học, không gian thoáng',     'house',     'pending',        'Đà Nẵng', 'Xã Hòa Vang',          90.0, 7000000000,  1, 2, CURRENT_TIMESTAMP);
 
 -- 4. Property Images
 INSERT INTO property_images (property_id, url, is_primary) VALUES

@@ -965,4 +965,55 @@ public class TransactionService {
 
         return convertToDTO(saved);
     }
+
+    @Transactional
+    public TransactionDTO confirmRefund(Long id) {
+        Transaction t = transactionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giao dịch ID: " + id));
+        User currentUser = getCurrentUser();
+        if (t.getCustomer() == null || !t.getCustomer().getUserId().equals(currentUser.getUserId())) {
+            throw new RuntimeException("Chỉ khách hàng của giao dịch mới được xác nhận nhận tiền cọc");
+        }
+        if (!"refunded".equalsIgnoreCase(t.getStatus())) {
+            throw new RuntimeException("Giao dịch chưa ở trạng thái đã hoàn cọc");
+        }
+
+        String beforeStatus = t.getStatus();
+        t.setStatus("completed");
+
+        if (t.getProperty() != null) {
+            t.getProperty().setStatus("sold");
+            t.getProperty().setIsLocked(false);
+            propertyRepository.save(t.getProperty());
+        }
+
+        commissionRepository.findByTransaction(t).forEach(c -> {
+            c.setStatus("paid");
+            commissionRepository.save(c);
+        });
+
+        if (t.getCustomer() != null) {
+            notificationService.createNotification(
+                t.getCustomer(),
+                "transaction_completed",
+                "Giao dịch hoàn tất",
+                "Giao dịch " + t.getTransactionCode() + " đã được xác nhận hoàn tất thành công sau khi bạn nhận tiền hoàn cọc. Chúc mừng bạn!",
+                "CUSTOMER"
+            );
+        }
+        if (t.getBroker() != null) {
+            notificationService.createNotification(
+                t.getBroker(),
+                "transaction_completed",
+                "Giao dịch hoàn tất",
+                "Giao dịch " + t.getTransactionCode() + " đã được khách hàng xác nhận hoàn cọc và giao dịch đã hoàn tất.",
+                "BROKER"
+            );
+        }
+
+        Transaction saved = transactionRepository.save(t);
+        auditLogService.log(beforeStatus, "completed", "CUSTOMER_CONFIRM_REFUND", "Transaction", t.getTransactionId());
+        return convertToDTO(saved);
+    }
 }
+

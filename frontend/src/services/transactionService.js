@@ -57,6 +57,13 @@ const transactionService = {
     return response.data;
   },
 
+  // Confirm refund (customer)
+  confirmRefund: async (id) => {
+    const response = await api.patch(`/transactions/${id}/confirm-refund`);
+    return response.data;
+  },
+
+
   // Schedule deal (customer)
   scheduleDeal: async (id, scheduledAt) => {
     const response = await api.patch(`/transactions/${id}/schedule-deal`, {

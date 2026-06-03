@@ -218,32 +218,33 @@ export default function CustomerTransactions({ activeOnly = false, detail = fals
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 animate-fade-in">
       {toast && (
-        <div className="fixed right-6 top-6 z-[60] rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-xl">
+        <div className="fixed right-6 top-6 z-[60] rounded-xl border border-slate-100 bg-white/95 backdrop-blur-md px-5 py-3.5 text-sm font-extrabold text-slate-800 shadow-2xl">
           {toast}
         </div>
       )}
 
-      <section className="mb-6 border-b border-slate-200 pb-6">
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Giao dịch bất động sản</p>
-        <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-950">
-              {activeOnly ? "Bất động sản đang giao dịch" : "Lịch sử giao dịch"}
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm font-medium text-slate-500">
-              Theo dõi từng bất động sản, hồ sơ, thanh toán và lịch sử xác nhận từ hệ thống.
-            </p>
+      <section className="mb-8 border-b border-slate-100 pb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-4 bg-amber-500 rounded-full"></span>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-450">Giao dịch bất động sản</p>
           </div>
-          <button
-            type="button"
-            onClick={fetchTransactions}
-            className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-black text-slate-800 hover:bg-slate-50"
-          >
-            Làm mới
-          </button>
+          <h1 className="mt-2.5 text-3xl font-black tracking-tight text-slate-900">
+            {activeOnly ? "Bất động sản đang giao dịch" : "Lịch sử giao dịch"}
+          </h1>
+          <p className="mt-2 max-w-2xl text-xs font-semibold text-slate-500 leading-relaxed">
+            Theo dõi từng bất động sản, hồ sơ, thanh toán và lịch sử xác nhận từ hệ thống.
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={fetchTransactions}
+          className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-xs font-black text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm cursor-pointer"
+        >
+          Làm mới
+        </button>
       </section>
 
       <section className="mb-6 grid gap-4 md:grid-cols-4">
@@ -282,48 +283,50 @@ export default function CustomerTransactions({ activeOnly = false, detail = fals
 
 function Metric({ icon: Icon, label, value }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-950 text-white">
-        <Icon className="h-5 w-5" />
+    <div className="rounded-2xl border border-slate-100 bg-white p-6 premium-shadow hover:scale-[1.02] hover:shadow-md transition-all duration-300">
+      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
+        <Icon className="h-5.5 w-5.5" />
       </div>
-      <p className="text-xs font-black uppercase tracking-wider text-slate-400">{label}</p>
-      <p className="mt-2 text-xl font-black text-slate-950">{value}</p>
+      <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">{label}</p>
+      <p className="mt-2 text-2xl font-black text-slate-900">{value}</p>
     </div>
   );
 }
 
 function TransactionList({ transactions }) {
   return (
-    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
       {transactions.map((item) => (
         <article
           key={item.transactionId}
-          className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300"
+          className="rounded-2xl border border-slate-100 bg-white p-5 premium-shadow hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between"
         >
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-              <Building2 className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-black uppercase tracking-wider text-slate-400">
-                {item.propertyCode || item.transactionCode}
-              </p>
-              <h2 className="mt-1 line-clamp-2 text-sm font-black text-slate-950">
-                {item.propertyTitle || "Bất động sản"}
-              </h2>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <StatusPill status={item.status} />
-                <span className="text-xs font-bold text-slate-500">{formatDate(item.transactionDate)}</span>
+          <div>
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
+                <Building2 className="h-5.5 w-5.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  {item.propertyCode || item.transactionCode}
+                </p>
+                <h2 className="mt-1 line-clamp-2 text-sm font-black text-slate-900 leading-snug">
+                  {item.propertyTitle || "Bất động sản"}
+                </h2>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <StatusPill status={item.status} />
+                  <span className="text-xs font-semibold text-slate-400">{formatDate(item.transactionDate)}</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
-            <MiniMoney label="Cọc" value={item.depositAmount} />
-            <MiniMoney label="Còn lại" value={item.status === 'completed' ? "0 VNĐ" : formatVnd(item.remainingAmount)} />
+            <div className="mt-5 grid grid-cols-2 gap-4 border-t border-slate-50 pt-4">
+              <MiniMoney label="Tiền cọc" value={item.depositAmount} />
+              <MiniMoney label="Còn lại" value={item.status === 'completed' ? "0 VNĐ" : formatVnd(item.remainingAmount)} />
+            </div>
           </div>
           <Link
             to={`/customer/transactions/${item.transactionId}`}
-            className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-lg bg-slate-950 text-sm font-black text-white hover:bg-slate-800"
+            className="mt-5 inline-flex h-10 w-full items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white hover:bg-slate-800 transition-colors shadow-sm cursor-pointer"
           >
             Xem chi tiết
           </Link>
@@ -444,6 +447,13 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
       return response.data.data;
     }, "Đã gửi yêu cầu hoàn cọc");
 
+  const confirmRefund = () =>
+    runAction(async () => {
+      const response = await api.patch(`/transactions/${transaction.transactionId}/confirm-refund`);
+      return response.data.data;
+    }, "Đã xác nhận đã nhận tiền cọc thành công");
+
+
   const copyValue = async (value, label) => {
     try {
       await navigator.clipboard.writeText(value);
@@ -454,31 +464,35 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
   };
 
   return (
-    <main className="rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 p-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+    <main className="rounded-3xl border border-slate-100 bg-white/90 backdrop-blur-xl premium-shadow overflow-hidden animate-scale-in">
+      <div className="border-b border-slate-100 p-6 sm:p-8 bg-gradient-to-r from-slate-50 to-white">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">
-              {transaction.transactionCode}
-            </p>
-            <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+                {transaction.transactionCode}
+              </p>
+            </div>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-905 leading-tight">
               {transaction.propertyTitle || "Bất động sản"}
             </h2>
-            <p className="mt-2 text-sm font-bold text-slate-500">
-              Môi giới phụ trách: {transaction.brokerName || "Chưa cập nhật"}
+            <p className="mt-2 text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+              <span>Môi giới phụ trách:</span>
+              <span className="text-slate-800 font-bold">{transaction.brokerName || "Chưa cập nhật"}</span>
             </p>
           </div>
           <StatusPill status={transaction.status} />
         </div>
 
-        <div className="mt-6 grid gap-3 md:grid-cols-3">
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <ValueBox icon={Banknote} label="Giá trị giao dịch" value={formatVnd(transaction.totalPrice)} />
           <ValueBox icon={CreditCard} label="Số tiền cọc" value={formatVnd(transaction.depositAmount)} />
           <ValueBox icon={Clock3} label="Còn lại" value={transaction.status === 'completed' ? "0 VNĐ" : formatVnd(transaction.remainingAmount)} />
         </div>
       </div>
 
-      <div className="border-b border-slate-100 p-6">
+      <div className="border-b border-slate-100 p-6 sm:p-8 bg-slate-50/20">
         <AnimatedTimeline 
           steps={[
             { id: 'customer_confirmed', label: 'Xác nhận' },
@@ -497,8 +511,8 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
         />
       </div>
 
-      <div className="grid gap-6 p-6 xl:grid-cols-[1fr_320px]">
-        <section className="space-y-5">
+      <div className="grid gap-8 p-6 sm:p-8 xl:grid-cols-[1fr_320px]">
+        <section className="space-y-6">
           <PropertySnapshot transaction={transaction} />
 
           {/* Countdown timer if pending, confirmed or submitted */}
@@ -508,31 +522,31 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
 
           {transaction.status === "pending" && (
             <Panel icon={ShieldCheck} title="Xác nhận & Đồng ý hợp đồng">
-              <p className="text-sm font-medium text-slate-500 mb-4">
+              <p className="text-xs font-semibold text-slate-500 mb-5 leading-relaxed">
                 Vui lòng xem kỹ nội dung hợp đồng đặt cọc mẫu dưới đây. Sau khi đồng ý, bạn có thể gửi hồ sơ bắt buộc cho hệ thống.
               </p>
               
-              <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <button type="button" onClick={() => setViewDocument({ url: "/contracts/contract1.png", name: "Contract 1", type: "image" })} className="block border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
+              <div className="mb-6 grid gap-4 sm:grid-cols-3">
+                <button type="button" onClick={() => setViewDocument({ url: "/contracts/contract1.png", name: "Hợp đồng mẫu trang 1", type: "image" })} className="block border border-slate-150 rounded-xl overflow-hidden hover:shadow-lg hover:scale-[1.03] transition-all duration-300 cursor-pointer">
                   <img src="/contracts/contract1.png" alt="Hợp đồng 1" className="w-full h-auto object-cover" />
                 </button>
-                <button type="button" onClick={() => setViewDocument({ url: "/contracts/contract2.png", name: "Contract 2", type: "image" })} className="block border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
+                <button type="button" onClick={() => setViewDocument({ url: "/contracts/contract2.png", name: "Hợp đồng mẫu trang 2", type: "image" })} className="block border border-slate-150 rounded-xl overflow-hidden hover:shadow-lg hover:scale-[1.03] transition-all duration-300 cursor-pointer">
                   <img src="/contracts/contract2.png" alt="Hợp đồng 2" className="w-full h-auto object-cover" />
                 </button>
-                <button type="button" onClick={() => setViewDocument({ url: "/contracts/contract3.png", name: "Contract 3", type: "image" })} className="block border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
+                <button type="button" onClick={() => setViewDocument({ url: "/contracts/contract3.png", name: "Hợp đồng mẫu trang 3", type: "image" })} className="block border border-slate-150 rounded-xl overflow-hidden hover:shadow-lg hover:scale-[1.03] transition-all duration-300 cursor-pointer">
                   <img src="/contracts/contract3.png" alt="Hợp đồng 3" className="w-full h-auto object-cover" />
                 </button>
               </div>
 
-              <label className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900 cursor-pointer">
-                <input type="checkbox" className="mt-1" defaultChecked />
+              <label className="flex items-start gap-3 rounded-xl border border-amber-250 bg-amber-50/40 p-4 text-xs font-bold text-amber-900 cursor-pointer transition-all hover:bg-amber-50">
+                <input type="checkbox" className="mt-0.5 w-4 h-4 accent-amber-600 rounded cursor-pointer" defaultChecked />
                 Tôi đã đọc và đồng ý với các điều khoản trong hợp đồng để tiếp tục quy trình giao dịch.
               </label>
               <button
                 type="button"
                 onClick={confirmPurchase}
                 disabled={submitting}
-                className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-slate-950 px-5 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-60"
+                className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-6 text-sm font-bold text-white hover:bg-slate-850 transition-all disabled:opacity-60 cursor-pointer shadow-sm"
               >
                 Xác nhận và tiếp tục
               </button>
@@ -657,14 +671,41 @@ function TransactionWorkspace({ transaction, onUpdated, showToast }) {
             </Panel>
           )}
 
-          {(transaction.status === "refund_requested" || transaction.status === "refunded" || transaction.status === "completed") && (
+          {transaction.status === "refund_requested" && (
+            <Notice
+              icon={Clock3}
+              title="Đang chờ hoàn cọc"
+              description="Yêu cầu hoàn cọc của bạn đã được gửi thành công. Quản trị viên đang tiến hành kiểm tra hồ sơ giao dịch và chuyển khoản hoàn lại tiền cọc (sau khi trừ phí hoa hồng môi giới) cho bạn."
+              tone="amber"
+            />
+          )}
+
+          {transaction.status === "refunded" && (
+            <Panel icon={CheckCircle2} title="Hệ thống đã hoàn cọc">
+              <p className="text-sm font-medium text-slate-500 mb-4 leading-relaxed">
+                Quản trị viên đã thực hiện hoàn trả tiền cọc thành công vào thông tin tài khoản ngân hàng của bạn. Vui lòng kiểm tra tài khoản của mình và bấm nút xác nhận dưới đây.
+              </p>
+              <button
+                type="button"
+                onClick={confirmRefund}
+                disabled={submitting}
+                className="inline-flex h-11 items-center gap-2 rounded-lg bg-emerald-600 px-5 text-sm font-black text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Xác nhận đã nhận tiền cọc
+              </button>
+            </Panel>
+          )}
+
+          {transaction.status === "completed" && (
             <Notice
               icon={CheckCircle2}
               title="Giao dịch đã hoàn tất"
-              description="Hồ sơ pháp lý và tiền cọc đã được xác nhận. Bất động sản đã chuyển sang trạng thái đã bán."
+              description="Hồ sơ pháp lý, tiền cọc và thanh toán đã được xác nhận hoàn tất thành công. Bất động sản đã chuyển sang trạng thái đã bán."
               tone="green"
             />
           )}
+
 
           {transaction.status === "cancelled" && (
             <Notice
@@ -703,10 +744,14 @@ function StatusPill({ status }) {
 
 function ValueBox({ icon: Icon, label, value }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-      <Icon className="h-5 w-5 text-slate-500" />
-      <p className="mt-3 text-xs font-black uppercase tracking-wider text-slate-400">{label}</p>
-      <p className="mt-1 text-lg font-black text-slate-950">{value}</p>
+    <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm transition-all hover:shadow-md flex items-center gap-3.5">
+      <span className="p-2.5 bg-slate-50 text-slate-500 rounded-xl shrink-0">
+        <Icon className="h-5.5 w-5.5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">{label}</p>
+        <p className="mt-0.5 text-base font-black text-slate-900 truncate">{value}</p>
+      </div>
     </div>
   );
 }
@@ -715,13 +760,13 @@ function ValueBox({ icon: Icon, label, value }) {
 
 function Panel({ icon: Icon, title, children }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
-      <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-          <Icon className="h-5 w-5" />
+    <div className="rounded-2xl border border-slate-100 bg-white p-5 sm:p-6 premium-shadow">
+      <div className="flex items-start gap-4">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
+          <Icon className="h-5.5 w-5.5" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-xl font-black text-slate-950">{title}</h3>
+          <h3 className="text-lg font-black text-slate-900 mb-4 pb-2 border-b border-slate-50 tracking-tight leading-snug">{title}</h3>
           {children}
         </div>
       </div>
@@ -734,30 +779,31 @@ function PropertySnapshot({ transaction }) {
   const isLocked = ["deposit_confirmed", "deal_scheduled", "broker_confirmed"].includes(transaction.status);
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-5">
-      <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-slate-700 shadow-sm">
-          <Building2 className="h-5 w-5" />
+    <div className="rounded-2xl border border-slate-150/60 bg-gradient-to-br from-slate-50 to-slate-100/30 p-5 sm:p-6 shadow-sm">
+      <div className="flex items-start gap-4">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-slate-700 shadow-sm border border-slate-100">
+          <Building2 className="h-5.5 w-5.5 text-amber-600" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="text-xs font-black uppercase tracking-wider text-slate-400">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
               {transaction.propertyCode || "BĐS"}
             </p>
             {isSold && (
-              <span className="rounded bg-rose-100 px-2 py-0.5 text-[10px] font-black uppercase text-rose-700">Đã bán</span>
+              <span className="rounded-md bg-rose-50 px-2.5 py-0.5 text-[9px] font-black uppercase text-rose-700 border border-rose-100">Đã bán</span>
             )}
             {!isSold && isLocked && (
-              <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-black uppercase text-amber-700">Đang giao dịch</span>
+              <span className="rounded-md bg-amber-50 px-2.5 py-0.5 text-[9px] font-black uppercase text-amber-700 border border-amber-100">Đang giao dịch</span>
             )}
           </div>
-          <h3 className="mt-1 text-xl font-black text-slate-950">{transaction.propertyTitle}</h3>
-          <p className="mt-2 text-sm font-bold text-slate-500">
+          <h3 className="mt-1.5 text-xl font-black text-slate-900 leading-tight">{transaction.propertyTitle}</h3>
+          <p className="mt-2 text-xs font-semibold text-slate-450 flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-slate-300"></span>
             {[propertyTypeLabels[transaction.propertyType] || transaction.propertyType, transaction.propertyDistrict, transaction.propertyProvince]
               .filter(Boolean)
               .join(" · ") || "Chưa cập nhật vị trí"}
           </p>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
             <ValueBox icon={Banknote} label="Giá BĐS" value={formatVnd(transaction.propertyPrice || transaction.totalPrice)} />
             <ValueBox icon={Square} label="Diện tích" value={transaction.propertyArea ? `${Number(transaction.propertyArea).toLocaleString("vi-VN")} m²` : "Chưa cập nhật"} />
             <ValueBox icon={CreditCard} label="Cọc 10%" value={formatVnd(transaction.depositAmount)} />
@@ -787,17 +833,17 @@ function TimelinePanel({ transaction }) {
   ];
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className="flex items-center gap-2">
+    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-2 pb-3 border-b border-slate-50 mb-4">
         <Clock3 className="h-4 w-4 text-slate-500" />
-        <h3 className="text-sm font-black text-slate-950">Lịch hẹn & giao dịch</h3>
+        <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Lịch hẹn & giao dịch</h3>
       </div>
-      <div className="mt-4 space-y-3">
+      <div className="space-y-3.5">
         {rows.map((row) => (
-          <div key={row.label} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-            <p className="text-xs font-black uppercase tracking-wider text-slate-400">{row.label}</p>
-            <p className="mt-1 text-sm font-black text-slate-950">{row.value}</p>
-            {row.sub && <p className="mt-1 text-xs font-bold text-slate-500">{row.sub}</p>}
+          <div key={row.label} className="rounded-xl border border-slate-100/60 bg-slate-50/60 p-3.5">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">{row.label}</p>
+            <p className="mt-1 text-sm font-bold text-slate-800">{row.value}</p>
+            {row.sub && <p className="mt-1 text-[10px] font-bold text-slate-450 leading-relaxed">{row.sub}</p>}
           </div>
         ))}
       </div>
@@ -807,12 +853,12 @@ function TimelinePanel({ transaction }) {
 
 function CommissionSplit({ transaction }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className="flex items-center gap-2">
+    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-2 pb-3 border-b border-slate-50 mb-4">
         <Banknote className="h-4 w-4 text-slate-500" />
-        <h3 className="text-sm font-black text-slate-950">Hoa hồng</h3>
+        <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Hoa hồng</h3>
       </div>
-      <div className="mt-4 space-y-2">
+      <div className="space-y-2">
         <MoneyLine label="Tổng khấu trừ" value={transaction.commissionDeduction} />
         <MoneyLine label="Môi giới nhận 60%" value={transaction.brokerCommissionAmount} />
         <MoneyLine label="Công ty giữ 40%" value={transaction.companyCommissionAmount} />
@@ -823,9 +869,9 @@ function CommissionSplit({ transaction }) {
 
 function MoneyLine({ label, value }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2">
-      <span className="text-xs font-black uppercase tracking-wider text-slate-400">{label}</span>
-      <span className="text-sm font-black text-slate-950">{formatVnd(value)}</span>
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50/60 border border-slate-100/55 px-3.5 py-2.5">
+      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">{label}</span>
+      <span className="text-sm font-black text-slate-900">{formatVnd(value)}</span>
     </div>
   );
 }
@@ -1018,20 +1064,20 @@ function CopyLine({ label, value, onCopy }) {
 
 function Notice({ icon: Icon, title, description, tone }) {
   const styles = {
-    amber: "border-amber-200 bg-amber-50 text-amber-900",
-    green: "border-emerald-200 bg-emerald-50 text-emerald-900",
-    rose: "border-rose-200 bg-rose-50 text-rose-900",
+    amber: "border-amber-100 border-l-4 border-l-amber-500 bg-amber-50/40 text-amber-900",
+    green: "border-emerald-100 border-l-4 border-l-emerald-500 bg-emerald-50/40 text-emerald-900",
+    rose: "border-rose-100 border-l-4 border-l-rose-500 bg-rose-50/40 text-rose-900",
   };
 
   return (
-    <div className={`rounded-lg border p-6 ${styles[tone]}`}>
+    <div className={`rounded-xl border p-5 sm:p-6 shadow-sm transition-all duration-300 ${styles[tone]}`}>
       <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white/70">
-          <Icon className="h-6 w-6" />
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/95 text-slate-800 shadow-sm border border-slate-100">
+          <Icon className="h-5.5 w-5.5" />
         </div>
-        <div>
-          <h3 className="text-xl font-black">{title}</h3>
-          <p className="mt-2 text-sm font-bold opacity-80">{description}</p>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-lg font-black tracking-tight leading-snug">{title}</h3>
+          <p className="mt-1.5 text-xs font-semibold opacity-90 leading-relaxed">{description}</p>
         </div>
       </div>
     </div>
@@ -1040,30 +1086,30 @@ function Notice({ icon: Icon, title, description, tone }) {
 
 function PaymentHistory({ payments }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className="flex items-center gap-2">
+    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-2 pb-3 border-b border-slate-50 mb-4">
         <Landmark className="h-4 w-4 text-slate-500" />
-        <h3 className="text-sm font-black text-slate-950">Lịch sử thanh toán</h3>
+        <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Lịch sử thanh toán</h3>
       </div>
-      <div className="mt-4 space-y-3">
+      <div className="space-y-3">
         {payments.length === 0 ? (
-          <p className="text-sm font-bold text-slate-500">Chưa có khoản thanh toán.</p>
+          <p className="text-xs font-bold text-slate-450 italic py-2">Chưa có khoản thanh toán.</p>
         ) : (
           payments.map((payment) => (
-            <div key={payment.paymentId} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+            <div key={payment.paymentId} className="rounded-xl border border-slate-100/60 bg-slate-50/60 p-3.5">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-black text-slate-950">{formatVnd(payment.amount)}</p>
-                  <p className="mt-1 text-xs font-bold text-slate-500">
+                  <p className="text-sm font-black text-slate-900">{formatVnd(payment.amount)}</p>
+                  <p className="mt-1 text-[10px] font-bold text-slate-450">
                     {methodLabels[payment.paymentMethod] || payment.paymentMethod || "Chưa cập nhật"} · {formatDate(payment.paymentDate)}
                   </p>
                 </div>
-                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-slate-700 ring-1 ring-slate-200">
+                <span className="rounded-full bg-white px-2.5 py-0.5 text-[9px] font-extrabold text-slate-700 border border-slate-200">
                   {paymentStatusLabels[payment.paymentStatus] || payment.paymentStatus}
                 </span>
               </div>
               {payment.confirmedByName && (
-                <p className="mt-2 text-xs font-bold text-emerald-700">Xác nhận bởi {payment.confirmedByName}</p>
+                <p className="mt-2 text-[10px] font-bold text-emerald-700">Xác nhận bởi {payment.confirmedByName}</p>
               )}
             </div>
           ))
@@ -1089,14 +1135,14 @@ function getDocumentTypeName(type) {
 
 function DocumentList({ documents, onView }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className="flex items-center gap-2">
+    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-2 pb-3 border-b border-slate-50 mb-4">
         <FileCheck2 className="h-4 w-4 text-slate-500" />
-        <h3 className="text-sm font-black text-slate-950">Hồ sơ đã gửi</h3>
+        <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Hồ sơ đã gửi</h3>
       </div>
-      <div className="mt-4 space-y-2">
+      <div className="space-y-2">
         {documents.length === 0 ? (
-          <p className="text-sm font-bold text-slate-500">Chưa gửi hồ sơ.</p>
+          <p className="text-xs font-bold text-slate-450 italic py-2">Chưa gửi hồ sơ.</p>
         ) : (
           documents.map((document) => (
             <button
@@ -1107,7 +1153,7 @@ function DocumentList({ documents, onView }) {
                 name: document.fileName || getDocumentTypeName(document.documentType),
                 type: document.url?.toLowerCase().endsWith(".pdf") ? "pdf" : "image",
               })}
-              className="block w-full rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100"
+              className="block w-full rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-100/80 px-3.5 py-2.5 text-left text-xs font-bold text-slate-700 transition hover:shadow-sm cursor-pointer"
             >
               {getDocumentTypeName(document.documentType)}
             </button>
