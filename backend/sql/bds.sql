@@ -36,7 +36,8 @@ CREATE TABLE properties (
     title VARCHAR(500) NOT NULL,
     description TEXT,
     property_type VARCHAR(50) NOT NULL,
-    status VARCHAR(30) DEFAULT 'pending',           -- 'pending', 'published', 'in_transaction', 'sold'
+    status VARCHAR(30) DEFAULT 'pending',           -- 'pending', 'published', 'in_transaction', 'sold', 'rejected'
+    reject_reason TEXT,
     province VARCHAR(100) NOT NULL,
     district VARCHAR(100) NOT NULL,
     area NUMERIC(10, 2) NOT NULL,

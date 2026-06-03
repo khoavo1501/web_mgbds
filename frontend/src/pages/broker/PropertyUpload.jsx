@@ -3,6 +3,7 @@ import { UploadCloud, CheckCircle2, Map, Loader2, X, FileText, Plus, Trash2, Fil
 import PropertyPreview from '../../components/broker/PropertyPreview';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import { getPropertyStatusMeta } from '../../utils/propertyStatus';
 import page1 from '../../assets/images/contracts/page1.png';
 import page2 from '../../assets/images/contracts/page2.png';
 import page3 from '../../assets/images/contracts/page3.png';
@@ -62,15 +63,9 @@ function useDebounce(value, delay = 400) {
   return debounced;
 }
 
-const statusLabel = (s) => {
-  switch (s) {
-    case 'published': return { text: 'Đã đăng', cls: 'bg-emerald-100 text-emerald-700' };
-    case 'pending':   return { text: 'Chờ kiểm tra', cls: 'bg-amber-100 text-amber-700' };
-    case 'pending_review':
-    case 'sold':      return { text: 'Đã bán', cls: 'bg-blue-100 text-blue-700' };
-    case 'rejected':  return { text: 'Từ chối', cls: 'bg-rose-100 text-rose-700' };
-    default:          return { text: s, cls: 'bg-slate-100 text-slate-600' };
-  }
+const statusLabel = (status) => {
+  const meta = getPropertyStatusMeta(status);
+  return { text: meta.label, cls: meta.className };
 };
 
 const formatPrice = (p) => {
@@ -85,9 +80,9 @@ function MyProperties({ onEdit, showToast }) {
 
   const fetchProperties = useCallback(() => {
     setLoading(true);
-    api.get('/properties?size=100')
+    api.get('/properties/my-properties')
       .then(res => {
-        if (res.data.success) setProperties(res.data.data.content || []);
+        if (res.data.success) setProperties(res.data.data || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -145,6 +140,11 @@ function MyProperties({ onEdit, showToast }) {
             <div className="flex-1 min-w-0 flex flex-col">
               <h4 className="text-base font-bold text-slate-900 line-clamp-1 mb-1 group-hover:text-gold-600 transition-colors">{p.title}</h4>
               <p className="text-sm text-slate-400 mb-3">{p.propertyCode} · {p.propertyType}</p>
+              {p.status === 'rejected' && p.rejectReason && (
+                <p className="mb-3 rounded-xl bg-rose-50 px-3 py-2 text-xs font-bold leading-5 text-rose-700">
+                  Lý do không duyệt: {p.rejectReason}
+                </p>
+              )}
               
               <div className="flex items-center gap-2 text-sm text-slate-500 mb-4 mt-auto">
                 <Map className="w-4 h-4 text-slate-400" />
@@ -160,7 +160,7 @@ function MyProperties({ onEdit, showToast }) {
                   <button onClick={() => onEdit(p)} className="text-gold-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition-colors" title="Xem / Sửa">
                     <PenSquare className="w-4 h-4" />
                   </button>
-                  {['pending', 'pending_review'].includes(p.status) && (
+                  {p.status === 'pending' && (
                     <button onClick={() => handleDelete(p.propertyId)} className="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 p-2 rounded-xl transition-colors" title="Xóa">
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -194,7 +194,7 @@ export default function PropertyUpload() {
 
   const debouncedPreview = useDebounce(formData, 400);
 
-  const isLocked = editingId && !['pending', 'pending_review', 'Nháp'].includes(formData.status);
+  const isLocked = editingId && !['pending', 'rejected', 'Nháp'].includes(formData.status);
 
   // Form Validation
   const isBasicInfoComplete = !!(formData.title.trim() && formData.type && formData.price && formData.area && formData.ward);

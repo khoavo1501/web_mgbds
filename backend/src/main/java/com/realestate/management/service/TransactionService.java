@@ -314,7 +314,7 @@ public class TransactionService {
                 transactionPaymentRepository.save(payment);
             });
             if (t.getProperty() != null) {
-                t.getProperty().setStatus("deposit_paid");
+                t.getProperty().setStatus("in_transaction");
                 t.getProperty().setIsLocked(true);
                 propertyRepository.save(t.getProperty());
                 markPropertyAppointmentsCompleted(t.getProperty());
@@ -331,7 +331,7 @@ public class TransactionService {
             }
             markDirectPaymentAppointments(t, "completed");
             if (t.getProperty() != null) {
-                t.getProperty().setStatus("deposit_paid");
+                t.getProperty().setStatus("in_transaction");
                 t.getProperty().setIsLocked(true);
                 propertyRepository.save(t.getProperty());
             }
@@ -358,8 +358,8 @@ public class TransactionService {
                     transactionPaymentRepository.save(payment);
                 }
             });
-            if (t.getProperty() != null && "deposit_paid".equalsIgnoreCase(t.getProperty().getStatus())) {
-                t.getProperty().setStatus("sold");
+            if (t.getProperty() != null && "in_transaction".equalsIgnoreCase(t.getProperty().getStatus())) {
+                t.getProperty().setStatus("published");
                 t.getProperty().setIsLocked(false);
                 propertyRepository.save(t.getProperty());
             }

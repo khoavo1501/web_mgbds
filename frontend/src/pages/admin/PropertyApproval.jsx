@@ -59,9 +59,16 @@ export default function PropertyApproval() {
   }, [fetchPendingProperties]);
 
   const handleStatus = async (property, status) => {
+    const reason = status === "rejected"
+      ? window.prompt("Nhập lý do không duyệt BĐS để môi giới cập nhật lại:")
+      : "";
+    if (status === "rejected" && !reason?.trim()) return;
+
     setProcessingId(property.propertyId);
     try {
-      const res = await api.patch(`/properties/${property.propertyId}/status?status=${status}`);
+      const res = await api.patch(`/properties/${property.propertyId}/status`, null, {
+        params: { status, reason: reason?.trim() },
+      });
       if (res.data.success) {
         setProperties((current) => current.filter((item) => item.propertyId !== property.propertyId));
         setSelectedProperty(null);
@@ -106,7 +113,7 @@ export default function PropertyApproval() {
           <p className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-[#8b6f2f]">Kiểm duyệt nguồn hàng</p>
           <h1 className="text-3xl font-black tracking-tight text-stone-950">Duyệt bất động sản</h1>
           <p className="mt-2 max-w-2xl text-sm font-medium text-stone-500">
-            Kiểm tra tin môi giới gửi lên, xem nhanh thông tin và duyệt hoặc từ chối ngay trên danh sách.
+            Kiểm tra tin môi giới gửi lên, phê duyệt hoặc trả lại để cập nhật khi thông tin chưa chính xác.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -202,7 +209,7 @@ export default function PropertyApproval() {
                     <Check className="h-4 w-4" />
                   </IconButton>
                   <IconButton
-                    title="Từ chối"
+                    title="Không duyệt"
                     onClick={() => handleStatus(property, "rejected")}
                     disabled={processingId === property.propertyId}
                     tone="reject"
@@ -385,10 +392,10 @@ export default function PropertyApproval() {
             <div className="flex justify-end gap-3 border-t border-stone-200 p-6">
               <button
                 onClick={() => handleStatus(selectedProperty, "rejected")}
-                className="flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-black text-white transition-colors hover:bg-rose-700"
+                className="flex items-center gap-2 rounded-lg bg-rose-100 px-4 py-2.5 text-sm font-black text-rose-700 transition-colors hover:bg-rose-200"
               >
                 <X className="h-4 w-4" />
-                Từ chối
+                Không duyệt
               </button>
               <button
                 onClick={() => handleStatus(selectedProperty, "published")}

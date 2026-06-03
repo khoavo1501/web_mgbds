@@ -229,9 +229,22 @@ public class PropertyService {
         }
     }
 
-    /**
-     * Lấy chi tiết 1 BDS theo ID
-     */
+    /** Lay danh sach BDS do moi gioi dang nhap tao. */
+    public List<PropertyDTO> getMyProperties() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User khong ton tai"));
+
+        if (!"broker".equalsIgnoreCase(currentUser.getRole())) {
+            throw new RuntimeException("Chi moi gioi moi co danh sach BDS cua toi");
+        }
+
+        return propertyRepository.findByCreatedBy(currentUser).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /** Lay chi tiet mot BDS theo ID. */
     public PropertyDTO getPropertyById(Long id) {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy BDS với ID: " + id));
@@ -252,6 +265,10 @@ public class PropertyService {
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
         // Tạo property code tự động
+        if (!"broker".equalsIgnoreCase(currentUser.getRole())) {
+            throw new RuntimeException("Chi moi gioi moi co quyen dang tin BDS");
+        }
+
         String propertyCode = generatePropertyCode();
 
         // Tạo Property entity
@@ -264,7 +281,7 @@ public class PropertyService {
         property.setDistrict(request.getDistrict());
         property.setArea(request.getArea());
         property.setPrice(request.getPrice());
-        property.setStatus("pending_review"); // Changed to pending_review
+        property.setStatus("pending");
 
         property.setOwnerName(request.getOwnerName());
         property.setOwnerPhone(request.getOwnerPhone());
@@ -376,9 +393,10 @@ public class PropertyService {
         property.setHouseholdRegistrationUrl(request.getHouseholdRegistrationUrl());
         property.setOwnerIdUrl(request.getOwnerIdUrl());
 
-        // Nếu broker update và trạng thái không phải là pending_review -> đổi về pending_review
-        if ("broker".equalsIgnoreCase(currentUser.getRole()) && !"pending_review".equals(property.getStatus())) {
-            property.setStatus("pending_review");
+        // Broker updates must return the property to the review queue.
+        if ("broker".equalsIgnoreCase(currentUser.getRole()) && !"pending".equals(property.getStatus())) {
+            property.setStatus("pending");
+            property.setRejectReason(null);
         }
 
         // Admin có thể gán broker
@@ -432,7 +450,7 @@ public class PropertyService {
         // Admin hoặc Broker (nếu là người tạo và đang ở trạng thái pending) mới được xóa
         if ("broker".equalsIgnoreCase(currentUser.getRole())) {
             boolean isCreator = property.getCreatedBy() != null && property.getCreatedBy().getUserId().equals(currentUser.getUserId());
-            if (!isCreator || !"pending_review".equals(property.getStatus())) {
+            if (!isCreator || !"pending".equals(property.getStatus())) {
                 throw new RuntimeException("Bạn không có quyền xóa BDS này, hoặc BDS đã được duyệt");
             }
         } else if (!"admin".equalsIgnoreCase(currentUser.getRole())) {
@@ -452,10 +470,10 @@ public class PropertyService {
      * Cập nhật trạng thái BDS
      */
     @Transactional
-    public PropertyDTO updatePropertyStatus(Long id, String status) {
+    public PropertyDTO updatePropertyStatus(Long id, String status, String reason) {
         // Validate status
-        if (!status.matches("pending_review|published|in_transaction|deposit_paid|sold|rented|rejected|inactive")) {
-            throw new RuntimeException("Trạng thái không hợp lệ. Chỉ chấp nhận: pending, published, sold, rented, rejected");
+        if (!status.matches("pending|published|in_transaction|sold|rejected")) {
+            throw new RuntimeException("Trang thai khong hop le. Chi chap nhan: pending, published, in_transaction, sold, rejected");
         }
 
         // Lấy thông tin user đang đăng nhập
@@ -479,11 +497,24 @@ public class PropertyService {
             }
         }
 
+        if ("rejected".equals(status)) {
+            if (!"admin".equalsIgnoreCase(currentUser.getRole())) {
+                throw new RuntimeException("Chi Admin moi co quyen tu choi BDS");
+            }
+            if (!"pending".equals(property.getStatus())) {
+                throw new RuntimeException("Chi co the tu choi BDS dang cho kiem tra");
+            }
+            if (reason == null || reason.trim().isEmpty()) {
+                throw new RuntimeException("Vui long nhap ly do khong duyet BDS");
+            }
+        }
+
         if ("published".equals(status)) {
             validatePropertyLegalDocuments(property);
         }
 
         property.setStatus(status);
+        property.setRejectReason("rejected".equals(status) ? reason.trim() : null);
         Property savedProperty = propertyRepository.save(property);
 
         return convertToDTO(savedProperty);
@@ -531,6 +562,7 @@ public class PropertyService {
         dto.setDescription(property.getDescription());
         dto.setPropertyType(property.getPropertyType());
         dto.setStatus(property.getStatus());
+        dto.setRejectReason(property.getRejectReason());
         dto.setProvince(property.getProvince());
         dto.setDistrict(property.getDistrict());
         dto.setArea(property.getArea());

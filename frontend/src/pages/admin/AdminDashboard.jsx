@@ -137,7 +137,7 @@ export default function AdminDashboard() {
       totalProperties: properties.length,
       published: properties.filter((item) => item.status === "published").length,
       pendingReviews:
-        properties.filter((item) => item.status === "pending_review").length +
+        properties.filter((item) => item.status === "pending").length +
         users.filter((item) => item.identityVerificationStatus === "pending_review").length +
         reviewTransactions.length,
       completedRevenue: completedRevenue || MOCK_MONTHLY_REVENUE.revenue,

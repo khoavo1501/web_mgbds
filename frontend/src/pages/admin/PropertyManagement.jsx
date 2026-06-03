@@ -6,7 +6,6 @@ import {
   Loader2,
   MapPin,
   Pencil,
-  Plus,
   Search,
   SlidersHorizontal,
   Trash2,
@@ -14,6 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import api from "../../services/api";
+import { PROPERTY_STATUSES, PROPERTY_STATUS_META } from "../../utils/propertyStatus";
 
 const emptyForm = {
   title: "",
@@ -37,24 +37,10 @@ const propertyTypes = [
 
 const statuses = [
   { value: "all", label: "Tất cả" },
-  { value: "pending_review", label: "Chờ kiểm tra" },
-  { value: "published", label: "Đang đăng" },
-  { value: "in_transaction", label: "Đang giao dịch" },
-  { value: "deposit_paid", label: "Đã cọc" },
-  { value: "rejected", label: "Từ chối" },
-  { value: "sold", label: "Đã bán" },
-  { value: "rented", label: "Đã thuê" },
+  ...PROPERTY_STATUSES,
 ];
 
-const statusMeta = {
-  pending_review: { label: "Chờ kiểm tra", className: "bg-amber-100 text-amber-800" },
-  published: { label: "Đang đăng", className: "bg-emerald-100 text-emerald-800" },
-  deposit_paid: { label: "Đã cọc", className: "bg-amber-100 text-amber-800" },
-  in_transaction: { label: "Đang giao dịch", className: "bg-cyan-100 text-cyan-800" },
-  rejected: { label: "Từ chối", className: "bg-rose-100 text-rose-800" },
-  sold: { label: "Đã bán", className: "bg-blue-100 text-blue-800" },
-  rented: { label: "Đã thuê", className: "bg-cyan-100 text-cyan-800" },
-};
+const statusMeta = PROPERTY_STATUS_META;
 
 const formatVnd = (value) =>
   new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(value || 0)) + " VNĐ";
@@ -107,17 +93,11 @@ export default function PropertyManagement() {
   const summary = useMemo(() => {
     return {
       total: properties.length,
-      pending: properties.filter((item) => item.status === "pending_review").length,
+      pending: properties.filter((item) => item.status === "pending").length,
       published: properties.filter((item) => item.status === "published").length,
       totalValue: properties.reduce((sum, item) => sum + Number(item.price || 0), 0),
     };
   }, [properties]);
-
-  const openCreateModal = () => {
-    setEditingId(null);
-    setFormData(emptyForm);
-    setModalMode("create");
-  };
 
   const openEditModal = (property) => {
     setEditingId(property.propertyId);
@@ -237,12 +217,10 @@ export default function PropertyManagement() {
     setSaving(true);
     try {
       const payload = buildPayload();
-      const response = editingId
-        ? await api.put(`/properties/${editingId}`, payload)
-        : await api.post("/properties", payload);
+      const response = await api.put(`/properties/${editingId}`, payload);
 
       if (response.data.success) {
-        showToast("success", editingId ? "Đã cập nhật BĐS." : "Đã tạo BĐS mới, trạng thái chờ kiểm tra.");
+        showToast("success", "Đã cập nhật BĐS.");
         closeModal();
         fetchProperties();
       } else {
@@ -256,8 +234,15 @@ export default function PropertyManagement() {
   };
 
   const handleStatusChange = async (property, status) => {
+    const reason = status === "rejected"
+      ? window.prompt("Nhập lý do không duyệt BĐS để môi giới cập nhật lại:")
+      : "";
+    if (status === "rejected" && !reason?.trim()) return;
+
     try {
-      const response = await api.patch(`/properties/${property.propertyId}/status?status=${status}`);
+      const response = await api.patch(`/properties/${property.propertyId}/status`, null, {
+        params: { status, reason: reason?.trim() },
+      });
       if (response.data.success) {
         showToast("success", `Đã chuyển ${property.propertyCode} sang ${statusMeta[status]?.label || status}.`);
         fetchProperties();
@@ -297,13 +282,6 @@ export default function PropertyManagement() {
             Quản trị toàn bộ tin đăng, cập nhật trạng thái, chỉnh thông tin và kiểm soát dữ liệu hiển thị trên website.
           </p>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="flex items-center gap-2 rounded-lg bg-stone-950 px-4 py-3 text-sm font-black text-white transition-colors hover:bg-stone-800"
-        >
-          <Plus className="h-4 w-4" />
-          Thêm BĐS
-        </button>
       </section>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -343,10 +321,11 @@ export default function PropertyManagement() {
       </section>
 
       <section className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm">
-        <div className="grid grid-cols-[1fr_140px_170px_145px_180px] border-b border-stone-200 px-5 py-3 text-xs font-black uppercase tracking-wider text-stone-400">
+        <div className="grid grid-cols-[minmax(280px,1fr)_140px_170px_190px_145px_180px] border-b border-stone-200 px-5 py-3 text-xs font-black uppercase tracking-wider text-stone-400">
           <div>Bất động sản</div>
           <div>Loại</div>
           <div>Giá / diện tích</div>
+          <div>Người đăng</div>
           <div>Trạng thái</div>
           <div className="text-right">Thao tác</div>
         </div>
@@ -362,7 +341,7 @@ export default function PropertyManagement() {
               <ImagePlus className="h-7 w-7" />
             </div>
             <p className="text-lg font-black text-stone-900">Chưa có bất động sản phù hợp</p>
-            <p className="mt-1 text-sm font-medium text-stone-500">Thử đổi bộ lọc hoặc thêm tin mới.</p>
+            <p className="mt-1 text-sm font-medium text-stone-500">Thử đổi bộ lọc để tìm bất động sản.</p>
           </div>
         ) : (
           <div className="divide-y divide-stone-100">
@@ -371,7 +350,7 @@ export default function PropertyManagement() {
               return (
                 <article
                   key={property.propertyId}
-                  className="grid grid-cols-[1fr_140px_170px_145px_180px] items-center px-5 py-4 transition-colors hover:bg-[#fbf8f1]"
+                  className="grid grid-cols-[minmax(280px,1fr)_140px_170px_190px_145px_180px] items-center px-5 py-4 transition-colors hover:bg-[#fbf8f1]"
                 >
                   <div className="flex min-w-0 items-center gap-4">
                     <div className="h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-stone-100">
@@ -407,6 +386,12 @@ export default function PropertyManagement() {
                     <p className="text-sm font-black text-stone-950">{formatVnd(property.price)}</p>
                     <p className="mt-1 text-xs font-bold text-stone-400">{property.area} m²</p>
                   </div>
+                  <div className="min-w-0 pr-3">
+                    <p className="truncate text-sm font-black text-stone-800">{property.createdBy?.fullName || "Chưa rõ"}</p>
+                    <p className="mt-1 truncate text-xs font-medium text-stone-400">
+                      {property.createdBy?.phone || property.createdBy?.email || "Chưa có liên hệ"}
+                    </p>
+                  </div>
                   <div>
                     <select
                       value={property.status}
@@ -429,13 +414,10 @@ export default function PropertyManagement() {
                     <IconButton title="Chỉnh sửa" onClick={() => openEditModal(property)}>
                       <Pencil className="h-4 w-4" />
                     </IconButton>
-                    {property.status === "pending_review" && (
+                    {property.status === "pending" && (
                       <>
                         <IconButton title="Duyệt BĐS và giấy tờ" tone="approve" onClick={() => handleStatusChange(property, "published")}>
                           <CheckCircle2 className="h-4 w-4" />
-                        </IconButton>
-                        <IconButton title="Từ chối" tone="danger" onClick={() => handleStatusChange(property, "rejected")}>
-                          <XCircle className="h-4 w-4" />
                         </IconButton>
                       </>
                     )}
@@ -752,11 +734,17 @@ function PreviewModal({ property, onClose }) {
               <X className="h-5 w-5" />
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Detail label="Giá" value={formatVnd(property.price)} />
             <Detail label="Diện tích" value={`${property.area} m²`} />
             <Detail label="Trạng thái" value={statusMeta[property.status]?.label || property.status} />
+            <Detail label="Người đăng" value={property.createdBy?.fullName || "Chưa rõ"} />
           </div>
+          {(property.createdBy?.phone || property.createdBy?.email) && (
+            <p className="mt-3 rounded-lg bg-stone-50 px-4 py-3 text-sm font-bold text-stone-600">
+              Liên hệ người đăng: {property.createdBy.phone || property.createdBy.email}
+            </p>
+          )}
           <div className="mt-4 rounded-lg border border-stone-200 bg-stone-50/70 p-4">
             <p className="mb-3 text-xs font-black uppercase tracking-wider text-stone-400">Giấy tờ pháp lý</p>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

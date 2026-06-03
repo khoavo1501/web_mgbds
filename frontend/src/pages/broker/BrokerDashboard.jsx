@@ -117,7 +117,7 @@ export default function BrokerDashboard() {
         setTopProperties(sorted);
         
         // Cập nhật tổng số BĐS đang hoạt động
-        const activeCount = res.data.data.filter(p => p.status === 'available').length;
+        const activeCount = res.data.data.filter(p => p.status === 'published').length;
         const totalViews = res.data.data.reduce((sum, p) => sum + (p.views || 0), 0);
         setStats(prev => ({ ...prev, activeProperties: activeCount, totalViews }));
       }
