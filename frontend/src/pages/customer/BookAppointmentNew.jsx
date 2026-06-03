@@ -239,14 +239,6 @@ export default function BookAppointmentNew() {
                   <Calendar className="w-5 h-5 text-gold-500" />
                   Tháng {currentMonth.getMonth() + 1}, {currentMonth.getFullYear()}
                 </h3>
-                <div className="flex gap-2">
-                  <button onClick={previousMonth} className="p-2 hover:bg-gold-50 text-slate-600 hover:text-gold-600 rounded-lg transition-colors border border-slate-200 hover:border-gold-200">
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button onClick={nextMonth} className="p-2 hover:bg-gold-50 text-slate-600 hover:text-gold-600 rounded-lg transition-colors border border-slate-200 hover:border-gold-200">
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
 
               <div className="grid grid-cols-7 gap-1 sm:gap-2">

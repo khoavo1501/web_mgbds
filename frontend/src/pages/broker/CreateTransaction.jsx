@@ -1,9 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import Input from "../../components/Input";
 import Button from "../../components/Button";
 import api from "../../services/api";
 import { useToast } from "../../context/ToastContext";
+import { 
+  ArrowLeft, 
+  FileSignature, 
+  User, 
+  Building, 
+  CreditCard, 
+  AlertCircle, 
+  ClipboardList
+} from "lucide-react";
 
 export default function CreateTransaction() {
   const navigate = useNavigate();
@@ -156,16 +164,36 @@ export default function CreateTransaction() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-black tracking-tight text-slate-800 mb-6">Tạo Giao dịch Đặt cọc</h1>
+    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 animate-fade-in">
+      <button 
+        onClick={() => navigate(-1)} 
+        className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors mb-6 group cursor-pointer"
+        type="button"
+      >
+        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+        Quay lại
+      </button>
+
+      <div className="flex items-center gap-3.5 mb-8">
+        <span className="p-3 bg-amber-500/10 text-amber-600 rounded-2xl">
+          <FileSignature className="w-6 h-6" />
+        </span>
+        <div>
+          <h1 className="text-2xl font-black tracking-tight text-slate-900">Tạo Giao dịch Đặt cọc</h1>
+          <p className="text-xs text-slate-500 mt-1">Chọn lịch hẹn đã dẫn xem để tiến hành thiết lập hợp đồng cọc</p>
+        </div>
+      </div>
       
-      <form onSubmit={handleSubmit} className="space-y-8 bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+      <form onSubmit={handleSubmit} className="space-y-8 bg-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-2xl premium-shadow border border-slate-100">
         
         {/* Chọn lịch hẹn */}
-        <div className="bg-blue-50/50 p-5 rounded-lg border border-blue-100 mb-6">
-          <label className="mb-2 block text-sm font-semibold text-blue-900">Chọn Khách hàng từ Lịch hẹn đã đặt</label>
+        <div className="bg-slate-50 border border-slate-150 p-5 rounded-xl shadow-inner relative overflow-hidden">
+          <label className="mb-2 block text-xs font-black text-slate-700 tracking-wider uppercase flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+            Bước 1: Chọn Khách hàng & Lịch hẹn tương ứng
+          </label>
           <select 
-            className="w-full px-4 py-2.5 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-slate-850 font-semibold shadow-sm transition-all cursor-pointer text-sm"
             value={selectedAppId}
             onChange={handleAppChange}
             required
@@ -178,67 +206,151 @@ export default function CreateTransaction() {
             ))}
           </select>
           {appointments.length === 0 && (
-            <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2.5 text-xs font-bold text-amber-800 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
               Chưa có lịch hẹn hợp lệ cho broker này. Hãy xác nhận lịch hẹn hoặc tạo lịch xem nhà trước.
-            </p>
+            </div>
           )}
-          <p className="mt-2 text-xs text-gold-600">Việc chọn lịch hẹn sẽ tự động điền thông tin khách hàng và bất động sản tương ứng.</p>
+          <p className="mt-2 text-xs text-slate-455 flex items-center gap-1.5">
+            <span className="h-1 w-1 rounded-full bg-slate-400"></span>
+            Việc chọn lịch hẹn sẽ tự động điền thông tin khách hàng và bất động sản tương ứng.
+          </p>
         </div>
 
-        {/* Thông tin khách hàng */}
-        <div>
-          <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Thông tin Khách hàng</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input name="customerName" value={formData.customerName} onChange={handleChange} label="Họ và tên" required placeholder="Nguyễn Văn A" readOnly className="bg-slate-50 cursor-not-allowed" />
-            <Input name="phone" value={formData.phone} onChange={handleChange} label="Số điện thoại" placeholder="Tự động điền từ lịch hẹn" readOnly className="bg-slate-50 cursor-not-allowed" />
-            <Input name="email" value={formData.email} onChange={handleChange} label="Địa chỉ email" type="email" placeholder="Tự động điền từ lịch hẹn" readOnly className="bg-slate-50 cursor-not-allowed" />
-            <Input name="idCard" value={formData.idCard} onChange={handleChange} label="CMND / CCCD / Hộ chiếu" placeholder="Sẽ bổ sung sau" readOnly className="bg-slate-50 cursor-not-allowed" />
-          </div>
-        </div>
-
-        {/* Thông tin bất động sản */}
-        <div>
-          <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Thông tin Bất động sản</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="col-span-1 md:col-span-2">
-               <Input name="propertyTitle" value={formData.propertyTitle} onChange={handleChange} label="Tên Bất động sản" readOnly placeholder="Sẽ tự động điền khi chọn lịch hẹn" className="bg-slate-50 cursor-not-allowed" />
+        {!selectedAppId ? (
+          <div className="text-center py-16 px-6 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/30 flex flex-col items-center justify-center">
+            <div className="p-4 bg-slate-100/80 text-slate-400 rounded-full mb-4">
+              <ClipboardList className="w-8 h-8" />
             </div>
-            <Input name="price" value={formData.price} onChange={handleChange} label="Giá thỏa thuận (VNĐ)" type="number" required placeholder="VD: 2500000000" readOnly className="bg-slate-50 cursor-not-allowed" />
-            <Input name="completionDate" value={formData.completionDate} onChange={handleChange} label="Ngày dự kiến hoàn tất" type="date" required readOnly className="bg-slate-50 cursor-not-allowed" />
-          </div>
-        </div>
-
-        {/* Thông tin tài chính */}
-        <div>
-          <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Thông tin Tài chính</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input name="depositAmount" value={formData.depositAmount} onChange={handleChange} label="Số tiền thanh toán/cọc (VNĐ)" type="number" required placeholder="VD: 100000000" readOnly className="bg-slate-50 cursor-not-allowed" />
-            <p className="col-span-1 md:col-span-2 text-xs font-semibold text-slate-500">
-              Mặc định cọc 10%. Nếu số tiền bằng toàn bộ giá trị giao dịch, hệ thống sẽ tự động hoàn tất và chuyển BĐS sang đã bán.
+            <h3 className="text-sm font-bold text-slate-700 mb-1">Chưa có thông tin lịch hẹn</h3>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              Vui lòng chọn khách hàng từ danh sách lịch hẹn ở trên để tự động tải thông tin giao dịch đặt cọc.
             </p>
-            <div className="col-span-1 md:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-slate-700">Hình thức thanh toán</label>
-              <select name="paymentMethod" value={formData.paymentMethod} disabled className="w-full px-3 py-2 border border-gray-300 rounded-md bg-slate-50 cursor-not-allowed text-slate-500">
-                <option value="transfer">Chuyển khoản ngân hàng</option>
-              </select>
+          </div>
+        ) : (
+          <div className="space-y-8 animate-scale-in">
+            {/* Thông tin khách hàng & Bất động sản */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Thông tin khách hàng */}
+              <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 border-b border-slate-50 pb-3">
+                  <span className="p-1.5 bg-amber-500/10 text-amber-600 rounded-lg">
+                    <User className="w-4 h-4" />
+                  </span>
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Thông tin Khách hàng</h3>
+                </div>
+                
+                <div className="space-y-3.5">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-extrabold uppercase block tracking-wider">Họ và tên</span>
+                    <span className="text-base font-bold text-slate-900">{formData.customerName || "—"}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase block tracking-wider">Số điện thoại</span>
+                      <span className="text-sm font-bold text-slate-800">{formData.phone || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase block tracking-wider">Địa chỉ email</span>
+                      <span className="text-sm font-bold text-slate-800 break-all">{formData.email || "—"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Thông tin bất động sản */}
+              <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 border-b border-slate-50 pb-3">
+                  <span className="p-1.5 bg-amber-500/10 text-amber-600 rounded-lg">
+                    <Building className="w-4 h-4" />
+                  </span>
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Thông tin Bất động sản</h3>
+                </div>
+                
+                <div className="space-y-3.5">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-extrabold uppercase block tracking-wider">Tên Bất động sản</span>
+                    <span className="text-base font-bold text-slate-900 line-clamp-1">{formData.propertyTitle || "—"}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase block tracking-wider">Giá thỏa thuận</span>
+                      <span className="text-sm font-extrabold text-amber-600">
+                        {formData.price ? Number(formData.price).toLocaleString('vi-VN') + ' VNĐ' : "—"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase block tracking-wider">Dự kiến hoàn tất</span>
+                      <span className="text-sm font-bold text-slate-800">
+                        {formData.completionDate ? new Date(formData.completionDate).toLocaleDateString('vi-VN') : "—"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
-            <div className="col-span-1 md:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-slate-700">Ghi chú thêm</label>
-              <textarea 
-                name="note"
-                value={formData.note}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows="3"
-                placeholder="Các điều khoản hoặc điều kiện đặc biệt..."
-              ></textarea>
+
+            {/* Thông tin tài chính */}
+            <div className="bg-slate-50/50 p-5 sm:p-6 rounded-xl border border-slate-150 shadow-inner space-y-5">
+              <div className="flex items-center gap-2 border-b border-slate-200/50 pb-3">
+                <span className="p-1.5 bg-amber-500/10 text-amber-600 rounded-lg">
+                  <CreditCard className="w-4 h-4" />
+                </span>
+                <h3 className="text-xs font-black text-slate-850 uppercase tracking-wider">Thông tin Tài chính & Giao dịch</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Số tiền thanh toán/cọc */}
+                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center">
+                  <span className="text-[10px] text-slate-450 font-extrabold uppercase tracking-wider block mb-1">Số tiền thanh toán/cọc (Cố định 10%)</span>
+                  <span className="text-xl font-black text-emerald-600">
+                    {formData.depositAmount ? Number(formData.depositAmount).toLocaleString('vi-VN') + ' VNĐ' : "—"}
+                  </span>
+                  <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                    Mặc định cọc 10%. Nếu số tiền bằng toàn bộ giá trị giao dịch, hệ thống sẽ tự động hoàn tất và chuyển BĐS sang đã bán.
+                  </p>
+                </div>
+
+                {/* Hình thức thanh toán */}
+                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] text-slate-450 font-extrabold uppercase tracking-wider block mb-1.5">Hình thức thanh toán</span>
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold border border-emerald-100/50">
+                      <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      Chuyển khoản ngân hàng (Mặc định)
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                    Tất cả các giao dịch cọc trực tuyến đều được xử lý và ghi nhận thông qua chuyển khoản ngân hàng.
+                  </p>
+                </div>
+
+                {/* Ghi chú thêm */}
+                <div className="col-span-1 md:col-span-2">
+                  <label className="mb-2 block text-xs font-black text-slate-700 tracking-wider uppercase">Ghi chú thêm</label>
+                  <textarea 
+                    name="note"
+                    value={formData.note}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm text-slate-800 font-medium placeholder:text-slate-400 bg-white shadow-sm transition-all"
+                    rows="3"
+                    placeholder="Nhập các điều khoản hoặc điều kiện đặc biệt khác của giao dịch..."
+                  ></textarea>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
-          <Button variant="outline" type="button">Hủy</Button>
-          <Button type="submit" disabled={submitting}>{submitting ? "Đang tạo..." : "Tạo giao dịch"}</Button>
+        <div className="flex justify-end space-x-4 pt-4 border-t border-slate-100">
+          <Button variant="outline" type="button" onClick={() => navigate(-1)} className="cursor-pointer">Hủy</Button>
+          {selectedAppId && (
+            <Button type="submit" disabled={submitting} className="bg-emerald-600 hover:bg-emerald-700 text-white focus:ring-emerald-500 cursor-pointer">
+              {submitting ? "Đang tạo..." : "Tạo giao dịch"}
+            </Button>
+          )}
         </div>
       </form>
     </div>

@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   FileText,
   CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
@@ -500,14 +501,16 @@ function Profile({ user, onUpdateProfile, returnTo, initialMessage, appointments
     return list.slice(0, 3);
   }, [appointments]);
 
+
+
   return (
     <div className="relative pb-16">
       {/* Dark Header Background */}
-      <div className="absolute inset-x-0 -top-6 h-64 bg-[#111827] -mx-4 sm:-mx-6 lg:-mx-8 pattern-dots pattern-slate-800 pattern-opacity-40 pattern-size-4 z-0" />
+      <div className="absolute inset-x-0 -top-6 h-64 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 -mx-4 sm:-mx-6 lg:-mx-8 pattern-dots pattern-slate-800 pattern-opacity-40 pattern-size-4 z-0" />
 
       <div className="relative z-10 pt-6">
         <div className="mb-8 flex items-center gap-5">
-          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#111827] text-2xl font-black text-white shadow-xl ring-4 ring-[#1f2937]">
+          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 to-amber-300 text-2xl font-black text-slate-950 shadow-xl ring-4 ring-white/10">
             {(user?.fullName || user?.email || "KH").slice(0, 2).toUpperCase()}
           </div>
           <div>
@@ -589,10 +592,10 @@ function Profile({ user, onUpdateProfile, returnTo, initialMessage, appointments
                    </div>
                    <h3 className="text-lg font-black text-slate-950">Thông tin cơ bản</h3>
                 </div>
-                <div className="grid gap-5 md:grid-cols-2">
+                <div className="grid gap-5 md:grid-cols-3">
                   <ProfileField icon={UserRound} label="Họ và tên" value={form.fullName} onChange={(value) => setForm((current) => ({ ...current, fullName: value }))} required />
-                  <ProfileReadonly icon={Mail} label="Email liên hệ" value={user?.email || "Chưa cập nhật"} />
                   <ProfileField icon={Phone} label="Số điện thoại" value={form.phone} onChange={(value) => setForm((current) => ({ ...current, phone: value }))} placeholder="Nhập số điện thoại" />
+                  <ProfileReadonly icon={Mail} label="Email liên hệ" value={user?.email || "Chưa cập nhật"} />
                 </div>
               </div>
 
@@ -604,12 +607,10 @@ function Profile({ user, onUpdateProfile, returnTo, initialMessage, appointments
                    </div>
                    <h3 className="text-lg font-black text-slate-950">Thông tin thanh toán</h3>
                 </div>
-                <div className="grid gap-5 md:grid-cols-2">
+                <div className="grid gap-5 md:grid-cols-3">
                   <BankSelect icon={Landmark} label="Ngân hàng thụ hưởng" banks={banks} loading={loadingBanks} value={form.bankName} onChange={(value) => setForm((current) => ({ ...current, bankName: value }))} />
                   <ProfileField icon={Landmark} label="Số tài khoản" value={form.bankAccountNumber} onChange={(value) => setForm((current) => ({ ...current, bankAccountNumber: value }))} placeholder="Nhập số tài khoản" />
-                  <div className="md:col-span-2">
-                    <ProfileField icon={UserRound} label="Tên chủ tài khoản (In hoa không dấu)" value={form.bankAccountHolder} onChange={(value) => setForm((current) => ({ ...current, bankAccountHolder: value }))} placeholder="VD: NGUYEN VAN A" />
-                  </div>
+                  <ProfileField icon={UserRound} label="Tên chủ tài khoản (In hoa không dấu)" value={form.bankAccountHolder} onChange={(value) => setForm((current) => ({ ...current, bankAccountHolder: value }))} placeholder="VD: NGUYEN VAN A" />
                 </div>
               </div>
 
@@ -639,15 +640,61 @@ function Profile({ user, onUpdateProfile, returnTo, initialMessage, appointments
                      <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white"><CheckCircle2 className="w-5 h-5" /></div>
                      <span className="text-[10px] font-black uppercase text-slate-950">Liên hệ</span>
                    </div>
-                   <div className="flex-1 h-0.5 bg-slate-200 mx-2 -mt-4" />
+                   <div className={`flex-1 h-0.5 ${
+                     user?.identityVerificationStatus === 'verified' || user?.identityVerificationStatus === 'pending_review'
+                       ? 'bg-emerald-500'
+                       : user?.identityVerificationStatus === 'rejected'
+                       ? 'bg-rose-500'
+                       : 'bg-slate-200'
+                   } mx-2 -mt-4 transition-colors duration-500`} />
                    <div className="flex flex-col items-center gap-2">
-                     <div className="w-8 h-8 rounded-full bg-white border-2 border-slate-900 flex items-center justify-center text-slate-900 font-bold text-xs">3</div>
-                     <span className="text-[10px] font-black uppercase text-slate-950">Giấy tờ</span>
+                     {user?.identityVerificationStatus === 'verified' || user?.identityVerificationStatus === 'pending_review' ? (
+                       <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white transition-all duration-300">
+                         <CheckCircle2 className="w-5 h-5" />
+                       </div>
+                     ) : user?.identityVerificationStatus === 'rejected' ? (
+                       <div className="w-8 h-8 rounded-full bg-rose-500 flex items-center justify-center text-white font-bold text-xs transition-all duration-300">
+                         !
+                       </div>
+                     ) : (
+                       <div className="w-8 h-8 rounded-full bg-white border-2 border-slate-900 flex items-center justify-center text-slate-900 font-bold text-xs">
+                         3
+                       </div>
+                     )}
+                     <span className={`text-[10px] font-black uppercase ${user?.identityVerificationStatus === 'rejected' ? 'text-rose-600' : 'text-slate-950'}`}>
+                       Giấy tờ
+                     </span>
                    </div>
-                   <div className="flex-1 h-0.5 bg-slate-200 mx-2 -mt-4" />
-                   <div className="flex flex-col items-center gap-2 opacity-50">
-                     <div className="w-8 h-8 rounded-full bg-white border-2 border-slate-200 flex items-center justify-center text-slate-400 font-bold text-xs">4</div>
-                     <span className="text-[10px] font-black uppercase text-slate-400">Khuôn mặt</span>
+                   <div className={`flex-1 h-0.5 ${
+                     user?.identityVerificationStatus === 'verified'
+                       ? 'bg-emerald-500'
+                       : user?.identityVerificationStatus === 'pending_review'
+                       ? 'bg-amber-500 animate-pulse'
+                       : 'bg-slate-200'
+                   } mx-2 -mt-4 transition-colors duration-500`} />
+                   <div className={`flex flex-col items-center gap-2 ${!user?.identityVerificationStatus || user?.identityVerificationStatus === 'not_submitted' || user?.identityVerificationStatus === 'rejected' ? 'opacity-50' : ''}`}>
+                     {user?.identityVerificationStatus === 'verified' ? (
+                       <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white transition-all duration-300">
+                         <CheckCircle2 className="w-5 h-5" />
+                       </div>
+                     ) : user?.identityVerificationStatus === 'pending_review' ? (
+                       <div className="w-8 h-8 rounded-full bg-white border-2 border-amber-500 flex items-center justify-center text-amber-500 font-bold text-xs animate-pulse">
+                         4
+                       </div>
+                     ) : (
+                       <div className="w-8 h-8 rounded-full bg-white border-2 border-slate-200 flex items-center justify-center text-slate-400 font-bold text-xs">
+                         4
+                       </div>
+                     )}
+                     <span className={`text-[10px] font-black uppercase ${
+                       user?.identityVerificationStatus === 'verified'
+                         ? 'text-slate-950'
+                         : user?.identityVerificationStatus === 'pending_review'
+                         ? 'text-amber-500'
+                         : 'text-slate-400'
+                     }`}>
+                       Xác thực
+                     </span>
                    </div>
                 </div>
 
@@ -665,8 +712,13 @@ function Profile({ user, onUpdateProfile, returnTo, initialMessage, appointments
               </div>
 
               {message && (
-                <div className={`rounded-xl px-4 py-3 text-sm font-bold ${message.type === "success" ? "border border-emerald-200 bg-emerald-50 text-emerald-700" : "border border-rose-200 bg-rose-50 text-rose-700"}`}>
-                  {message.text}
+                <div className={`rounded-xl border p-4 text-xs font-semibold flex items-start gap-2.5 shadow-sm transition-all duration-300 ${message.type === "success" ? "border-emerald-200 bg-emerald-50/50 text-emerald-700" : "border-rose-200 bg-rose-50/50 text-rose-700"}`}>
+                  {message.type === "success" ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                  )}
+                  <span>{message.text}</span>
                 </div>
               )}
 
@@ -679,11 +731,10 @@ function Profile({ user, onUpdateProfile, returnTo, initialMessage, appointments
                 <button type="button" className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-black text-slate-700 hover:bg-slate-50 transition shadow-sm" onClick={() => window.location.reload()}>
                   Thiết lập lại
                 </button>
-                <button type="submit" disabled={saving || !form.fullName.trim()} className="inline-flex h-12 items-center justify-center rounded-xl bg-[#111827] px-8 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-50 transition shadow-xl hover:shadow-2xl hover:-translate-y-0.5">
+                <button type="submit" disabled={saving || !form.fullName.trim()} className="inline-flex h-12 items-center justify-center rounded-xl bg-[#111827] px-8 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-50 transition shadow-xl hover:shadow-2xl hover:-translate-y-0.5 cursor-pointer">
                   {saving ? "Đang lưu..." : "Lưu thay đổi"}
                 </button>
               </div>
-
             </form>
           </div>
         </div>
@@ -1015,12 +1066,24 @@ function IdentityStatus({ status }) {
     not_submitted: "bg-slate-100 text-slate-600",
   };
   const key = status || "not_submitted";
+  
+  let percentText = "60% HOÀN THÀNH";
+  if (status === "verified") {
+    percentText = "100% HOÀN THÀNH";
+  } else if (status === "pending_review") {
+    percentText = "80% HOÀN THÀNH";
+  } else if (status === "rejected") {
+    percentText = "CẦN CẬP NHẬT";
+  }
+
   return (
     <div className="flex items-center gap-3">
       <span className={`inline-flex rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${styles[key] || styles.not_submitted}`}>
         {meta[key] || key}
       </span>
-      <span className="text-xs font-bold text-slate-400 hidden sm:inline-block">60% HOÀN THÀNH</span>
+      <span className={`text-xs font-bold ${status === 'rejected' ? 'text-rose-600 font-extrabold' : 'text-slate-400'} hidden sm:inline-block`}>
+        {percentText}
+      </span>
     </div>
   );
 }

@@ -185,6 +185,18 @@ public class TransactionController {
         }
     }
 
+    @PatchMapping("/{id}/confirm-refund")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<TransactionDTO>> confirmRefund(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Xác nhận đã nhận tiền cọc thành công",
+                    transactionService.confirmRefund(id)));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+
     @PatchMapping("/{id}/schedule-deal")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<TransactionDTO>> scheduleDeal(
